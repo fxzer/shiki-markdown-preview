@@ -14,7 +14,7 @@ function getWebviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptions {
 export function activate(context: vscode.ExtensionContext) {
 	// Register markdown preview command
 	context.subscriptions.push(
-		vscode.commands.registerCommand('markdownPreview.show', () => {
+		vscode.commands.registerCommand('shiki-markdown-preview.show', () => {
 			const activeEditor = vscode.window.activeTextEditor;
 			if (activeEditor && activeEditor.document.languageId === 'markdown') {
 				MarkdownPreviewPanel.createOrShow(context.extensionUri, activeEditor.document);
@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Register command to show preview for current document
 	context.subscriptions.push(
-		vscode.commands.registerCommand('markdownPreview.showForDocument', (uri?: vscode.Uri) => {
+		vscode.commands.registerCommand('shiki-markdown-preview.showForDocument', (uri?: vscode.Uri) => {
 			if (uri) {
 				vscode.workspace.openTextDocument(uri).then(document => {
 					if (document.languageId === 'markdown') {

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { createHighlighter } from 'shiki';
 import MarkdownIt from 'markdown-it';
+import { escapeHtml, getNonce } from './utils';
 
 /**
  * Manages markdown preview webview panels
@@ -11,7 +12,7 @@ export class MarkdownPreviewPanel {
      */
     public static currentPanel: MarkdownPreviewPanel | undefined;
 
-    public static readonly viewType = 'markdownPreview';
+    public static readonly viewType = 'shiki-markdown-preview';
 
     private readonly _panel: vscode.WebviewPanel;
     private readonly _extensionUri: vscode.Uri;
@@ -21,27 +22,21 @@ export class MarkdownPreviewPanel {
     private _markdownIt: MarkdownIt | undefined;
 
     public static createOrShow(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
-        const column = vscode.window.activeTextEditor
-            ? vscode.window.activeTextEditor.viewColumn
-            : undefined;
 
-        // If we already have a panel, show it.
         if (MarkdownPreviewPanel.currentPanel) {
-            MarkdownPreviewPanel.currentPanel._panel.reveal(column);
+            MarkdownPreviewPanel.currentPanel._panel.reveal(vscode.ViewColumn.Two);
             if (document) {
                 MarkdownPreviewPanel.currentPanel.updateContent(document);
             }
             return;
         }
 
-        // Otherwise, create a new panel.
         const panel = vscode.window.createWebviewPanel(
             MarkdownPreviewPanel.viewType,
             'Markdown Preview',
-            column || vscode.ViewColumn.Beside,
+            vscode.ViewColumn.Two,
             getWebviewOptions(extensionUri),
         );
-
         MarkdownPreviewPanel.currentPanel = new MarkdownPreviewPanel(panel, extensionUri, document);
     }
 
@@ -54,7 +49,11 @@ export class MarkdownPreviewPanel {
         this._extensionUri = extensionUri;
         this._currentDocument = document;
 
-        // Initialize components asynchronously
+
+
+        panel.iconPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'preview-icon.svg');
+
+
         this.initializeComponents().then(() => {
             // Set the webview's initial html content after initialization
             if (document) {
@@ -122,7 +121,7 @@ export class MarkdownPreviewPanel {
             typographer: true,
             highlight: (code: string, lang: string) => {
                 if (!lang || !this._highlighter) {
-                    return `<pre><code>${this.escapeHtml(code)}</code></pre>`;
+                    return `<pre><code>${escapeHtml(code)}</code></pre>`;
                 }
 
                 try {
@@ -133,7 +132,7 @@ export class MarkdownPreviewPanel {
                     return html;
                 } catch (error) {
                     console.warn(`Failed to highlight code for language: ${lang}`, error);
-                    return `<pre><code class="language-${this.escapeHtml(lang)}">${this.escapeHtml(code)}</code></pre>`;
+                    return `<pre><code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`;
                 }
             }
         });
@@ -142,7 +141,7 @@ export class MarkdownPreviewPanel {
         this._markdownIt.renderer.rules.image = (tokens, idx, options, env, renderer) => {
             const token = tokens[idx];
             const srcIndex = token.attrIndex('src');
-            
+
             if (srcIndex >= 0 && token.attrs && token.attrs[srcIndex]) {
                 const href = token.attrs[srcIndex][1];
                 if (!href.startsWith('http') && !href.startsWith('data:')) {
@@ -152,14 +151,14 @@ export class MarkdownPreviewPanel {
                     }
                 }
             }
-            
+
             return renderer.renderToken(tokens, idx, options);
         };
 
         this._markdownIt.renderer.rules.link_open = (tokens, idx, options, env, renderer) => {
             const token = tokens[idx];
             const hrefIndex = token.attrIndex('href');
-            
+
             if (hrefIndex >= 0 && token.attrs && token.attrs[hrefIndex]) {
                 const href = token.attrs[hrefIndex][1];
                 if (!href.startsWith('http') && !href.startsWith('#') && !href.startsWith('data:')) {
@@ -169,7 +168,7 @@ export class MarkdownPreviewPanel {
                     }
                 }
             }
-            
+
             return renderer.renderToken(tokens, idx, options);
         };
     }
@@ -179,7 +178,8 @@ export class MarkdownPreviewPanel {
         const content = document.getText();
         const html = this.renderMarkdown(content);
         this._panel.webview.html = html;
-        this._panel.title = `Preview: ${document.fileName}`;
+        const fileName = document.fileName.split('/').pop() || 'Untitled';
+        this._panel.title = fileName;
     }
 
     private renderMarkdown(content: string): string {
@@ -197,16 +197,6 @@ export class MarkdownPreviewPanel {
         }
     }
 
-    private escapeHtml(text: string): string {
-        const map: Record<string, string> = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, m => map[m]);
-    }
 
     private resolveRelativePath(href: string): string | null {
         if (!this._currentDocument) return null;
@@ -214,10 +204,10 @@ export class MarkdownPreviewPanel {
         try {
             // Get the directory of the current markdown file
             const documentDir = vscode.Uri.joinPath(this._currentDocument.uri, '..');
-            
+
             // Resolve the relative path
             const resolvedUri = vscode.Uri.joinPath(documentDir, href);
-            
+
             // Convert to webview URI
             return this._panel.webview.asWebviewUri(resolvedUri).toString();
         } catch (error) {
@@ -268,7 +258,7 @@ export class MarkdownPreviewPanel {
 
     private _getHtmlForWebview(webview: vscode.Webview, content: string) {
         // Local path to main script run in the webview
-        const scriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'markdownPreview.js');
+        const scriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'shiki-markdown-preview.js');
 
         // And the uri we use to load this script in the webview
         const scriptUri = webview.asWebviewUri(scriptPathOnDisk);
@@ -317,11 +307,3 @@ function getWebviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptions {
     };
 }
 
-function getNonce() {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
-}

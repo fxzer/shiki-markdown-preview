@@ -19,15 +19,20 @@
 		"onLanguage:markdown"
 	],
 	"main": "./out/extension.js",
+	"icon": "res/icon.png",
 	"contributes": {
 		"commands": [
 			{
-				"command": "markdownPreview.show",
+				"command": "shiki-markdown-preview.show",
 				"title": "Open Preview",
-				"category": "Markdown Preview"
+				"category": "Markdown Preview",
+				"icon": {
+					"light": "res/icon.svg",
+					"dark": "res/icon.svg"
+				}
 			},
 			{
-				"command": "markdownPreview.showForDocument",
+				"command": "shiki-markdown-preview.showForDocument",
 				"title": "Open Preview to the Side",
 				"category": "Markdown Preview"
 			}
@@ -36,40 +41,40 @@
 			"editor/title": [
 				{
 					"when": "resourceExtname == .md",
-					"command": "markdownPreview.show",
+					"command": "shiki-markdown-preview.show",
 					"group": "navigation",
-					"alt": "markdownPreview.showForDocument"
+					"alt": "shiki-markdown-preview.showForDocument"
 				}
 			],
 			"editor/context": [
 				{
 					"when": "resourceExtname == .md",
-					"command": "markdownPreview.show",
+					"command": "shiki-markdown-preview.show",
 					"group": "markdown"
 				},
 				{
 					"when": "resourceExtname == .md",
-					"command": "markdownPreview.showForDocument",
+					"command": "shiki-markdown-preview.showForDocument",
 					"group": "markdown"
 				}
 			],
 			"explorer/context": [
 				{
 					"when": "resourceExtname == .md",
-					"command": "markdownPreview.showForDocument",
+					"command": "shiki-markdown-preview.showForDocument",
 					"group": "navigation"
 				}
 			]
 		},
 		"keybindings": [
 			{
-				"command": "markdownPreview.show",
+				"command": "shiki-markdown-preview.show",
 				"key": "ctrl+shift+v",
 				"mac": "cmd+shift+v",
 				"when": "editorTextFocus && resourceExtname == .md"
 			},
 			{
-				"command": "markdownPreview.showForDocument",
+				"command": "shiki-markdown-preview.showForDocument",
 				"key": "ctrl+k v",
 				"mac": "cmd+k v",
 				"when": "editorTextFocus && resourceExtname == .md"
