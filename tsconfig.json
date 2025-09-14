@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "ES2024",
+		"lib": [
+			"ES2024",
+			"WebWorker"
+		],
+		"outDir": "out",
+		"sourceMap": true,
+		"strict": true,
+		"rootDir": "src",
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"skipLibCheck": true
+	},
+	"exclude": [
+		"node_modules",
+		".vscode-test",
+		"shiki-markdown-preview-0.0.1",
+		"out"
+	]
+}
