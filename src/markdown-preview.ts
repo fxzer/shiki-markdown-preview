@@ -90,6 +90,7 @@ export class MarkdownPreviewPanel {
   private _currentTheme: string;
   private _themeColorExtractor: ThemeColorExtractor | undefined;
   private _currentThemeConfig: ThemeColorConfig | undefined;
+  private _stateSaveInterval: NodeJS.Timeout | undefined;
 
   public static createOrShow(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
 
@@ -110,8 +111,8 @@ export class MarkdownPreviewPanel {
     MarkdownPreviewPanel.currentPanel = new MarkdownPreviewPanel(panel, extensionUri, document);
   }
 
-  public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
-    MarkdownPreviewPanel.currentPanel = new MarkdownPreviewPanel(panel, extensionUri);
+  public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, document?: vscode.TextDocument) {
+    MarkdownPreviewPanel.currentPanel = new MarkdownPreviewPanel(panel, extensionUri, document);
   }
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, document?: vscode.TextDocument) {
@@ -142,6 +143,9 @@ export class MarkdownPreviewPanel {
       } else {
         this._update();
       }
+      
+      // 启动定期状态保存
+      this.startPeriodicStateSave();
     });
 
     // Listen for when the panel is disposed
@@ -232,7 +236,7 @@ export class MarkdownPreviewPanel {
         }
 
         try {
-          const html = (this._highlighter as any).codeToHtml(code, {
+          const html = this._highlighter.codeToHtml(code, {
             lang: lang,
             theme: this._currentTheme
           });
@@ -291,6 +295,9 @@ export class MarkdownPreviewPanel {
     this._panel.webview.html = html;
     const fileName = document.fileName.split('/').pop() || 'Untitled';
     this._panel.title = fileName;
+
+    // 立即保存状态
+    this.saveState();
   }
 
   private renderMarkdown(content: string): string {
@@ -316,14 +323,14 @@ export class MarkdownPreviewPanel {
       };
 
       // Add line number tracking to block elements
-      const addLineNumber = (tokens: any, idx: number, options: any, env: any, renderer: any, ruleName: string) => {
+      const addLineNumber = (tokens: any[], idx: number, options: any, env: any, renderer: any, ruleName: string) => {
         const token = tokens[idx];
         if (token && currentLine < lines.length) {
           // Find the corresponding line in the source
           for (let i = currentLine; i < lines.length; i++) {
             const line = lines[i].trim();
             if (line && !line.startsWith('<!--')) {
-              token.attrSet('data-line', i.toString());
+              token.attrSet?.('data-line', i.toString());
               currentLine = i + 1;
               break;
             }
@@ -371,7 +378,9 @@ export class MarkdownPreviewPanel {
 
 
   private resolveRelativePath(href: string): string | null {
-    if (!this._currentDocument) return null;
+    if (!this._currentDocument) {
+      return null;
+    }
 
     try {
       // Get the directory of the current markdown file
@@ -393,7 +402,7 @@ export class MarkdownPreviewPanel {
    * 显示主题选择器
    */
   public showThemeSelector(): void {
-    const currentIndex = AVAILABLE_THEMES.indexOf(this._currentTheme as any);
+    const currentIndex = AVAILABLE_THEMES.indexOf(this._currentTheme as typeof AVAILABLE_THEMES[number]);
     if (currentIndex === -1) {
       vscode.window.showErrorMessage('Current theme not found in available themes');
       return;
@@ -410,7 +419,7 @@ export class MarkdownPreviewPanel {
    * 切换主题
    */
   public changeTheme(theme: string): void {
-    if (!AVAILABLE_THEMES.includes(theme as any)) {
+    if (!AVAILABLE_THEMES.includes(theme as typeof AVAILABLE_THEMES[number])) {
       vscode.window.showErrorMessage(`Invalid theme: ${theme}`);
       return;
     }
@@ -436,7 +445,7 @@ export class MarkdownPreviewPanel {
    * 更新主题（用于预览，不保存配置）
    */
   public async updateTheme(theme: string): Promise<void> {
-    if (!AVAILABLE_THEMES.includes(theme as any)) {
+    if (!AVAILABLE_THEMES.includes(theme as typeof AVAILABLE_THEMES[number])) {
       console.warn(`Invalid theme: ${theme}`);
       return;
     }
@@ -458,8 +467,6 @@ export class MarkdownPreviewPanel {
    * 创建主题选择器 HTML
    */
   private _createThemeSelectorHtml(selectedIndex: number): string {
-    const scriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js');
-    const scriptUri = this._panel.webview.asWebviewUri(scriptPathOnDisk);
     
     const styleResetPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css');
     const stylesPathMainPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css');
@@ -676,8 +683,59 @@ export class MarkdownPreviewPanel {
     return lightThemes.includes(theme);
   }
 
+  /**
+   * 启动定期状态保存
+   */
+  private startPeriodicStateSave(): void {
+    // 清除之前的定时器
+    if (this._stateSaveInterval) {
+      clearInterval(this._stateSaveInterval);
+    }
+
+    // 每5秒保存一次状态
+    this._stateSaveInterval = setInterval(() => {
+      this.saveState();
+    }, 5000);
+
+    // 立即保存一次状态
+    this.saveState();
+  }
+
+  /**
+   * 保存当前状态到 webview
+   */
+  private saveState(): void {
+    if (this._currentDocument) {
+      const state = {
+        documentUri: this._currentDocument.uri.toString(),
+        theme: this._currentTheme,
+        timestamp: Date.now()
+      };
+
+      this._panel.webview.postMessage({
+        command: 'saveState',
+        state: state
+      });
+
+      console.log('State saved:', state);
+    }
+  }
+
+  /**
+   * 停止定期状态保存
+   */
+  private stopPeriodicStateSave(): void {
+    if (this._stateSaveInterval) {
+      clearInterval(this._stateSaveInterval);
+      this._stateSaveInterval = undefined;
+    }
+  }
+
   public dispose() {
     MarkdownPreviewPanel.currentPanel = undefined;
+
+    // 停止定期状态保存
+    this.stopPeriodicStateSave();
 
     // 清理滚动同步管理器
     this._scrollSyncManager.dispose();
@@ -697,7 +755,7 @@ export class MarkdownPreviewPanel {
     if (this._currentDocument) {
       this.updateContent(this._currentDocument);
     } else {
-      this._panel.webview.html = this._getHtmlForWebview(this._panel.webview, '<p>No document selected</p>');
+      this._panel.webview.html = this._getHtmlForWebview(this._panel.webview, '<div style="text-align: center; padding: 50px; color: var(--vscode-descriptionForeground);"><p>No document selected</p><p style="font-size: 14px; margin-top: 10px;">Open a Markdown file to see the preview</p></div>');
     }
   }
 
@@ -750,6 +808,27 @@ export class MarkdownPreviewPanel {
                     ${content}
                 </div>
                 <script nonce="${nonce}" src="${scriptUri}"></script>
+                <script nonce="${nonce}">
+                    const vscode = acquireVsCodeApi();
+                    
+                    // 监听来自扩展的消息
+                    window.addEventListener('message', event => {
+                        const message = event.data;
+                        switch (message.command) {
+                            case 'saveState':
+                                // 保存状态到 webview
+                                vscode.setState(message.state || {
+                                    documentUri: message.documentUri
+                                });
+                                break;
+                        }
+                    });
+                    
+                    // 页面加载完成后发送 ready 消息
+                    window.addEventListener('load', () => {
+                        vscode.postMessage({ command: 'webviewReady' });
+                    });
+                </script>
             </body>
             </html>`;
   }

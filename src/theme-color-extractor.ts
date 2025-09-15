@@ -135,7 +135,7 @@ export class ThemeColorExtractor {
   /**
    * 提取表格相关颜色
    */
-  private _extractTableColors(colors: any, tokenColors: any[]): TableColors {
+  private _extractTableColors(colors: any, _tokenColors: any[]): TableColors {
     return {
       background: colors['editor.background'] || colors.background || '#ffffff',
       border: colors['panel.border'] || colors.border || '#d0d7de',
@@ -149,7 +149,7 @@ export class ThemeColorExtractor {
   /**
    * 提取列表相关颜色
    */
-  private _extractListColors(colors: any, tokenColors: any[]): ListColors {
+  private _extractListColors(colors: any, _tokenColors: any[]): ListColors {
     return {
       background: colors['editor.background'] || colors.background || '#ffffff',
       text: colors['editor.foreground'] || colors.foreground || '#24292f',

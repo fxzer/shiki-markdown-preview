@@ -16,7 +16,8 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onLanguage:markdown"
+		"onLanguage:markdown",
+		"onWebviewPanel:shiki-markdown-preview"
 	],
 	"main": "./out/extension.js",
 	"icon": "res/icon.png",

@@ -36,9 +36,9 @@ export async function showThemePicker(provider: MarkdownPreviewPanel): Promise<v
   darkThemes.sort((a, b) => a.label.localeCompare(b.label));
 
   const themes: ThemeQuickPickItem[] = [
-    { label: 'Light Themes', theme: '', kind: vscode.QuickPickItemKind.Separator as any },
+    { label: 'LIGHT THEMES', theme: '', kind: vscode.QuickPickItemKind.Separator as any },
     ...lightThemes,
-    { label: 'Dark Themes', theme: '', kind: vscode.QuickPickItemKind.Separator as any },
+    { label: 'DARK THEMES', theme: '', kind: vscode.QuickPickItemKind.Separator as any },
     ...darkThemes,
   ] as ThemeQuickPickItem[];
 
