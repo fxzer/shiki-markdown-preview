@@ -36,6 +36,7 @@
 ## 支持的主题
 
 ### 浅色主题
+
 - GitHub Light
 - Vitesse Light
 - One Light
@@ -44,6 +45,7 @@
 - 等等...
 
 ### 深色主题
+
 - Vitesse Dark
 - Dracula
 - One Dark Pro

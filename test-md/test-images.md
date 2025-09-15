@@ -4,7 +4,7 @@
 
 ![GitHub Logo](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png)
 
-![GitHub Octocat](https://github.githubassets.com/images/modules/logos_page/Octocat.png "图片标题")
+![GitHub Octocat](https://github.githubassets.com/images/modules/logos_page/Octocat.png '图片标题')
 
 ## 图片链接
 
@@ -17,9 +17,11 @@
 ## 特殊格式
 
 ### SVG
+
 ![SVG Icon](https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@develop/icons/github.svg)
 
 ### GIF
+
 ![GIF 动图](https://media.giphy.com/media/3o7aCTPPm4OHfRLSH6/giphy.gif)
 
 ## 无效图片

@@ -90,16 +90,16 @@ export function adjustContrastColor(colorInput: string | chroma.Color, options: 
  * 核心主题颜色接口 - 只包含频率最高的变量
  */
 export interface CoreThemeColors {
-  'editor.background': string;
-  'editor.foreground': string;
-  'activityBar.background': string;
-  'button.background': string;
-  'focusBorder': string;
-  'list.activeSelectionBackground': string;
-  'list.hoverBackground': string;
-  'statusBar.background': string;
-  'titleBar.activeBackground': string;
-  'activityBarBadge.background': string;
-  'textLink.foreground': string;
-  'textLink.activeForeground': string;
+  'editor.background': string
+  'editor.foreground': string
+  'activityBar.background': string
+  'button.background': string
+  'focusBorder': string
+  'list.activeSelectionBackground': string
+  'list.hoverBackground': string
+  'statusBar.background': string
+  'titleBar.activeBackground': string
+  'activityBarBadge.background': string
+  'textLink.foreground': string
+  'textLink.activeForeground': string
 }

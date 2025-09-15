@@ -1,9 +1,11 @@
 # 代码块测试
 
 ## 行内代码
+
 `console.log('Hello')`
 
 ## 基础代码块
+
 ```
 // 基础围栏代码块
 function add(a, b) {
@@ -14,6 +16,7 @@ function add(a, b) {
 ## 语法高亮
 
 ### JavaScript
+
 ```javascript
 // 变量与常量
 
@@ -39,12 +42,14 @@ async function fetchData(url) {
 ```
 
 ### TypeScript
+
 ```typescript
 interface User { id: number, name: string }
 const getUser = (id: number): User => ({ id, name: 'Alice' })
 ```
 
 ### Python
+
 ```python
 class Product:
     def __init__(self, name: str):
@@ -55,11 +60,13 @@ names = [p.name for p in [Product("Laptop"), Product("Book")]]
 ```
 
 ### SQL
+
 ```sql
 SELECT id, username FROM users WHERE created_at > NOW() - INTERVAL '30 days';
 ```
 
 ### Bash
+
 ```bash
 #!/bin/bash
 set -euo pipefail
@@ -72,6 +79,7 @@ log "Script started."
 ## 特殊功能
 
 ### 行高亮
+
 ```javascript{1,3-5}
 function greet(name) {
   // 高亮第 1, 3, 4, 5 行
@@ -82,6 +90,7 @@ function greet(name) {
 ```
 
 ### Diff
+
 ```diff
 + 新增行
 - 删除行
@@ -90,6 +99,7 @@ function greet(name) {
 ## 热门语言代码块
 
 ### Java
+
 ```java
 public class HelloWorld {
     public static void main(String[] args) {
@@ -99,6 +109,7 @@ public class HelloWorld {
 ```
 
 ### C++
+
 ```cpp
 #include <iostream>
 using namespace std;
@@ -110,6 +121,7 @@ int main() {
 ```
 
 ### Go
+
 ```go
 package main
 
@@ -121,6 +133,7 @@ func main() {
 ```
 
 ### Rust
+
 ```rust
 fn main() {
     println!("Hello, World!");
@@ -128,6 +141,7 @@ fn main() {
 ```
 
 ### C#
+
 ```csharp
 using System;
 
@@ -139,6 +153,7 @@ class Program {
 ```
 
 ### PHP
+
 ```php
 <?php
 echo "Hello, World!";
@@ -146,16 +161,19 @@ echo "Hello, World!";
 ```
 
 ### Ruby
+
 ```ruby
 puts "Hello, World!"
 ```
 
 ### Swift
+
 ```swift
 print("Hello, World!")
 ```
 
 ### Kotlin
+
 ```kotlin
 fun main() {
     println("Hello, World!")
@@ -163,11 +181,13 @@ fun main() {
 ```
 
 ### R
+
 ```r
 print("Hello, World!")
 ```
 
 ### Dart
+
 ```dart
 void main() {
   print('Hello, World!');
@@ -175,21 +195,25 @@ void main() {
 ```
 
 ### Lua
+
 ```lua
 print("Hello, World!")
 ```
 
 ### Julia
+
 ```julia
 println("Hello, World!")
 ```
 
 ### Haskell
+
 ```haskell
 main = putStrLn "Hello, World!"
 ```
 
 ### Scala
+
 ```scala
 object Main {
   def main(args: Array[String]): Unit = {

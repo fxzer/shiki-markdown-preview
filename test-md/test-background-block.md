@@ -1,38 +1,49 @@
 ## 6. 表格
 
 ### 基础表格
+
 | 姓名 | 年龄 | 城市 |
-|------|------|------|
+| ---- | ---- | ---- |
 | 张三 | 25   | 北京 |
 | 李四 | 30   | 上海 |
 | 王五 | 28   | 广州 |
 
 ### 对齐表格
+
 ## 4. 链接和引用
 
 ### 普通链接
+
 [GitHub](https://github.com)
 
-[带标题的链接](https://github.com "GitHub 主页")https://github.com
+[带标题的链接](https://github.com 'GitHub 主页')https://github.com
 <https://github.com>
 
 [test-tables.md](./test-tables.md)
 
 [测试相对路径跳转功能](./test-relative-links.md)
+
 ### 自动链接
 
 ### 引用
+
 > 这是一个引用块
 > 可以包含多行文本1
+>
 > > 嵌套引用2
+> >
 > > > 第3行
+> > >
 > > > > 第4行
+> > > >
 > > > > > 第5行
+> > > > >
 > > > > > > 第6行
 
 ## 7. 代码块 `行内代码`
 
 ### Bash
+
 ```bash
 #!/bin/bash
 
@@ -57,6 +68,7 @@ get_git_info() {
 ```
 
 ### CSS
+
 ```css
 /* 现代 CSS 特性示例 */
 :root {
@@ -88,6 +100,7 @@ get_git_info() {
 ```
 
 ### JavaScript
+
 ```javascript
 // ES6+ 特性示例
 const users = [

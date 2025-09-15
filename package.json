@@ -1,197 +1,197 @@
 {
-	"name": "shiki-markdown-preview",
-	"description": "Cat Coding - A Webview API Sample",
-	"version": "0.0.1",
-	"publisher": "fxzer",
-	"private": true,
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
-	},
-	"engines": {
-		"vscode": "^1.100.0"
-	},
-	"categories": [
-		"Other"
-	],
-	"activationEvents": [
-		"onLanguage:markdown",
-		"onWebviewPanel:shiki-markdown-preview"
-	],
-	"main": "./out/extension.js",
-	"icon": "res/icon.png",
-	"contributes": {
-		"commands": [
-			{
-				"command": "shiki-markdown-preview.show",
-				"title": "Open Preview",
-				"category": "Shiki Markdown Preview",
-				"icon": {
-					"light": "res/icon.svg",
-					"dark": "res/icon.svg"
-				}
-			},
-			{
-				"command": "shiki-markdown-preview.showForDocument",
-				"title": "Open Preview to the Side",
-				"category": "Shiki Markdown Preview"
-			},
-			{
-				"command": "shiki-markdown-preview.selectTheme",
-				"title": "Select Theme",
-				"category": "Shiki Markdown Preview"
-			}
-		],
-		"menus": {
-			"editor/title": [
-				{
-					"when": "resourceExtname == .md",
-					"command": "shiki-markdown-preview.show",
-					"group": "navigation",
-					"alt": "shiki-markdown-preview.showForDocument"
-				}
-			],
-			"editor/context": [
-				{
-					"when": "resourceExtname == .md",
-					"command": "shiki-markdown-preview.show",
-					"group": "markdown"
-				},
-				{
-					"when": "resourceExtname == .md",
-					"command": "shiki-markdown-preview.showForDocument",
-					"group": "markdown"
-				}
-			],
-			"explorer/context": [
-				{
-					"when": "resourceExtname == .md",
-					"command": "shiki-markdown-preview.showForDocument",
-					"group": "navigation"
-				}
-			]
-		},
-		"keybindings": [
-			{
-				"command": "shiki-markdown-preview.show",
-				"key": "ctrl+shift+v",
-				"mac": "cmd+shift+v",
-				"when": "editorTextFocus && resourceExtname == .md"
-			},
-			{
-				"command": "shiki-markdown-preview.showForDocument",
-				"key": "ctrl+k v",
-				"mac": "cmd+k v",
-				"when": "editorTextFocus && resourceExtname == .md"
-			},
-			{
-				"command": "shiki-markdown-preview.selectTheme",
-				"key": "ctrl+shift+t",
-				"mac": "cmd+shift+t",
-				"when": "resourceExtname == .md"
-			}
-		],
-		"configuration": {
-			"title": "Shiki Markdown Preview",
-			"properties": {
-				"shiki-markdown-preview.currentTheme": {
-					"type": "string",
-					"default": "vitesse-dark",
-					"description": "Current theme for the markdown preview.",
-					"enum": [
-						"catppuccin-latte",
-						"everforest-light",
-						"github-light",
-						"github-light-default",
-						"github-light-high-contrast",
-						"gruvbox-light-hard",
-						"gruvbox-light-medium",
-						"gruvbox-light-soft",
-						"kanagawa-lotus",
-						"light-plus",
-						"material-theme-lighter",
-						"min-light",
-						"one-light",
-						"rose-pine-dawn",
-						"slack-ochin",
-						"snazzy-light",
-						"solarized-light",
-						"vitesse-light",
-						"andromeeda",
-						"aurora-x",
-						"ayu-dark",
-						"catppuccin-frappe",
-						"catppuccin-macchiato",
-						"catppuccin-mocha",
-						"dark-plus",
-						"dracula",
-						"dracula-soft",
-						"everforest-dark",
-						"github-dark",
-						"github-dark-default",
-						"github-dark-dimmed",
-						"github-dark-high-contrast",
-						"gruvbox-dark-hard",
-						"gruvbox-dark-medium",
-						"gruvbox-dark-soft",
-						"houston",
-						"kanagawa-dragon",
-						"kanagawa-wave",
-						"laserwave",
-						"material-theme",
-						"material-theme-darker",
-						"material-theme-ocean",
-						"material-theme-palenight",
-						"min-dark",
-						"monokai",
-						"night-owl",
-						"nord",
-						"one-dark-pro",
-						"plastic",
-						"poimandres",
-						"red",
-						"rose-pine",
-						"rose-pine-moon",
-						"slack-dark",
-						"solarized-dark",
-						"synthwave-84",
-						"tokyo-night",
-						"vesper",
-						"vitesse-black",
-						"vitesse-dark"
-					]
-				}
-			}
-		}
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"lint": "eslint",
-		"watch": "tsc -w -p ./",
-		"ext:package": "vsce package"
-	},
-	"devDependencies": {
-		"@eslint/js": "^9.13.0",
-		"@stylistic/eslint-plugin": "^2.9.0",
-		"@types/chroma-js": "^3.1.1",
-		"@types/node": "^22",
-		"@types/vscode": "^1.100.0",
-		"@types/vscode-webview": "^1.57.0",
-		"eslint": "^9.13.0",
-		"typescript": "^5.9.2",
-		"typescript-eslint": "^8.39.0",
-		"vsce": "^2.15.0"
-	},
-	"dependencies": {
-		"@types/markdown-it": "^14.1.2",
-		"chroma-js": "^3.1.2",
-		"markdown-it": "^14.1.0",
-		"markdown-it-anchor": "^9.2.0",
-		"markdown-it-emoji": "^3.0.0",
-		"markdown-it-table-of-contents": "^1.0.0",
-		"markdown-it-task-lists": "^2.1.1",
-		"shiki": "^3.12.2"
-	}
+  "publisher": "fxzer",
+  "name": "shiki-markdown-preview",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Cat Coding - A Webview API Sample",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Microsoft/vscode-extension-samples"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "icon": "res/icon.png",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onWebviewPanel:shiki-markdown-preview"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "shiki-markdown-preview.show",
+        "title": "Open Preview",
+        "category": "Shiki Markdown Preview",
+        "icon": {
+          "light": "res/icon.svg",
+          "dark": "res/icon.svg"
+        }
+      },
+      {
+        "command": "shiki-markdown-preview.showForDocument",
+        "title": "Open Preview to the Side",
+        "category": "Shiki Markdown Preview"
+      },
+      {
+        "command": "shiki-markdown-preview.selectTheme",
+        "title": "Select Theme",
+        "category": "Shiki Markdown Preview"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "when": "resourceExtname == .md",
+          "command": "shiki-markdown-preview.show",
+          "group": "navigation",
+          "alt": "shiki-markdown-preview.showForDocument"
+        }
+      ],
+      "editor/context": [
+        {
+          "when": "resourceExtname == .md",
+          "command": "shiki-markdown-preview.show",
+          "group": "markdown"
+        },
+        {
+          "when": "resourceExtname == .md",
+          "command": "shiki-markdown-preview.showForDocument",
+          "group": "markdown"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceExtname == .md",
+          "command": "shiki-markdown-preview.showForDocument",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "shiki-markdown-preview.show",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorTextFocus && resourceExtname == .md"
+      },
+      {
+        "command": "shiki-markdown-preview.showForDocument",
+        "key": "ctrl+k v",
+        "mac": "cmd+k v",
+        "when": "editorTextFocus && resourceExtname == .md"
+      },
+      {
+        "command": "shiki-markdown-preview.selectTheme",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "resourceExtname == .md"
+      }
+    ],
+    "configuration": {
+      "title": "Shiki Markdown Preview",
+      "properties": {
+        "shiki-markdown-preview.currentTheme": {
+          "type": "string",
+          "default": "vitesse-dark",
+          "description": "Current theme for the markdown preview.",
+          "enum": [
+            "catppuccin-latte",
+            "everforest-light",
+            "github-light",
+            "github-light-default",
+            "github-light-high-contrast",
+            "gruvbox-light-hard",
+            "gruvbox-light-medium",
+            "gruvbox-light-soft",
+            "kanagawa-lotus",
+            "light-plus",
+            "material-theme-lighter",
+            "min-light",
+            "one-light",
+            "rose-pine-dawn",
+            "slack-ochin",
+            "snazzy-light",
+            "solarized-light",
+            "vitesse-light",
+            "andromeeda",
+            "aurora-x",
+            "ayu-dark",
+            "catppuccin-frappe",
+            "catppuccin-macchiato",
+            "catppuccin-mocha",
+            "dark-plus",
+            "dracula",
+            "dracula-soft",
+            "everforest-dark",
+            "github-dark",
+            "github-dark-default",
+            "github-dark-dimmed",
+            "github-dark-high-contrast",
+            "gruvbox-dark-hard",
+            "gruvbox-dark-medium",
+            "gruvbox-dark-soft",
+            "houston",
+            "kanagawa-dragon",
+            "kanagawa-wave",
+            "laserwave",
+            "material-theme",
+            "material-theme-darker",
+            "material-theme-ocean",
+            "material-theme-palenight",
+            "min-dark",
+            "monokai",
+            "night-owl",
+            "nord",
+            "one-dark-pro",
+            "plastic",
+            "poimandres",
+            "red",
+            "rose-pine",
+            "rose-pine-moon",
+            "slack-dark",
+            "solarized-dark",
+            "synthwave-84",
+            "tokyo-night",
+            "vesper",
+            "vitesse-black",
+            "vitesse-dark"
+          ]
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "watch": "tsc -w -p ./",
+    "ext:package": "vsce package"
+  },
+  "dependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "chroma-js": "^3.1.2",
+    "markdown-it": "^14.1.0",
+    "markdown-it-anchor": "^9.2.0",
+    "markdown-it-emoji": "^3.0.0",
+    "markdown-it-table-of-contents": "^1.0.0",
+    "markdown-it-task-lists": "^2.1.1",
+    "shiki": "^3.12.2"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^5.3.0",
+    "@types/chroma-js": "^3.1.1",
+    "@types/node": "^22",
+    "@types/vscode": "^1.100.0",
+    "@types/vscode-webview": "^1.57.0",
+    "eslint": "^9.13.0",
+    "eslint-plugin-format": "^1.0.1",
+    "typescript": "^5.9.2",
+    "vsce": "^2.15.0"
+  }
 }

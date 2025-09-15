@@ -25,7 +25,7 @@ const LIGHT_FALLBACKS = {
 export function generateBlockquoteBorderColor(
   backgroundColor: string,
   borderColor?: string,
-  minContrast: number = 3.0
+  minContrast: number = 3.0,
 ): string {
   try {
     const bgColor = chroma(backgroundColor)

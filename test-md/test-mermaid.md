@@ -1,6 +1,7 @@
 # 图表与流程图测试 (Mermaid)
 
 ## 流程图 (Flowchart)
+
 ```mermaid
 graph TD
     A[开始] --> B{条件};
@@ -11,6 +12,7 @@ graph TD
 ```
 
 ## 时序图 (Sequence Diagram)
+
 ```mermaid
 sequenceDiagram
     participant User
@@ -20,6 +22,7 @@ sequenceDiagram
 ```
 
 ## 甘特图 (Gantt Chart)
+
 ```mermaid
 gantt
     title 项目计划
@@ -29,6 +32,7 @@ gantt
 ```
 
 ## 饼图 (Pie Chart)
+
 ```mermaid
 pie
     title 市场份额
@@ -38,6 +42,7 @@ pie
 ```
 
 ## 类图 (Class Diagram)
+
 ```mermaid
 classDiagram
     class Animal {
@@ -50,6 +55,7 @@ classDiagram
 ```
 
 ## 状态图 (State Diagram)
+
 ```mermaid
 stateDiagram-v2
     [*] --> 待处理
@@ -58,6 +64,7 @@ stateDiagram-v2
 ```
 
 ## 实体关系图 (ER Diagram)
+
 ```mermaid
 erDiagram
     CUSTOMER ||--o{ ORDER : places
@@ -70,6 +77,7 @@ erDiagram
 ```
 
 ## Git 图 (Git Graph)
+
 ```mermaid
 gitGraph
     commit
@@ -81,6 +89,7 @@ gitGraph
 ```
 
 ## 思维导图 (Mindmap)
+
 ```mermaid
 mindmap
   root((核心))
@@ -89,6 +98,7 @@ mindmap
 ```
 
 ## 流程图 - 子图 (Subgraph)
+
 ```mermaid
 graph TB
     subgraph 前端
@@ -103,6 +113,7 @@ graph TB
 ```
 
 ## 时序图 - 循环和条件
+
 ```mermaid
 sequenceDiagram
     participant Client
@@ -122,6 +133,7 @@ sequenceDiagram
 ```
 
 ## 甘特图 - 复杂项目
+
 ```mermaid
 gantt
     title 软件开发项目时间线
@@ -145,6 +157,7 @@ gantt
 ```
 
 ## 旅程图 (Journey)
+
 ```mermaid
 journey
     title 用户购物体验
@@ -163,6 +176,7 @@ journey
 ```
 
 ## 时间线图 (Timeline)
+
 ```mermaid
 timeline
     title 项目发展历史
@@ -177,6 +191,7 @@ timeline
 ```
 
 ## C4 图表 (C4 Diagram)
+
 ```mermaid
 C4Context
     title 系统上下文图
@@ -190,6 +205,7 @@ C4Context
 ```
 
 ## 流程图 - 不同方向和样式
+
 ```mermaid
 graph LR
     A[开始] --> B{判断};

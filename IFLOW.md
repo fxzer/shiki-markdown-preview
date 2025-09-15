@@ -5,6 +5,7 @@
 这是一个VS Code扩展项目，名为"Cat Coding"，是一个Webview API示例项目。该项目演示了如何使用VS Code的Webview API创建一个交互式的Webview面板，展示动态内容和处理消息通信。
 
 **主要功能：**
+
 - 创建和显示基本的Webview面板
 - 动态更新Webview内容
 - 在Webview中加载本地内容
@@ -43,7 +44,9 @@
 ## 核心文件说明
 
 ### src/extension.ts
+
 扩展的主入口文件，包含：
+
 - 扩展激活逻辑
 - Webview面板管理类`CatCodingPanel`
 - 命令注册（开始编码会话、重构操作）
@@ -51,7 +54,9 @@
 - Webview序列化和反序列化
 
 ### media/main.js
+
 在Webview中运行的JavaScript脚本，负责：
+
 - 代码行数计数器逻辑
 - 与VS Code扩展的双向通信
 - 状态保存和恢复
