@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { MarkdownPreviewPanel } from './markdown-preview';
+import { showThemePicker } from './theme-picker';
 
 function getWebviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptions {
     return {
@@ -46,11 +47,21 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Register theme selection command
 	context.subscriptions.push(
-		vscode.commands.registerCommand('shiki-markdown-preview.selectTheme', () => {
-			if (MarkdownPreviewPanel.currentPanel) {
-				MarkdownPreviewPanel.currentPanel.showThemeSelector();
+		vscode.commands.registerCommand('shiki-markdown-preview.selectTheme', async () => {
+			const activeEditor = vscode.window.activeTextEditor;
+			if (activeEditor && activeEditor.document.languageId === 'markdown') {
+				// 确保预览窗口已打开
+				if (!MarkdownPreviewPanel.currentPanel) {
+					MarkdownPreviewPanel.createOrShow(context.extensionUri, activeEditor.document);
+					// 等待预览窗口创建完成
+					await new Promise(resolve => setTimeout(resolve, 100));
+				}
+				
+				if (MarkdownPreviewPanel.currentPanel) {
+					await showThemePicker(MarkdownPreviewPanel.currentPanel);
+				}
 			} else {
-				vscode.window.showInformationMessage('Please open a Markdown preview first');
+				vscode.window.showInformationMessage('Please open a Markdown file first');
 			}
 		})
 	);

@@ -97,11 +97,22 @@ for theme in themes:
 
 ## 使用说明
 
-1. 打开 Markdown 预览
-2. 使用快捷键 `Ctrl+Shift+T` (Windows/Linux) 或 `Cmd+Shift+T` (Mac) 打开主题选择器
-3. 使用方向键导航主题选项
-4. 按 `Enter` 确认选择
-5. 按 `Esc` 取消选择
+### 方法一：命令中心主题选择（推荐）
+1. **打开预览**：使用 `Ctrl+Shift+V` (Windows/Linux) 或 `Cmd+Shift+V` (Mac)
+2. **打开主题选择器**：
+   - 使用快捷键 `Ctrl+Shift+T` (Windows/Linux) 或 `Cmd+Shift+T` (Mac)
+   - 或者按 `Ctrl+Shift+P` 打开命令面板，搜索 "Select Theme"
+3. **选择主题**：
+   - 使用方向键浏览主题列表
+   - 实时预览主题效果（300ms防抖）
+   - 按回车确认选择
+   - 按ESC取消选择
+
+### 方法二：Webview内主题选择
+1. **打开预览**：使用 `Ctrl+Shift+V` (Windows/Linux) 或 `Cmd+Shift+V` (Mac)
+2. **选择主题**：点击预览窗口右上角的主题选择按钮
+3. **键盘导航**：使用方向键浏览主题，回车确认选择
+4. **实时预览**：选择主题时立即看到效果
 
 ## 功能特性
 
@@ -112,6 +123,7 @@ for theme in themes:
 - ✅ 主题配置持久化
 - ✅ 响应式 UI 设计
 - ✅ SVG图标复制按钮（复制后显示绿色勾选图标）
+- ✅ 命令中心主题选择器（支持实时预览和键盘导航）
 
 ## 主题分类
 

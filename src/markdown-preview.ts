@@ -3,6 +3,7 @@ import { createHighlighter, type Highlighter } from 'shiki';
 import MarkdownIt from 'markdown-it';
 import { escapeHtml, getNonce } from './utils';
 import { ScrollSyncManager } from './scroll-sync-manager';
+import { ThemeColorExtractor, type ThemeColorConfig } from './theme-color-extractor';
 
 // 所有可用的 Shiki 主题
 const AVAILABLE_THEMES = [
@@ -87,6 +88,8 @@ export class MarkdownPreviewPanel {
   private _markdownIt: MarkdownIt | undefined;
   private _scrollSyncManager: ScrollSyncManager;
   private _currentTheme: string;
+  private _themeColorExtractor: ThemeColorExtractor | undefined;
+  private _currentThemeConfig: ThemeColorConfig | undefined;
 
   public static createOrShow(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
 
@@ -203,6 +206,13 @@ export class MarkdownPreviewPanel {
         themes: [...AVAILABLE_THEMES],
         langs: ['javascript', 'typescript', 'python', 'java', 'cpp', 'c', 'csharp', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin', 'html', 'css', 'scss', 'json', 'xml', 'yaml', 'markdown']
       });
+      
+      // 初始化主题颜色提取器
+      if (this._highlighter) {
+        this._themeColorExtractor = new ThemeColorExtractor(this._highlighter);
+        // 提取当前主题的颜色配置
+        this._currentThemeConfig = this._themeColorExtractor.extractThemeColors(this._currentTheme) || undefined;
+      }
     } catch (error) {
       console.error('Failed to initialize highlighter:', error);
     }
@@ -407,9 +417,36 @@ export class MarkdownPreviewPanel {
 
     this._currentTheme = theme;
     
+    // 更新主题颜色配置
+    if (this._themeColorExtractor) {
+      this._currentThemeConfig = this._themeColorExtractor.extractThemeColors(theme) || undefined;
+    }
+    
     // 更新配置
     const config = vscode.workspace.getConfiguration('shiki-markdown-preview');
     config.update('currentTheme', theme, vscode.ConfigurationTarget.Global);
+
+    // 重新渲染内容
+    if (this._currentDocument) {
+      this.updateContent(this._currentDocument);
+    }
+  }
+
+  /**
+   * 更新主题（用于预览，不保存配置）
+   */
+  public async updateTheme(theme: string): Promise<void> {
+    if (!AVAILABLE_THEMES.includes(theme as any)) {
+      console.warn(`Invalid theme: ${theme}`);
+      return;
+    }
+
+    this._currentTheme = theme;
+
+    // 更新主题颜色配置（预览模式）
+    if (this._themeColorExtractor) {
+      this._currentThemeConfig = this._themeColorExtractor.extractThemeColors(theme) || undefined;
+    }
 
     // 重新渲染内容
     if (this._currentDocument) {
@@ -675,14 +712,21 @@ export class MarkdownPreviewPanel {
     const styleResetPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css');
     const stylesPathMainPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css');
     const markdownCssPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'markdown.css');
+    const themeColorsPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'theme-colors.css');
 
     // Uri to load styles into webview
     const stylesResetUri = webview.asWebviewUri(styleResetPath);
     const stylesMainUri = webview.asWebviewUri(stylesPathMainPath);
     const markdownCssUri = webview.asWebviewUri(markdownCssPath);
+    const themeColorsUri = webview.asWebviewUri(themeColorsPath);
 
     // Use a nonce to only allow specific scripts to be run
     const nonce = getNonce();
+
+    // 生成主题颜色CSS变量
+    const themeCSSVariables = this._currentThemeConfig && this._themeColorExtractor 
+      ? this._themeColorExtractor.generateCSSVariables(this._currentThemeConfig)
+      : '';
 
     return `<!DOCTYPE html>
             <html lang="en">
@@ -693,6 +737,12 @@ export class MarkdownPreviewPanel {
                 <link href="${stylesResetUri}" rel="stylesheet">
                 <link href="${stylesMainUri}" rel="stylesheet">
                 <link href="${markdownCssUri}" rel="stylesheet">
+                <link href="${themeColorsUri}" rel="stylesheet">
+                <style>
+                    :root {
+                        ${themeCSSVariables}
+                    }
+                </style>
                 <title>Markdown Preview</title>
             </head>
             <body>
