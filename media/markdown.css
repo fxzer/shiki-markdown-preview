@@ -1,9 +1,11 @@
 /* Markdown Preview Styles */
 html, body {
-    height: 100%;
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    overflow-y: auto;
+    position: relative;
+    min-height: 100%;
 }
 
 .markdown-body {
@@ -17,7 +19,8 @@ html, body {
     line-height: 1.6;
     color: var(--vscode-editor-foreground);
     background-color: var(--vscode-editor-background);
-    min-height: 100vh;
+    min-height: calc(100vh - 90px); /* 减去上下padding */
+    position: relative;
 }
 
 .markdown-body h1,

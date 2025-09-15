@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { MarkdownPreviewPanel } from './markdownPreview';
+import { MarkdownPreviewPanel } from './markdown-preview';
 
 function getWebviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptions {
     return {
@@ -64,42 +64,7 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
-	// Register text editor scroll listener for mouse wheel sync
-	let editorScrollTimeout: NodeJS.Timeout | undefined;
-	let lastVisibleRange: vscode.Range | undefined;
-	
-	context.subscriptions.push(
-		vscode.window.onDidChangeTextEditorVisibleRanges(event => {
-			if (event.textEditor.document.languageId === 'markdown' && 
-				MarkdownPreviewPanel.currentPanel && 
-				event.visibleRanges.length > 0) {
-				
-				const currentRange = event.visibleRanges[0];
-				
-				// Only sync if the visible range actually changed significantly (indicating scroll, not cursor)
-				if (!lastVisibleRange || 
-					Math.abs(currentRange.start.line - lastVisibleRange.start.line) > 2 ||
-					Math.abs(currentRange.end.line - lastVisibleRange.end.line) > 2) {
-					
-					lastVisibleRange = currentRange;
-					
-					// Clear previous timeout
-					if (editorScrollTimeout) {
-						clearTimeout(editorScrollTimeout);
-					}
-					
-					editorScrollTimeout = setTimeout(() => {
-						const centerLine = Math.floor((currentRange.start.line + currentRange.end.line) / 2);
-						const totalLines = event.textEditor.document.lineCount;
-						const scrollPercentage = totalLines > 0 ? centerLine / totalLines : 0;
-						
-						console.log(`Editor wheel scroll: center line ${centerLine}, percentage ${scrollPercentage.toFixed(2)}`);
-						MarkdownPreviewPanel.currentPanel?.syncScroll(centerLine, scrollPercentage);
-					}, 200); // 200ms throttle for wheel-based scrolling
-				}
-			}
-		})
-	);
+	// 滚动同步现在由 ScrollSyncManager 处理，不需要在这里重复实现
 
 	// Register webview serializer
 	if (vscode.window.registerWebviewPanelSerializer) {
