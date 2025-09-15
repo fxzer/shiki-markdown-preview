@@ -43,12 +43,40 @@ export async function showThemePicker(provider: MarkdownPreviewPanel): Promise<v
   ] as ThemeQuickPickItem[];
 
   const configService = new ConfigService();
-  const currentThemeValue = configService.getCurrentTheme() || 'github-light';
+  const currentThemeValue = configService.getCurrentTheme() || 'vitesse-dark';
+
+  // 查找当前主题的辅助函数
+  const findThemeIndex = (themeName: string): number => {
+    // 首先尝试精确匹配
+    let index = themes.findIndex(t => t.theme === themeName);
+    
+    if (index === -1) {
+      // 如果精确匹配失败，尝试模糊匹配
+      const fuzzyMatch = themes.find(t => 
+        t.theme && (
+          t.theme.includes(themeName) || 
+          themeName.includes(t.theme) ||
+          t.label.toLowerCase().includes(themeName.toLowerCase())
+        )
+      );
+      
+      if (fuzzyMatch) {
+        index = themes.findIndex(t => t.theme === fuzzyMatch.theme);
+        console.log(`模糊匹配找到主题: ${fuzzyMatch.theme} at index ${index}`);
+      }
+    }
+    
+    return index;
+  };
 
   // 找到当前主题的索引
-  const currentIndex = themes.findIndex(t => t.theme === currentThemeValue);
+  const currentIndex = findThemeIndex(currentThemeValue);
+  console.log(`当前主题: ${currentThemeValue}, 找到索引: ${currentIndex}`);
+  
   if (currentIndex !== -1) {
     themes[currentIndex].picked = true;
+  } else {
+    console.warn(`无法找到当前主题: ${currentThemeValue}`);
   }
 
   // 创建 QuickPick 实例以获得更多控制
@@ -62,6 +90,9 @@ export async function showThemePicker(provider: MarkdownPreviewPanel): Promise<v
   // 设置初始选中项
   if (currentIndex !== -1) {
     quickPick.activeItems = [themes[currentIndex]];
+    console.log(`设置活动项为索引: ${currentIndex}, 主题: ${themes[currentIndex].theme}`);
+  } else {
+    console.warn(`无法设置活动项，当前主题: ${currentThemeValue}`);
   }
 
   let isPreviewMode = true;
