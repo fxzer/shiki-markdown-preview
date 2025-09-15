@@ -35,6 +35,11 @@
 				"command": "shiki-markdown-preview.showForDocument",
 				"title": "Open Preview to the Side",
 				"category": "Shiki Markdown Preview"
+			},
+			{
+				"command": "shiki-markdown-preview.selectTheme",
+				"title": "Select Theme",
+				"category": "Shiki Markdown Preview"
 			}
 		],
 		"menus": {
@@ -78,8 +83,86 @@
 				"key": "ctrl+k v",
 				"mac": "cmd+k v",
 				"when": "editorTextFocus && resourceExtname == .md"
+			},
+			{
+				"command": "shiki-markdown-preview.selectTheme",
+				"key": "ctrl+shift+t",
+				"mac": "cmd+shift+t",
+				"when": "resourceExtname == .md"
 			}
-		]
+		],
+		"configuration": {
+			"title": "Shiki Markdown Preview",
+			"properties": {
+				"shiki-markdown-preview.currentTheme": {
+					"type": "string",
+					"default": "vitesse-dark",
+					"description": "Current theme for the markdown preview.",
+					"enum": [
+						"catppuccin-latte",
+						"everforest-light",
+						"github-light",
+						"github-light-default",
+						"github-light-high-contrast",
+						"gruvbox-light-hard",
+						"gruvbox-light-medium",
+						"gruvbox-light-soft",
+						"kanagawa-lotus",
+						"light-plus",
+						"material-theme-lighter",
+						"min-light",
+						"one-light",
+						"rose-pine-dawn",
+						"slack-ochin",
+						"snazzy-light",
+						"solarized-light",
+						"vitesse-light",
+						"andromeeda",
+						"aurora-x",
+						"ayu-dark",
+						"catppuccin-frappe",
+						"catppuccin-macchiato",
+						"catppuccin-mocha",
+						"dark-plus",
+						"dracula",
+						"dracula-soft",
+						"everforest-dark",
+						"github-dark",
+						"github-dark-default",
+						"github-dark-dimmed",
+						"github-dark-high-contrast",
+						"gruvbox-dark-hard",
+						"gruvbox-dark-medium",
+						"gruvbox-dark-soft",
+						"houston",
+						"kanagawa-dragon",
+						"kanagawa-wave",
+						"laserwave",
+						"material-theme",
+						"material-theme-darker",
+						"material-theme-ocean",
+						"material-theme-palenight",
+						"min-dark",
+						"monokai",
+						"night-owl",
+						"nord",
+						"one-dark-pro",
+						"plastic",
+						"poimandres",
+						"red",
+						"rose-pine",
+						"rose-pine-moon",
+						"slack-dark",
+						"solarized-dark",
+						"synthwave-84",
+						"tokyo-night",
+						"vesper",
+						"vitesse-black",
+						"vitesse-dark"
+					]
+				}
+			}
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",

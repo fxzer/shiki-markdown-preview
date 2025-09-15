@@ -44,6 +44,17 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
+	// Register theme selection command
+	context.subscriptions.push(
+		vscode.commands.registerCommand('shiki-markdown-preview.selectTheme', () => {
+			if (MarkdownPreviewPanel.currentPanel) {
+				MarkdownPreviewPanel.currentPanel.showThemeSelector();
+			} else {
+				vscode.window.showInformationMessage('Please open a Markdown preview first');
+			}
+		})
+	);
+
 	// Register editor change listener for auto-refresh
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeTextDocument(event => {

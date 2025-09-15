@@ -231,20 +231,33 @@
 
       const button = document.createElement('button');
       button.className = 'copy-button';
-      button.textContent = 'Copy';
+      button.title = 'Copy code';
+      
+      // 复制图标SVG
+      const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M15 20H5V7c0-.55-.45-1-1-1s-1 .45-1 1v13c0 1.1.9 2 2 2h10c.55 0 1-.45 1-1s-.45-1-1-1m5-4V4c0-1.1-.9-2-2-2H9c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h9c1.1 0 2-.9 2-2m-2 0H9V4h9z"/></svg>`;
+      
+      // 已复制图标SVG
+      const copiedIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M5 19V5v11.35v-2.125zm0 2q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v8h-2V5H5v14h7v2zm12.35 1l-3.55-3.55l1.425-1.4l2.125 2.125l4.25-4.25L23 16.35zM8 13q.425 0 .713-.288T9 12t-.288-.712T8 11t-.712.288T7 12t.288.713T8 13m0-4q.425 0 .713-.288T9 8t-.288-.712T8 7t-.712.288T7 8t.288.713T8 9m3 4h6v-2h-6zm0-4h6V7h-6z"/></svg>`;
+      
+      button.innerHTML = copyIcon;
       button.style.cssText = `
           position: absolute;
-          top: 8px;
-          right: 8px;
-          padding: 4px 8px;
-          background: var(--vscode-button-background);
+          top: 6px;
+          right: 6px;
+          padding: 4px;
+          background: rgba(0, 0, 0, 0.2);
           color: var(--vscode-button-foreground);
           border: none;
           border-radius: 3px;
           cursor: pointer;
-          font-size: 12px;
-          opacity: 0.7;
-          transition: opacity 0.2s;
+          opacity: 0.6;
+          transition: all 0.2s;
+          z-index: 10;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
       `;
 
       button.addEventListener('mouseenter', () => {
@@ -259,15 +272,27 @@
           const code = preElement.textContent || '';
           try {
               await navigator.clipboard.writeText(code);
-              button.textContent = 'Copied!';
+              // 切换到已复制状态（绿色勾选图标）
+              button.innerHTML = copiedIcon;
+              button.style.color = '#4CAF50'; // 绿色
+              button.style.background = 'rgba(76, 175, 80, 0.1)'; // 绿色半透明背景
               setTimeout(() => {
-                  button.textContent = 'Copy';
+                  // 恢复原始状态
+                  button.innerHTML = copyIcon;
+                  button.style.color = 'var(--vscode-button-foreground)';
+                  button.style.background = 'rgba(0, 0, 0, 0.1)';
               }, 2000);
           } catch (err) {
               console.error('Failed to copy text: ', err);
-              button.textContent = 'Failed';
+              // 失败状态（红色）
+              button.innerHTML = copyIcon;
+              button.style.color = '#f44336'; // 红色
+              button.style.background = 'rgba(244, 67, 54, 0.1)'; // 红色半透明背景
               setTimeout(() => {
-                  button.textContent = 'Copy';
+                  // 恢复原始状态
+                  button.innerHTML = copyIcon;
+                  button.style.color = 'var(--vscode-button-foreground)';
+                  button.style.background = 'rgba(0, 0, 0, 0.1)';
               }, 2000);
           }
       });
