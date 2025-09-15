@@ -1,3 +1,5 @@
+# 用简体中文交流！！注释也要用中文！！！
+
 # iFlow Context - VS Code Webview Extension
 
 ## 项目概述

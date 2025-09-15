@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { MEDIA_PATHS, WEBVIEW_CONSTANTS } from './constants'
+
 import { ScrollSyncManager } from './scroll-sync-manager'
 import {
   HTMLTemplateService,
@@ -17,19 +17,19 @@ export class MarkdownPreviewPanel {
    */
   public static currentPanel: MarkdownPreviewPanel | undefined
 
-  public static readonly viewType = WEBVIEW_CONSTANTS.VIEW_TYPE
+  public static readonly viewType = 'shiki-markdown-preview'
 
   private readonly _panel: vscode.WebviewPanel
   private readonly _extensionUri: vscode.Uri
   private _disposables: vscode.Disposable[] = []
 
-  // Services
+  // 服务
   private _themeService: ThemeService
   private _markdownRenderer: MarkdownRenderer
   private _scrollSyncManager: ScrollSyncManager
   private _stateManager: StateManager
 
-  // State
+  // 状态
   private _currentDocument: vscode.TextDocument | undefined
   private _isInitialized: boolean = false
 
@@ -37,14 +37,16 @@ export class MarkdownPreviewPanel {
     if (MarkdownPreviewPanel.currentPanel) {
       MarkdownPreviewPanel.currentPanel._panel.reveal(vscode.ViewColumn.Two)
       if (document) {
-        MarkdownPreviewPanel.currentPanel.updateContent(document)
+        MarkdownPreviewPanel.currentPanel.updateContent(document).catch((error) => {
+          console.error('Error updating content on createOrShow:', error)
+        })
       }
       return
     }
 
     const panel = vscode.window.createWebviewPanel(
       MarkdownPreviewPanel.viewType,
-      WEBVIEW_CONSTANTS.TITLE,
+      'Markdown Preview',
       vscode.ViewColumn.Two,
       HTMLTemplateService.getWebviewOptions(extensionUri),
     )
@@ -61,7 +63,7 @@ export class MarkdownPreviewPanel {
     this._extensionUri = extensionUri
     this._currentDocument = document
 
-    // Initialize services
+    // 初始化服务
     this._themeService = new ThemeService()
     this._markdownRenderer = new MarkdownRenderer(this._themeService)
     this._scrollSyncManager = new ScrollSyncManager()
@@ -76,10 +78,10 @@ export class MarkdownPreviewPanel {
    * Set up panel configuration
    */
   private setupPanel(): void {
-    // Set panel icon
-    this._panel.iconPath = vscode.Uri.joinPath(this._extensionUri, MEDIA_PATHS.PREVIEW_ICON)
+    // 设置面板图标
+    this._panel.iconPath = vscode.Uri.joinPath(this._extensionUri, 'media/preview-icon.svg')
 
-    // Set up scroll sync manager
+    // 设置滚动同步管理器
     this._scrollSyncManager.setPanel(this._panel)
     if (this._currentDocument) {
       this._scrollSyncManager.setupScrollSync(this._currentDocument)
@@ -90,21 +92,23 @@ export class MarkdownPreviewPanel {
    * Set up event listeners
    */
   private setupEventListeners(): void {
-    // Listen for when the panel is disposed
+    // 监听面板被释放时的事件
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
 
-    // Update content based on view changes
+    // 根据视图变化更新内容
     this._panel.onDidChangeViewState(
       () => {
         if (this._panel.visible && this._currentDocument) {
-          this.updateContent(this._currentDocument)
+          this.updateContent(this._currentDocument).catch((error) => {
+            console.error('Error updating content on view state change:', error)
+          })
         }
       },
       null,
       this._disposables,
     )
 
-    // Handle messages from the webview
+    // 处理来自 webview 的消息
     this._panel.webview.onDidReceiveMessage(
       message => this.handleWebviewMessage(message),
       null,
@@ -117,28 +121,30 @@ export class MarkdownPreviewPanel {
    */
   private async initializeServices(): Promise<void> {
     try {
-      // Initialize theme service
+      // 初始化主题服务
       await this._themeService.initializeHighlighter()
 
-      // Initialize markdown renderer
+      // 初始化 markdown 渲染器
       this._markdownRenderer.initialize()
 
       this._isInitialized = true
 
-      // Set initial content
+      // 设置初始内容
       if (this._currentDocument) {
-        this.updateContent(this._currentDocument)
+        await this.updateContent(this._currentDocument)
       }
       else {
-        this.updatePanelContent()
+        await this.updatePanelContent()
       }
 
-      // Start periodic state saving
+      // 开始定期状态保存
       this._stateManager.startPeriodicStateSave()
     }
     catch (error) {
       console.error('Failed to initialize services:', error)
-      this.showError('Failed to initialize preview services')
+      this.showError('Failed to initialize preview services').catch((err) => {
+        console.error('Error showing initialization error:', err)
+      })
     }
   }
 
@@ -170,7 +176,6 @@ export class MarkdownPreviewPanel {
    */
   private handleScrollMessage(message: any): void {
     const scrollPercentage = message.scrollPercentage || message.percentage
-    console.log(`Extension received scroll message: ${(scrollPercentage * 100).toFixed(1)}% from ${message.source}`)
 
     this._scrollSyncManager.handlePreviewScroll(
       scrollPercentage,
@@ -185,7 +190,7 @@ export class MarkdownPreviewPanel {
   private async handleThemeSelection(theme: string): Promise<void> {
     const success = await this._themeService.changeTheme(theme)
     if (success && this._currentDocument) {
-      this.updateContent(this._currentDocument)
+      await this.updateContent(this._currentDocument)
     }
   }
 
@@ -194,14 +199,16 @@ export class MarkdownPreviewPanel {
    */
   private handleThemeSelectionCancel(): void {
     if (this._currentDocument) {
-      this.updateContent(this._currentDocument)
+      this.updateContent(this._currentDocument).catch((error) => {
+        console.error('Error updating content after theme selection cancel:', error)
+      })
     }
   }
 
   /**
    * Update content with a new document
    */
-  public updateContent(document: vscode.TextDocument): void {
+  public async updateContent(document: vscode.TextDocument): Promise<void> {
     if (!this._isInitialized) {
       console.warn('Preview panel not initialized yet')
       return
@@ -209,33 +216,38 @@ export class MarkdownPreviewPanel {
 
     this._currentDocument = document
 
-    // Update scroll sync manager
+    // 更新滚动同步管理器
     this._scrollSyncManager.setupScrollSync(document)
 
     try {
       const content = document.getText()
       const renderedContent = this._markdownRenderer.render(content, document)
 
-      // Resolve relative paths for webview
+      // 为 webview 解析相对路径
       const processedContent = this.processContentForWebview(renderedContent)
+
+      // 等待主题 CSS 变量
+      const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
       this._panel.webview.html = HTMLTemplateService.generateHTML({
         webview: this._panel.webview,
         extensionUri: this._extensionUri,
         content: processedContent,
-        themeCSSVariables: this._themeService.getThemeCSSVariables(),
+        themeCSSVariables,
       })
 
-      // Update panel title
+      // 更新面板标题
       const fileName = document.fileName.split('/').pop() || 'Untitled'
       this._panel.title = fileName
 
-      // Save state
+      // 保存状态
       this._stateManager.saveState(document, this._themeService.currentTheme)
     }
     catch (error) {
       console.error('Error updating content:', error)
-      this.showError(`Error updating preview: ${error instanceof Error ? error.message : String(error)}`)
+      this.showError(`Error updating preview: ${error instanceof Error ? error.message : String(error)}`).catch((err) => {
+        console.error('Error showing error message:', err)
+      })
     }
   }
 
@@ -247,9 +259,9 @@ export class MarkdownPreviewPanel {
       return content
     }
 
-    // Resolve relative paths in the content
-    // This is a simplified version - in a real implementation,
-    // you might want to use a more sophisticated HTML parser
+    // 解析内容中的相对路径
+    // 这是一个简化版本 - 在实际实现中，
+    // 您可能希望使用更复杂的 HTML 解析器
     return content.replace(
       /(src|href)="([^"]+)"/g,
       (match, attr, path) => {
@@ -274,28 +286,30 @@ export class MarkdownPreviewPanel {
   /**
    * Update panel content when no document is available
    */
-  private updatePanelContent(): void {
+  private async updatePanelContent(): Promise<void> {
     const content = HTMLTemplateService.generateNoDocumentContent()
+    const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
     this._panel.webview.html = HTMLTemplateService.generateHTML({
       webview: this._panel.webview,
       extensionUri: this._extensionUri,
       content,
-      themeCSSVariables: this._themeService.getThemeCSSVariables(),
+      themeCSSVariables,
     })
   }
 
   /**
    * Show error message in the panel
    */
-  private showError(message: string): void {
+  private async showError(message: string): Promise<void> {
     const content = HTMLTemplateService.generateErrorContent(message)
+    const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
     this._panel.webview.html = HTMLTemplateService.generateHTML({
       webview: this._panel.webview,
       extensionUri: this._extensionUri,
       content,
-      themeCSSVariables: this._themeService.getThemeCSSVariables(),
+      themeCSSVariables,
     })
   }
 
@@ -305,20 +319,20 @@ export class MarkdownPreviewPanel {
   public dispose(): void {
     MarkdownPreviewPanel.currentPanel = undefined
 
-    // Stop periodic state saving
+    // 停止定期状态保存
     this._stateManager.dispose()
 
-    // Clean up scroll sync manager
+    // 清理滚动同步管理器
     this._scrollSyncManager.dispose()
 
-    // Clean up services
+    // 清理服务
     this._themeService.dispose()
     this._markdownRenderer.dispose()
 
-    // Clean up panel
+    // 清理面板
     this._panel.dispose()
 
-    // Clean up disposables
+    // 清理可释放资源
     while (this._disposables.length) {
       const disposable = this._disposables.pop()
       if (disposable) {

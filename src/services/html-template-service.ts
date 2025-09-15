@@ -1,5 +1,4 @@
 import * as vscode from 'vscode'
-import { MEDIA_PATHS, WEBVIEW_CONSTANTS } from '../constants'
 import { escapeHtml, getNonce } from '../utils'
 
 export interface HTMLTemplateOptions {
@@ -23,8 +22,8 @@ export class HTMLTemplateService {
       nonce = getNonce(),
     } = options
 
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, MEDIA_PATHS.MAIN_SCRIPT))
-    const webviewCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, MEDIA_PATHS.WEBVIEW_CSS))
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media/main.js'))
+    const webviewCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media/webview.css'))
 
     return `<!DOCTYPE html>
             <html lang="en">
@@ -38,7 +37,7 @@ export class HTMLTemplateService {
                         ${themeCSSVariables}
                     }
                 </style>
-                <title>${WEBVIEW_CONSTANTS.TITLE}</title>
+                <title>Markdown Preview</title>
             </head>
             <body>
                 <div class="markdown-body" id="markdown-content">
@@ -46,7 +45,7 @@ export class HTMLTemplateService {
                 </div>
                 <script nonce="${nonce}" src="${scriptUri}"></script>
                 <script nonce="${nonce}">
-                    // Initialize VS Code API
+                    // 初始化 VS Code API
                     let vscode;
                     if (window.vscode) {
                         vscode = window.vscode;

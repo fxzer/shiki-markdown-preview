@@ -37,7 +37,6 @@ export class MarkdownRenderer {
     if (!this._markdownIt)
       return
 
-    // Custom rule for handling relative image paths
     this._markdownIt.renderer.rules.image = (tokens, idx, options, env, renderer) => {
       const token = tokens[idx]
       const srcIndex = token.attrIndex('src')
@@ -55,7 +54,6 @@ export class MarkdownRenderer {
       return renderer.renderToken(tokens, idx, options)
     }
 
-    // Custom rule for handling relative link paths
     this._markdownIt.renderer.rules.link_open = (tokens, idx, options, env, renderer) => {
       const token = tokens[idx]
       const hrefIndex = token.attrIndex('href')
@@ -83,7 +81,15 @@ export class MarkdownRenderer {
     }
 
     try {
-      return this._themeService.highlightCode(code, lang)
+      // 使用同步版本的 highlightCode 方法
+      const highlighted = this._themeService.highlightCode(code, lang)
+
+      // 如果结果是空的，返回基本的 HTML
+      if (!highlighted) {
+        return `<pre><code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`
+      }
+
+      return highlighted
     }
     catch (error) {
       console.warn(`Failed to highlight code for language: ${lang}`, error)
@@ -100,13 +106,10 @@ export class MarkdownRenderer {
     }
 
     try {
-      // Get the directory of the current markdown file
       const documentDir = vscode.Uri.joinPath(this._currentDocument.uri, '..')
 
-      // Resolve the relative path
       const resolvedUri = vscode.Uri.joinPath(documentDir, href)
 
-      // Convert to webview URI - this will be set when rendering
       return resolvedUri.toString()
     }
     catch (error) {
@@ -131,7 +134,6 @@ export class MarkdownRenderer {
       const lines = content.split('\n')
       let currentLine = 0
 
-      // Store original rules
       const originalRules = {
         heading_open: this._markdownIt.renderer.rules.heading_open,
         paragraph_open: this._markdownIt.renderer.rules.paragraph_open,
@@ -143,11 +145,9 @@ export class MarkdownRenderer {
         hr: this._markdownIt.renderer.rules.hr,
       }
 
-      // Helper function to add line numbers
       const addLineNumber = (tokens: any[], idx: number, options: any, env: any, renderer: any, ruleName: string) => {
         const token = tokens[idx]
         if (token && currentLine < lines.length) {
-          // Find the corresponding line in the source
           for (let i = currentLine; i < lines.length; i++) {
             const line = lines[i].trim()
             if (line && !line.startsWith('<!--')) {
@@ -163,7 +163,6 @@ export class MarkdownRenderer {
           : renderer.renderToken(tokens, idx, options)
       }
 
-      // Override renderer rules to add line numbers
       this._markdownIt.renderer.rules.heading_open = (tokens, idx, options, env, renderer) =>
         addLineNumber(tokens, idx, options, env, renderer, 'heading_open')
 
@@ -196,18 +195,11 @@ export class MarkdownRenderer {
     }
   }
 
-  /**
-   * Get the markdown-it instance
-   */
   get markdownIt(): MarkdownIt | undefined {
     return this._markdownIt
   }
 
-  /**
-   * Dispose resources
-   */
   dispose(): void {
-    // MarkdownIt doesn't have a dispose method
     this._markdownIt = undefined
     this._currentDocument = undefined
   }

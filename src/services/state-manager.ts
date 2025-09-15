@@ -1,5 +1,4 @@
 import type * as vscode from 'vscode'
-import { WEBVIEW_CONSTANTS } from '../constants'
 
 export interface PreviewState {
   documentUri: string
@@ -23,24 +22,16 @@ export class StateManager {
     this._panel = panel
   }
 
-  /**
-   * Start periodic state saving
-   */
   startPeriodicStateSave(): void {
     this.stopPeriodicStateSave() // Clear any existing interval
 
-    // Save state immediately
     this.saveState()
 
-    // Set up periodic saving
     this._stateSaveInterval = setInterval(() => {
       this.saveState()
-    }, WEBVIEW_CONSTANTS.STATE_SAVE_INTERVAL_MS)
+    }, 5000)
   }
 
-  /**
-   * Stop periodic state saving
-   */
   stopPeriodicStateSave(): void {
     if (this._stateSaveInterval) {
       clearInterval(this._stateSaveInterval)
@@ -68,8 +59,6 @@ export class StateManager {
       command: 'saveState',
       state,
     })
-
-    console.log('State saved:', state)
   }
 
   /**
@@ -84,7 +73,6 @@ export class StateManager {
    */
   restoreState(state: PreviewState): void {
     this._currentState = state
-    console.log('State restored:', state)
   }
 
   /**

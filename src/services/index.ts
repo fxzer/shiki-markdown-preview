@@ -1,3 +1,4 @@
+export * from './config-service'
 export * from './html-template-service'
 export * from './markdown-renderer'
 export * from './state-manager'

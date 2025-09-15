@@ -1,6 +1,3 @@
-// This script will be run within the markdown preview webview
-// It handles scroll synchronization and other interactive features
-
 (function () {
   // 检查是否已经获取了 VS Code API
   let vscode
@@ -19,8 +16,8 @@
       console.error('Failed to acquire VS Code API:', error)
       // 创建一个模拟的 vscode 对象，避免后续错误
       vscode = {
-        postMessage: () => {},
-        setState: () => {},
+        postMessage: () => { },
+        setState: () => { },
         getState: () => null,
       }
     }
@@ -33,10 +30,6 @@
     return
   }
 
-  // Use window as scroll container since div doesn't scroll by default
-  const scrollContainer = window
-
-  // Test scroll functionality
 
   // 滚动同步 - 优化版本，带防抖、阈值控制和缓存
   let isScrollingFromEditor = false
@@ -161,7 +154,7 @@
 
         // 确保 targetScrollTop 是数字类型并四舍五入到整数
         const scrollTopNumber = Math.round(Number(targetScrollTop))
-        if (isNaN(scrollTopNumber)) {
+        if (Number.isNaN(scrollTopNumber)) {
           console.error('Invalid scroll position:', targetScrollTop)
           return
         }
@@ -190,10 +183,6 @@
           document.body.scrollTop = scrollTopNumber
         }
 
-        // 验证滚动是否成功
-        setTimeout(() => {
-          const actualScrollTop = window.pageYOffset || document.documentElement.scrollTop
-        }, 50)
 
         setTimeout(() => {
           isScrollingFromEditor = false
@@ -201,33 +190,26 @@
         break
 
       case 'updateContent':
-        // Update the markdown content
         const markdownContent = document.getElementById('markdown-content')
         if (markdownContent) {
           markdownContent.innerHTML = message.content
-          // Re-apply syntax highlighting if needed
           applySyntaxHighlighting()
         }
         break
 
       case 'highlightLine':
-        // Highlight a specific line (for sync)
         highlightLine(message.line)
         break
     }
   })
 
-  // Apply syntax highlighting to code blocks
   function applySyntaxHighlighting() {
-    // Shiki should have already applied highlighting, but we can add additional processing here
     const codeBlocks = document.querySelectorAll('pre code')
-    codeBlocks.forEach((block, index) => {
-      // Add copy button or other enhancements
+    codeBlocks.forEach((block) => {
       addCopyButton(block.parentElement)
     })
   }
 
-  // Add copy button to code blocks
   function addCopyButton(preElement) {
     if (!preElement || preElement.querySelector('.copy-button'))
       return
@@ -305,13 +287,10 @@
     preElement.appendChild(button)
   }
 
-  // Highlight a specific line
   function highlightLine(lineNumber) {
-    // Remove previous highlights
     const previousHighlights = document.querySelectorAll('.line-highlight')
     previousHighlights.forEach(el => el.classList.remove('line-highlight'))
 
-    // Find and highlight the line
     const elements = contentContainer.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, pre, blockquote')
     const targetElement = elements[lineNumber]
 
@@ -319,20 +298,17 @@
       targetElement.classList.add('line-highlight')
       targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
-      // Remove highlight after 2 seconds
       setTimeout(() => {
         targetElement.classList.remove('line-highlight')
       }, 2000)
     }
   }
 
-  // Handle link clicks
   contentContainer.addEventListener('click', (event) => {
     const target = event.target
     if (target.tagName === 'A') {
       const href = target.getAttribute('href')
       if (href && !href.startsWith('#') && !href.startsWith('http')) {
-        // Handle relative links
         event.preventDefault()
         vscode.postMessage({
           command: 'openLink',
@@ -342,19 +318,16 @@
     }
   })
 
-  // Handle image clicks for zoom
   contentContainer.addEventListener('click', (event) => {
     const target = event.target
     if (target.tagName === 'IMG') {
-      // You could implement image zoom functionality here
+      // TODO: You could implement image zoom functionality here
     }
   })
 
-  // Initialize on load
   document.addEventListener('DOMContentLoaded', () => {
     applySyntaxHighlighting()
 
-    // Send ready message to extension
     vscode.postMessage({
       command: 'ready',
     })

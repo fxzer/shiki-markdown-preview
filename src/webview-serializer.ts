@@ -11,8 +11,6 @@ export class MarkdownPreviewSerializer implements vscode.WebviewPanelSerializer 
   constructor(private extensionUri: vscode.Uri) {}
 
   async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: WebviewState | undefined) {
-    console.log('Deserializing webview panel with state:', state)
-
     // 设置 webview 选项
     webviewPanel.webview.options = {
       enableScripts: true,
@@ -29,22 +27,20 @@ export class MarkdownPreviewSerializer implements vscode.WebviewPanelSerializer 
     const documentToRestore = await this.findDocumentToRestore(state)
 
     if (documentToRestore) {
-      console.log('Restoring document:', documentToRestore.uri.toString())
-
       // 等待 webview 完全初始化
       await this.waitForWebviewReady(webviewPanel)
 
       // 更新内容
       if (MarkdownPreviewPanel.currentPanel) {
-        MarkdownPreviewPanel.currentPanel.updateContent(documentToRestore)
+        await MarkdownPreviewPanel.currentPanel.updateContent(documentToRestore)
 
         // 恢复主题（如果状态中有保存）
         if (state?.theme && MarkdownPreviewPanel.currentPanel) {
           const themeService = MarkdownPreviewPanel.currentPanel.themeService
-          if (themeService.updateThemeForPreview(state.theme)) {
+          if (await themeService.updateThemeForPreview(state.theme)) {
             const currentDocument = MarkdownPreviewPanel.currentPanel.currentDocument
             if (currentDocument) {
-              MarkdownPreviewPanel.currentPanel.updateContent(currentDocument)
+              await MarkdownPreviewPanel.currentPanel.updateContent(currentDocument)
             }
           }
         }
@@ -54,7 +50,7 @@ export class MarkdownPreviewSerializer implements vscode.WebviewPanelSerializer 
       }
     }
     else {
-      console.log('No document found to restore')
+      console.warn('No document found to restore')
     }
   }
 
@@ -69,7 +65,6 @@ export class MarkdownPreviewSerializer implements vscode.WebviewPanelSerializer 
     // 1. 优先选择活动编辑器中的 Markdown 文件
     const activeEditor = vscode.window.activeTextEditor
     if (activeEditor && activeEditor.document.languageId === 'markdown') {
-      console.log('Found active markdown editor:', activeEditor.document.uri.toString())
       return activeEditor.document
     }
 
@@ -79,7 +74,6 @@ export class MarkdownPreviewSerializer implements vscode.WebviewPanelSerializer 
       editor.document.languageId === 'markdown',
     )
     if (visibleMarkdownEditor) {
-      console.log('Found visible markdown editor:', visibleMarkdownEditor.document.uri.toString())
       return visibleMarkdownEditor.document
     }
 
@@ -88,7 +82,6 @@ export class MarkdownPreviewSerializer implements vscode.WebviewPanelSerializer 
       try {
         const documentUri = vscode.Uri.parse(state.documentUri)
         const document = await vscode.workspace.openTextDocument(documentUri)
-        console.log('Restored document from state:', document.uri.toString())
         return document
       }
       catch (error) {

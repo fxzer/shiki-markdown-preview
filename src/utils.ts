@@ -35,7 +35,6 @@ export function findThemeIndex(themes: any[], themeName: string): number {
 
     if (fuzzyMatch) {
       index = themes.findIndex(t => t.theme === fuzzyMatch.theme)
-      console.log(`模糊匹配找到主题: ${fuzzyMatch.theme} at index ${index}`)
     }
   }
 
