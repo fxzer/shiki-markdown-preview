@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { bundledThemes } from 'shiki';
 import { ConfigService } from './config-service';
 import { MarkdownPreviewPanel } from './markdown-preview';
+import { findThemeIndex } from './utils';
 
 /**
  * 主题快速选择项接口
@@ -45,32 +46,9 @@ export async function showThemePicker(provider: MarkdownPreviewPanel): Promise<v
   const configService = new ConfigService();
   const currentThemeValue = configService.getCurrentTheme() || 'vitesse-dark';
 
-  // 查找当前主题的辅助函数
-  const findThemeIndex = (themeName: string): number => {
-    // 首先尝试精确匹配
-    let index = themes.findIndex(t => t.theme === themeName);
-    
-    if (index === -1) {
-      // 如果精确匹配失败，尝试模糊匹配
-      const fuzzyMatch = themes.find(t => 
-        t.theme && (
-          t.theme.includes(themeName) || 
-          themeName.includes(t.theme) ||
-          t.label.toLowerCase().includes(themeName.toLowerCase())
-        )
-      );
-      
-      if (fuzzyMatch) {
-        index = themes.findIndex(t => t.theme === fuzzyMatch.theme);
-        console.log(`模糊匹配找到主题: ${fuzzyMatch.theme} at index ${index}`);
-      }
-    }
-    
-    return index;
-  };
 
   // 找到当前主题的索引
-  const currentIndex = findThemeIndex(currentThemeValue);
+  const currentIndex = findThemeIndex(themes, currentThemeValue);
   console.log(`当前主题: ${currentThemeValue}, 找到索引: ${currentIndex}`);
   
   if (currentIndex !== -1) {

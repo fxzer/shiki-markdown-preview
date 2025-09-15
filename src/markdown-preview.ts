@@ -3,7 +3,7 @@ import { createHighlighter, type Highlighter } from 'shiki';
 import MarkdownIt from 'markdown-it';
 import { escapeHtml, getNonce } from './utils';
 import { ScrollSyncManager } from './scroll-sync-manager';
-import { ThemeColorExtractor, type ThemeColorConfig } from './theme-color-extractor';
+import { ThemeProvider  } from './theme-provider';
 
 // 所有可用的 Shiki 主题
 const AVAILABLE_THEMES = [
@@ -88,8 +88,7 @@ export class MarkdownPreviewPanel {
   private _markdownIt: MarkdownIt | undefined;
   private _scrollSyncManager: ScrollSyncManager;
   private _currentTheme: string;
-  private _themeColorExtractor: ThemeColorExtractor | undefined;
-  private _currentThemeConfig: ThemeColorConfig | undefined;
+  private _themeProvider: ThemeProvider | undefined;
   private _stateSaveInterval: NodeJS.Timeout | undefined;
 
   public static createOrShow(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
@@ -213,9 +212,8 @@ export class MarkdownPreviewPanel {
       
       // 初始化主题颜色提取器
       if (this._highlighter) {
-        this._themeColorExtractor = new ThemeColorExtractor(this._highlighter);
+        this._themeProvider = new ThemeProvider(this._highlighter);
         // 提取当前主题的颜色配置
-        this._currentThemeConfig = this._themeColorExtractor.extractThemeColors(this._currentTheme) || undefined;
       }
     } catch (error) {
       console.error('Failed to initialize highlighter:', error);
@@ -397,24 +395,6 @@ export class MarkdownPreviewPanel {
     }
   }
 
-
-  /**
-   * 显示主题选择器
-   */
-  public showThemeSelector(): void {
-    const currentIndex = AVAILABLE_THEMES.indexOf(this._currentTheme as typeof AVAILABLE_THEMES[number]);
-    if (currentIndex === -1) {
-      vscode.window.showErrorMessage('Current theme not found in available themes');
-      return;
-    }
-
-    // 创建主题选择器 HTML
-    const themeSelectorHtml = this._createThemeSelectorHtml(currentIndex);
-    
-    // 显示主题选择器
-    this._panel.webview.html = themeSelectorHtml;
-  }
-
   /**
    * 切换主题
    */
@@ -425,11 +405,6 @@ export class MarkdownPreviewPanel {
     }
 
     this._currentTheme = theme;
-    
-    // 更新主题颜色配置
-    if (this._themeColorExtractor) {
-      this._currentThemeConfig = this._themeColorExtractor.extractThemeColors(theme) || undefined;
-    }
     
     // 更新配置
     const config = vscode.workspace.getConfiguration('shiki-markdown-preview');
@@ -452,10 +427,6 @@ export class MarkdownPreviewPanel {
 
     this._currentTheme = theme;
 
-    // 更新主题颜色配置（预览模式）
-    if (this._themeColorExtractor) {
-      this._currentThemeConfig = this._themeColorExtractor.extractThemeColors(theme) || undefined;
-    }
 
     // 重新渲染内容
     if (this._currentDocument) {
@@ -463,225 +434,6 @@ export class MarkdownPreviewPanel {
     }
   }
 
-  /**
-   * 创建主题选择器 HTML
-   */
-  private _createThemeSelectorHtml(selectedIndex: number): string {
-    
-    const styleResetPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css');
-    const stylesPathMainPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css');
-    const markdownCssPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'markdown.css');
-    
-    const stylesResetUri = this._panel.webview.asWebviewUri(styleResetPath);
-    const stylesMainUri = this._panel.webview.asWebviewUri(stylesPathMainPath);
-    const markdownCssUri = this._panel.webview.asWebviewUri(markdownCssPath);
-    
-    const nonce = getNonce();
-
-    // 创建主题选项 HTML
-    const themeOptions = AVAILABLE_THEMES.map((theme, index) => {
-      const isSelected = index === selectedIndex;
-      const isLight = this._isLightTheme(theme);
-      return `
-        <div class="theme-option ${isSelected ? 'selected' : ''}" data-theme="${theme}" data-index="${index}">
-          <div class="theme-preview ${isLight ? 'light' : 'dark'}">
-            <div class="preview-code">
-              <span class="keyword">function</span> <span class="function">hello</span>() {
-                <span class="string">"Hello, World!"</span>
-              }
-            </div>
-          </div>
-          <div class="theme-name">${theme}</div>
-        </div>
-      `;
-    }).join('');
-
-    return `<!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this._panel.webview.cspSource} 'unsafe-inline'; img-src ${this._panel.webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <link href="${stylesResetUri}" rel="stylesheet">
-                <link href="${stylesMainUri}" rel="stylesheet">
-                <link href="${markdownCssUri}" rel="stylesheet">
-                <title>Select Theme</title>
-                <style>
-                    .theme-selector {
-                        padding: 20px;
-                        max-width: 1200px;
-                        margin: 0 auto;
-                    }
-                    .theme-selector h1 {
-                        text-align: center;
-                        margin-bottom: 30px;
-                        color: var(--vscode-editor-foreground);
-                    }
-                    .theme-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                        gap: 20px;
-                        margin-bottom: 30px;
-                    }
-                    .theme-option {
-                        border: 2px solid var(--vscode-panel-border);
-                        border-radius: 8px;
-                        padding: 15px;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        background: var(--vscode-editor-background);
-                    }
-                    .theme-option:hover {
-                        border-color: var(--vscode-focusBorder);
-                        transform: translateY(-2px);
-                    }
-                    .theme-option.selected {
-                        border-color: var(--vscode-focusBorder);
-                        box-shadow: 0 0 0 1px var(--vscode-focusBorder);
-                    }
-                    .theme-preview {
-                        border-radius: 4px;
-                        padding: 12px;
-                        margin-bottom: 10px;
-                        font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', Consolas, monospace;
-                        font-size: 12px;
-                        line-height: 1.4;
-                    }
-                    .theme-preview.light {
-                        background: #f6f8fa;
-                        color: #24292e;
-                    }
-                    .theme-preview.dark {
-                        background: #0d1117;
-                        color: #e6edf3;
-                    }
-                    .preview-code .keyword { color: #d73a49; }
-                    .preview-code .function { color: #6f42c1; }
-                    .preview-code .string { color: #032f62; }
-                    .theme-preview.dark .preview-code .keyword { color: #ff7b72; }
-                    .theme-preview.dark .preview-code .function { color: #d2a8ff; }
-                    .theme-preview.dark .preview-code .string { color: #a5d6ff; }
-                    .theme-name {
-                        font-weight: 600;
-                        color: var(--vscode-editor-foreground);
-                        text-align: center;
-                    }
-                    .instructions {
-                        text-align: center;
-                        color: var(--vscode-descriptionForeground);
-                        margin-bottom: 20px;
-                    }
-                    .current-theme {
-                        text-align: center;
-                        margin-bottom: 20px;
-                        padding: 10px;
-                        background: var(--vscode-editor-background);
-                        border: 1px solid var(--vscode-panel-border);
-                        border-radius: 4px;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="theme-selector">
-                    <h1>Select Shiki Theme</h1>
-                    <div class="instructions">
-                        Use <strong>Arrow Keys</strong> to navigate • <strong>Enter</strong> to select • <strong>Esc</strong> to cancel
-                    </div>
-                    <div class="current-theme">
-                        Current Theme: <strong>${this._currentTheme}</strong>
-                    </div>
-                    <div class="theme-grid" id="theme-grid">
-                        ${themeOptions}
-                    </div>
-                </div>
-                <script nonce="${nonce}">
-                    const vscode = acquireVsCodeApi();
-                    let currentIndex = ${selectedIndex};
-                    const themeOptions = document.querySelectorAll('.theme-option');
-                    
-                    function updateSelection() {
-                        themeOptions.forEach((option, index) => {
-                            option.classList.toggle('selected', index === currentIndex);
-                        });
-                    }
-                    
-                    function selectTheme() {
-                        const selectedOption = themeOptions[currentIndex];
-                        const theme = selectedOption.dataset.theme;
-                        vscode.postMessage({
-                            command: 'selectTheme',
-                            theme: theme
-                        });
-                    }
-                    
-                    function cancelSelection() {
-                        vscode.postMessage({
-                            command: 'cancelThemeSelection'
-                        });
-                    }
-                    
-                    document.addEventListener('keydown', (e) => {
-                        switch(e.key) {
-                            case 'ArrowUp':
-                                e.preventDefault();
-                                currentIndex = Math.max(0, currentIndex - Math.ceil(themeOptions.length / Math.ceil(themeOptions.length / 4)));
-                                updateSelection();
-                                break;
-                            case 'ArrowDown':
-                                e.preventDefault();
-                                currentIndex = Math.min(themeOptions.length - 1, currentIndex + Math.ceil(themeOptions.length / Math.ceil(themeOptions.length / 4)));
-                                updateSelection();
-                                break;
-                            case 'ArrowLeft':
-                                e.preventDefault();
-                                currentIndex = Math.max(0, currentIndex - 1);
-                                updateSelection();
-                                break;
-                            case 'ArrowRight':
-                                e.preventDefault();
-                                currentIndex = Math.min(themeOptions.length - 1, currentIndex + 1);
-                                updateSelection();
-                                break;
-                            case 'Enter':
-                                e.preventDefault();
-                                selectTheme();
-                                break;
-                            case 'Escape':
-                                e.preventDefault();
-                                cancelSelection();
-                                break;
-                        }
-                    });
-                    
-                    // 点击选择主题
-                    themeOptions.forEach((option, index) => {
-                        option.addEventListener('click', () => {
-                            currentIndex = index;
-                            updateSelection();
-                            selectTheme();
-                        });
-                    });
-                    
-                    // 初始化选择
-                    updateSelection();
-                </script>
-            </body>
-            </html>`;
-  }
-
-  /**
-   * 判断是否为浅色主题
-   */
-  private _isLightTheme(theme: string): boolean {
-    const lightThemes = [
-      'catppuccin-latte', 'everforest-light', 'github-light', 'github-light-default',
-      'github-light-high-contrast', 'gruvbox-light-hard', 'gruvbox-light-medium',
-      'gruvbox-light-soft', 'kanagawa-lotus', 'light-plus', 'material-theme-lighter',
-      'min-light', 'one-light', 'rose-pine-dawn', 'slack-ochin', 'snazzy-light',
-      'solarized-light', 'vitesse-light'
-    ];
-    return lightThemes.includes(theme);
-  }
 
   /**
    * 启动定期状态保存
@@ -767,24 +519,15 @@ export class MarkdownPreviewPanel {
     const scriptUri = webview.asWebviewUri(scriptPathOnDisk);
 
     // Local path to css styles
-    const styleResetPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css');
-    const stylesPathMainPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css');
-    const markdownCssPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'markdown.css');
-    const themeColorsPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'theme-colors.css');
+    const webviewCssPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'webview.css');
 
-    // Uri to load styles into webview
-    const stylesResetUri = webview.asWebviewUri(styleResetPath);
-    const stylesMainUri = webview.asWebviewUri(stylesPathMainPath);
-    const markdownCssUri = webview.asWebviewUri(markdownCssPath);
-    const themeColorsUri = webview.asWebviewUri(themeColorsPath);
+    const webviewCssUri = webview.asWebviewUri(webviewCssPath);
 
     // Use a nonce to only allow specific scripts to be run
     const nonce = getNonce();
 
     // 生成主题颜色CSS变量
-    const themeCSSVariables = this._currentThemeConfig && this._themeColorExtractor 
-      ? this._themeColorExtractor.generateCSSVariables(this._currentThemeConfig)
-      : '';
+    const themeCSSVariables = this._themeProvider?.getCssVars(this._currentTheme) || {};
 
     return `<!DOCTYPE html>
             <html lang="en">
@@ -792,10 +535,7 @@ export class MarkdownPreviewPanel {
                 <meta charset="UTF-8">
                 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <link href="${stylesResetUri}" rel="stylesheet">
-                <link href="${stylesMainUri}" rel="stylesheet">
-                <link href="${markdownCssUri}" rel="stylesheet">
-                <link href="${themeColorsUri}" rel="stylesheet">
+                <link href="${webviewCssUri}" rel="stylesheet">
                 <style>
                     :root {
                         ${themeCSSVariables}
@@ -809,7 +549,23 @@ export class MarkdownPreviewPanel {
                 </div>
                 <script nonce="${nonce}" src="${scriptUri}"></script>
                 <script nonce="${nonce}">
-                    const vscode = acquireVsCodeApi();
+                    // 使用全局的 vscode 实例，避免重复获取 API
+                    let vscode;
+                    if (window.vscode) {
+                        vscode = window.vscode;
+                    } else {
+                        try {
+                            vscode = acquireVsCodeApi();
+                            window.vscode = vscode;
+                        } catch (error) {
+                            console.error('Failed to acquire VS Code API in inline script:', error);
+                            vscode = {
+                                postMessage: () => {},
+                                setState: () => {},
+                                getState: () => null
+                            };
+                        }
+                    }
                     
                     // 监听来自扩展的消息
                     window.addEventListener('message', event => {

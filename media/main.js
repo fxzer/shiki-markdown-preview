@@ -2,7 +2,27 @@
 // It handles scroll synchronization and other interactive features
 
 (function () {
-  const vscode = acquireVsCodeApi();
+  // 检查是否已经获取了 VS Code API
+  let vscode;
+  if (window.vscode) {
+    // 如果全局变量中已有 vscode 实例，直接使用
+    vscode = window.vscode;
+  } else {
+    try {
+      // 尝试获取 VS Code API
+      vscode = acquireVsCodeApi();
+      // 将 vscode 实例保存到全局变量，供其他脚本使用
+      window.vscode = vscode;
+    } catch (error) {
+      console.error('Failed to acquire VS Code API:', error);
+      // 创建一个模拟的 vscode 对象，避免后续错误
+      vscode = {
+        postMessage: () => {},
+        setState: () => {},
+        getState: () => null
+      };
+    }
+  }
   
   // Get the markdown content container
   const contentContainer = document.getElementById('markdown-content');
@@ -13,12 +33,8 @@
 
   // Use window as scroll container since div doesn't scroll by default
   const scrollContainer = window;
-  console.log('Markdown preview initialized, sync scroll enabled');
   
   // Test scroll functionality
-  console.log('Initial scroll position:', window.scrollY);
-  console.log('Document height:', document.documentElement.scrollHeight);
-  console.log('Viewport height:', window.innerHeight);
 
   // 滚动同步 - 优化版本，带防抖、阈值控制和缓存
   let isScrollingFromEditor = false;
@@ -62,9 +78,7 @@
 
   // 优化的滚动处理函数
   function handleScroll() {
-      console.log(`handleScroll called, isScrollingFromEditor: ${isScrollingFromEditor}`);
       if (isScrollingFromEditor) {
-          console.log('Ignoring scroll because isScrollingFromEditor is true');
           return;
       }
 
@@ -128,19 +142,14 @@
   // Handle messages from the extension
   window.addEventListener('message', event => {
       const message = event.data;
-      console.log('Webview received message:', message);
-      console.log('Message source:', message.source, 'Command:', message.command);
       
       switch (message.command) {
           case 'scrollToPercentage':
               // 如果消息来源是预览区自己，忽略避免循环
               if (message.source === 'preview') {
-                  console.log('Ignoring scroll message from preview to avoid loop');
                   break;
               }
 
-              console.log(`Processing scrollToPercentage: ${(message.percentage * 100).toFixed(1)}%`);
-              console.log('Setting isScrollingFromEditor to true');
               isScrollingFromEditor = true;
 
               const documentHeight = getDocumentHeight();
@@ -148,7 +157,6 @@
               const maxScrollTop = Math.max(0, documentHeight - viewportHeight);
               const targetScrollTop = Math.max(0, Math.min(maxScrollTop, maxScrollTop * message.percentage));
 
-              console.log(`Scroll calculation: docHeight=${documentHeight}, viewportHeight=${viewportHeight}, maxScrollTop=${maxScrollTop}, targetScrollTop=${targetScrollTop}`);
 
               // 确保 targetScrollTop 是数字类型并四舍五入到整数
               const scrollTopNumber = Math.round(Number(targetScrollTop));
@@ -157,11 +165,8 @@
                   return;
               }
 
-              console.log(`About to scroll to: ${scrollTopNumber}px`);
               
               // 添加更多调试信息
-              console.log(`Before scroll - window.scrollY: ${window.scrollY}, document.documentElement.scrollTop: ${document.documentElement.scrollTop}`);
-              console.log(`Document scrollHeight: ${document.documentElement.scrollHeight}, clientHeight: ${document.documentElement.clientHeight}`);
               
               // 尝试多种滚动方法
               try {
@@ -173,7 +178,6 @@
                   // 如果 window.scrollTo 不工作，尝试直接设置 scrollTop
                   setTimeout(() => {
                       if (window.scrollY === 0 && scrollTopNumber > 0) {
-                          console.log('window.scrollTo failed, trying direct scrollTop assignment');
                           document.documentElement.scrollTop = scrollTopNumber;
                           document.body.scrollTop = scrollTopNumber;
                       }
@@ -188,12 +192,9 @@
               // 验证滚动是否成功
               setTimeout(() => {
                   const actualScrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                  console.log(`Actual scroll position after scrollTo: ${actualScrollTop}px`);
-                  console.log(`After scroll - window.scrollY: ${window.scrollY}, document.documentElement.scrollTop: ${document.documentElement.scrollTop}`);
               }, 50);
 
               setTimeout(() => {
-                  console.log('Setting isScrollingFromEditor to false');
                   isScrollingFromEditor = false;
               }, 50); // 缩短到50ms，避免阻塞用户滚动
               break;

@@ -175,6 +175,7 @@
 	"devDependencies": {
 		"@eslint/js": "^9.13.0",
 		"@stylistic/eslint-plugin": "^2.9.0",
+		"@types/chroma-js": "^3.1.1",
 		"@types/node": "^22",
 		"@types/vscode": "^1.100.0",
 		"@types/vscode-webview": "^1.57.0",
@@ -185,6 +186,7 @@
 	},
 	"dependencies": {
 		"@types/markdown-it": "^14.1.2",
+		"chroma-js": "^3.1.2",
 		"markdown-it": "^14.1.0",
 		"markdown-it-anchor": "^9.2.0",
 		"markdown-it-emoji": "^3.0.0",
