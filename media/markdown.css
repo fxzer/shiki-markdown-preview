@@ -1,4 +1,11 @@
 /* Markdown Preview Styles */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
 .markdown-body {
     box-sizing: border-box;
     min-width: 200px;
@@ -10,6 +17,7 @@
     line-height: 1.6;
     color: var(--vscode-editor-foreground);
     background-color: var(--vscode-editor-background);
+    min-height: 100vh;
 }
 
 .markdown-body h1,
@@ -260,6 +268,31 @@
 /* Scroll behavior for sync scrolling */
 .markdown-body {
     scroll-behavior: smooth;
+}
+
+/* Line highlight for sync scrolling */
+.markdown-body .line-highlight {
+    background-color: var(--vscode-editor-rangeHighlightBackground);
+    border-left: 3px solid var(--vscode-focusBorder);
+    padding-left: 8px;
+    margin-left: -11px;
+    transition: background-color 0.3s ease, border-left-color 0.3s ease;
+}
+
+/* Smooth transitions for sync scrolling */
+.markdown-body * {
+    transition: background-color 0.2s ease;
+}
+
+/* Enhanced scroll behavior */
+#markdown-content {
+    scroll-behavior: smooth;
+    will-change: scroll-position;
+}
+
+/* Prevent layout shift during sync scroll */
+#markdown-content * {
+    scroll-margin-top: 20px;
 }
 
 /* Line numbers for better scroll sync */

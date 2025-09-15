@@ -11,6 +11,8 @@ export class MarkdownPreviewPanel {
      * Track the currently panel. Only allow a single panel to exist at a time.
      */
     public static currentPanel: MarkdownPreviewPanel | undefined;
+    public static scrollSyncTimeout: NodeJS.Timeout | undefined;
+    public static visibleRangeSyncTimeout: NodeJS.Timeout | undefined;
 
     public static readonly viewType = 'shiki-markdown-preview';
 
@@ -188,6 +190,67 @@ export class MarkdownPreviewPanel {
                 return this._getHtmlForWebview(this._panel.webview, '<p>Markdown parser not initialized</p>');
             }
 
+            // Add line number tracking to markdown rendering
+            const lines = content.split('\n');
+            let currentLine = 0;
+            
+            // Custom renderer that adds line number attributes
+            const originalRules = {
+                heading_open: this._markdownIt.renderer.rules.heading_open,
+                paragraph_open: this._markdownIt.renderer.rules.paragraph_open,
+                list_item_open: this._markdownIt.renderer.rules.list_item_open,
+                blockquote_open: this._markdownIt.renderer.rules.blockquote_open,
+                code_block: this._markdownIt.renderer.rules.code_block,
+                fence: this._markdownIt.renderer.rules.fence,
+                table_open: this._markdownIt.renderer.rules.table_open,
+                hr: this._markdownIt.renderer.rules.hr
+            };
+
+            // Add line number tracking to block elements
+            const addLineNumber = (tokens: any, idx: number, options: any, env: any, renderer: any, ruleName: string) => {
+                const token = tokens[idx];
+                if (token && currentLine < lines.length) {
+                    // Find the corresponding line in the source
+                    for (let i = currentLine; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line && !line.startsWith('<!--')) {
+                            token.attrSet('data-line', i.toString());
+                            currentLine = i + 1;
+                            break;
+                        }
+                    }
+                }
+                
+                return originalRules[ruleName as keyof typeof originalRules] ? 
+                    originalRules[ruleName as keyof typeof originalRules]!(tokens, idx, options, env, renderer) : 
+                    renderer.renderToken(tokens, idx, options);
+            };
+
+            // Override renderer rules to add line numbers
+            this._markdownIt.renderer.rules.heading_open = (tokens, idx, options, env, renderer) => 
+                addLineNumber(tokens, idx, options, env, renderer, 'heading_open');
+            
+            this._markdownIt.renderer.rules.paragraph_open = (tokens, idx, options, env, renderer) => 
+                addLineNumber(tokens, idx, options, env, renderer, 'paragraph_open');
+            
+            this._markdownIt.renderer.rules.list_item_open = (tokens, idx, options, env, renderer) => 
+                addLineNumber(tokens, idx, options, env, renderer, 'list_item_open');
+            
+            this._markdownIt.renderer.rules.blockquote_open = (tokens, idx, options, env, renderer) => 
+                addLineNumber(tokens, idx, options, env, renderer, 'blockquote_open');
+            
+            this._markdownIt.renderer.rules.code_block = (tokens, idx, options, env, renderer) => 
+                addLineNumber(tokens, idx, options, env, renderer, 'code_block');
+            
+            this._markdownIt.renderer.rules.fence = (tokens, idx, options, env, renderer) => 
+                addLineNumber(tokens, idx, options, env, renderer, 'fence');
+            
+            this._markdownIt.renderer.rules.table_open = (tokens, idx, options, env, renderer) => 
+                addLineNumber(tokens, idx, options, env, renderer, 'table_open');
+            
+            this._markdownIt.renderer.rules.hr = (tokens, idx, options, env, renderer) => 
+                addLineNumber(tokens, idx, options, env, renderer, 'hr');
+
             const html = this._markdownIt.render(content);
             return this._getHtmlForWebview(this._panel.webview, html);
         } catch (error) {
@@ -222,15 +285,25 @@ export class MarkdownPreviewPanel {
         const editor = vscode.window.visibleTextEditors.find(e => e.document === this._currentDocument);
         if (editor) {
             const position = new vscode.Position(line, 0);
-            editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.AtTop);
+            console.log(`Syncing editor to line ${line}`);
+            // Use smooth reveal for better user experience
+            editor.revealRange(
+                new vscode.Range(position, position), 
+                vscode.TextEditorRevealType.AtTop
+            );
         }
     }
 
     public syncScroll(line: number, percentage: number) {
+        // Send scroll sync message with additional context for better accuracy
+        const totalLines = this._currentDocument?.lineCount || 0;
+        console.log(`Sending sync scroll to webview: line ${line}, percentage ${percentage}`);
         this._panel.webview.postMessage({
             command: 'syncScroll',
             line: line,
-            percentage: percentage
+            percentage: percentage,
+            totalLines: totalLines,
+            timestamp: Date.now() // For performance monitoring
         });
     }
 

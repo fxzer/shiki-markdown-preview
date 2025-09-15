@@ -64,16 +64,39 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
-	// Register text editor selection change listener for scroll sync
+	// Register text editor scroll listener for mouse wheel sync
+	let editorScrollTimeout: NodeJS.Timeout | undefined;
+	let lastVisibleRange: vscode.Range | undefined;
+	
 	context.subscriptions.push(
-		vscode.window.onDidChangeTextEditorSelection(event => {
-			if (event.textEditor.document.languageId === 'markdown' && MarkdownPreviewPanel.currentPanel) {
-				const currentLine = event.selections[0].active.line;
-				const totalLines = event.textEditor.document.lineCount;
-				const scrollPercentage = totalLines > 0 ? currentLine / totalLines : 0;
+		vscode.window.onDidChangeTextEditorVisibleRanges(event => {
+			if (event.textEditor.document.languageId === 'markdown' && 
+				MarkdownPreviewPanel.currentPanel && 
+				event.visibleRanges.length > 0) {
 				
-				// Send scroll sync message to webview
-				MarkdownPreviewPanel.currentPanel.syncScroll(currentLine, scrollPercentage);
+				const currentRange = event.visibleRanges[0];
+				
+				// Only sync if the visible range actually changed significantly (indicating scroll, not cursor)
+				if (!lastVisibleRange || 
+					Math.abs(currentRange.start.line - lastVisibleRange.start.line) > 2 ||
+					Math.abs(currentRange.end.line - lastVisibleRange.end.line) > 2) {
+					
+					lastVisibleRange = currentRange;
+					
+					// Clear previous timeout
+					if (editorScrollTimeout) {
+						clearTimeout(editorScrollTimeout);
+					}
+					
+					editorScrollTimeout = setTimeout(() => {
+						const centerLine = Math.floor((currentRange.start.line + currentRange.end.line) / 2);
+						const totalLines = event.textEditor.document.lineCount;
+						const scrollPercentage = totalLines > 0 ? centerLine / totalLines : 0;
+						
+						console.log(`Editor wheel scroll: center line ${centerLine}, percentage ${scrollPercentage.toFixed(2)}`);
+						MarkdownPreviewPanel.currentPanel?.syncScroll(centerLine, scrollPercentage);
+					}, 200); // 200ms throttle for wheel-based scrolling
+				}
 			}
 		})
 	);

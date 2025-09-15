@@ -25,7 +25,7 @@
 			{
 				"command": "shiki-markdown-preview.show",
 				"title": "Open Preview",
-				"category": "Markdown Preview",
+				"category": "Shiki Markdown Preview",
 				"icon": {
 					"light": "res/icon.svg",
 					"dark": "res/icon.svg"
@@ -34,7 +34,7 @@
 			{
 				"command": "shiki-markdown-preview.showForDocument",
 				"title": "Open Preview to the Side",
-				"category": "Markdown Preview"
+				"category": "Shiki Markdown Preview"
 			}
 		],
 		"menus": {
