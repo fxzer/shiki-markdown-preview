@@ -6,6 +6,7 @@ export interface HTMLTemplateOptions {
   extensionUri: vscode.Uri
   content: string
   themeCSSVariables?: string
+  frontMatterData?: any
   nonce?: string
 }
 
@@ -19,6 +20,7 @@ export class HTMLTemplateService {
       extensionUri,
       content,
       themeCSSVariables = '',
+      frontMatterData = {},
       nonce = getNonce(),
     } = options
 
@@ -37,7 +39,7 @@ export class HTMLTemplateService {
                         ${themeCSSVariables}
                     }
                 </style>
-                <title>Markdown Preview</title>
+                <title>${frontMatterData?.title ? escapeHtml(frontMatterData.title) : 'Markdown Preview'}</title>
             </head>
             <body>
                 <div class="markdown-body" id="markdown-content">
@@ -45,6 +47,9 @@ export class HTMLTemplateService {
                 </div>
                 <script nonce="${nonce}" src="${scriptUri}"></script>
                 <script nonce="${nonce}">
+                    // 将 front matter 数据存储到全局变量中
+                    window.frontMatterData = ${JSON.stringify(frontMatterData)};
+                    
                     // 初始化 VS Code API
                     let vscode;
                     if (window.vscode) {

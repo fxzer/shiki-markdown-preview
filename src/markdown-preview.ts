@@ -221,6 +221,9 @@ export class MarkdownPreviewPanel {
 
     try {
       const content = document.getText()
+
+      // 获取 front matter 数据
+      const frontMatterData = this._markdownRenderer.getFrontMatterData(content)
       const renderedContent = this._markdownRenderer.render(content, document)
 
       // 为 webview 解析相对路径
@@ -234,11 +237,13 @@ export class MarkdownPreviewPanel {
         extensionUri: this._extensionUri,
         content: processedContent,
         themeCSSVariables,
+        frontMatterData, // 传递 front matter 数据
       })
 
-      // 更新面板标题
+      // 更新面板标题 - 优先使用 front matter 中的 title
       const fileName = document.fileName.split('/').pop() || 'Untitled'
-      this._panel.title = fileName
+      const title = frontMatterData?.title || fileName
+      this._panel.title = title
 
       // 保存状态
       this._stateManager.saveState(document, this._themeService.currentTheme)

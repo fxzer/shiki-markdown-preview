@@ -2,6 +2,7 @@ import type { ThemeService } from './theme-service'
 import MarkdownIt from 'markdown-it'
 import * as vscode from 'vscode'
 import { escapeHtml } from '../utils'
+import matter from 'gray-matter'
 
 export class MarkdownRenderer {
   private _markdownIt: MarkdownIt | undefined
@@ -119,6 +120,25 @@ export class MarkdownRenderer {
   }
 
   /**
+   * Parse front matter from markdown content
+   */
+  parseFrontMatter(content: string): { content: string; data: any } {
+    try {
+      const parsed = matter(content)
+      return {
+        content: parsed.content, // 只使用内容部分，忽略元数据
+        data: parsed.data
+      }
+    } catch (error) {
+      console.warn('Failed to parse front matter:', error)
+      return {
+        content,
+        data: {}
+      }
+    }
+  }
+
+  /**
    * Render markdown content with line number tracking
    */
   render(content: string, document?: vscode.TextDocument): string {
@@ -131,7 +151,9 @@ export class MarkdownRenderer {
     }
 
     try {
-      const lines = content.split('\n')
+      // 使用 gray-matter 分离 front matter 和内容
+      const { content: markdownContent } = this.parseFrontMatter(content)
+      const lines = markdownContent.split('\n')
       let currentLine = 0
 
       const originalRules = {
@@ -187,12 +209,20 @@ export class MarkdownRenderer {
       this._markdownIt.renderer.rules.hr = (tokens, idx, options, env, renderer) =>
         addLineNumber(tokens, idx, options, env, renderer, 'hr')
 
-      return this._markdownIt.render(content)
+      return this._markdownIt.render(markdownContent)
     }
     catch (error) {
       console.error('Error rendering markdown:', error)
       throw error
     }
+  }
+
+  /**
+   * Get front matter data from markdown content
+   */
+   getFrontMatterData(content: string): any {
+    const { data } = this.parseFrontMatter(content)
+    return data
   }
 
   get markdownIt(): MarkdownIt | undefined {
