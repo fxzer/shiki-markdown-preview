@@ -30,7 +30,6 @@
     return
   }
 
-
   // 滚动同步 - 优化版本，带防抖、阈值控制和缓存
   let isScrollingFromEditor = false
   let scrollTimeout = null
@@ -182,7 +181,6 @@
           document.documentElement.scrollTop = scrollTopNumber
           document.body.scrollTop = scrollTopNumber
         }
-
 
         setTimeout(() => {
           isScrollingFromEditor = false

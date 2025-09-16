@@ -2,19 +2,41 @@ import type { Highlighter } from 'shiki'
 import type { GroupedThemes, ThemeCache, ThemeMetadata } from '../types/theme'
 import { bundledThemes, createHighlighter } from 'shiki'
 import * as vscode from 'vscode'
-import { SUPPORTED_LANGUAGES } from '../constants'
-import { ThemeProvider } from '../theme-provider'
+import { generateEnhancedColors } from '../color-hander'
+import { toCssVarsStr } from '../color-utils'
 import { escapeHtml } from '../utils'
 import { ThemeUtils } from '../utils/theme-utils'
 import { ConfigService } from './config-service'
 
+const SUPPORTED_LANGUAGES = [
+  'javascript',
+  'typescript',
+  'python',
+  'java',
+  'cpp',
+  'c',
+  'csharp',
+  'php',
+  'ruby',
+  'go',
+  'rust',
+  'swift',
+  'kotlin',
+  'html',
+  'css',
+  'scss',
+  'json',
+  'xml',
+  'yaml',
+  'markdown',
+]
+
 export class ThemeService {
   private _highlighter: Highlighter | undefined
-  private _themeProvider: ThemeProvider | undefined
   private _currentTheme: string
   private _loadedThemes: Set<string> = new Set<string>()
   private _loadedLanguages: Set<string> = new Set<string>()
-  private _commonLanguages: string[] = ['javascript', 'typescript', 'html', 'css', 'json', 'markdown', 'python', 'java', 'cpp', 'go', 'rust']
+  private _commonLanguages: string[] = ['javascript', 'typescript', 'html', 'css', 'json', 'markdown', 'python']
   private _configService: ConfigService // 配置服务实例
 
   // 主题缓存系统（简化版，无过期时间）
@@ -46,9 +68,7 @@ export class ThemeService {
       this._loadedThemes.add(currentTheme)
       this._commonLanguages.forEach(lang => this._loadedLanguages.add(lang))
 
-      if (this._highlighter) {
-        this._themeProvider = new ThemeProvider(this._highlighter)
-      }
+      // 高亮器初始化完成
     }
     catch (error) {
       console.error('Failed to initialize highlighter:', error)
@@ -61,6 +81,112 @@ export class ThemeService {
    */
   isValidThemeSync(theme: string): boolean {
     return this._themeCache.loaded && this._themeCache.metadata.has(theme)
+  }
+
+  /**
+   * 返回当前主题类型
+   */
+  getCurrentThemeType(themeName: string): 'light' | 'dark' {
+    return this._themeCache.metadata.get(themeName)?.type || 'light'
+  }
+
+  /* 是暗黑主题 */
+  isDarkTheme(themeName: string): boolean {
+    return this._themeCache.metadata.get(themeName)?.type === 'dark'
+  }
+
+  /**
+   * 提取主题的核心颜色信息
+   * @param theme 主题名称
+   * @returns 主题颜色配置对象
+   */
+  public getThemeColors(theme: string): any | null {
+    if (!this._highlighter) {
+      console.warn('Highlighter not initialized')
+      return null
+    }
+
+    try {
+      const themeData = (this._highlighter as any).getTheme(theme)
+      if (!themeData) {
+        console.warn(`Theme ${theme} not found`)
+        return null
+      }
+
+      // 确保返回完整的颜色对象，包括 tokenColors 中的颜色
+      const colors = themeData.colors || {}
+
+      // 如果主题数据中有 tokenColors，也提取一些关键颜色
+      if (themeData.tokenColors && Array.isArray(themeData.tokenColors)) {
+        themeData.tokenColors.forEach((tokenColor: any) => {
+          if (tokenColor.settings && tokenColor.settings.foreground) {
+            // 为一些常见的 token 类型添加颜色映射
+            if (tokenColor.scope && tokenColor.scope.includes('string')) {
+              colors['string.foreground'] = tokenColor.settings.foreground
+            }
+            if (tokenColor.scope && tokenColor.scope.includes('comment')) {
+              colors['comment.foreground'] = tokenColor.settings.foreground
+            }
+            if (tokenColor.scope && tokenColor.scope.includes('keyword')) {
+              colors['keyword.foreground'] = tokenColor.settings.foreground
+            }
+          }
+        })
+      }
+
+      return colors
+    }
+    catch (error) {
+      console.error(`Failed to extract colors for theme ${theme}:`, error)
+      return null
+    }
+  }
+
+  /**
+   * 获取主题的CSS变量
+   * @param theme 主题名称
+   * @returns CSS变量字符串
+   */
+  public getCssVars(theme: string): string {
+    const themeColors = this.getThemeColors(theme)
+    if (!themeColors) {
+      console.warn('Theme colors not found for theme:', theme)
+      return ''
+    }
+
+    // 提取核心颜色变量（频率最高的变量）
+    const coreColorNames = [
+      'editor.background',
+      'editor.foreground',
+      'activityBar.background',
+      'button.background',
+      'focusBorder',
+      'panel.border',
+      'list.activeSelectionBackground',
+      'list.hoverBackground',
+      'statusBar.background',
+      'titleBar.activeBackground',
+      'activityBarBadge.background',
+      'textLink.foreground',
+      'textLink.activeForeground',
+    ]
+
+    const isDarkTheme = this.isDarkTheme(theme)
+    const themeCoreCss = coreColorNames.reduce((acc, varName) => {
+      let colorValue = themeColors[varName]
+      if (!colorValue) {
+        if (varName === 'editor.foreground') {
+          colorValue = isDarkTheme ? '#ffffff' : '#000000'
+        }
+      }
+      acc[varName] = colorValue
+      return acc
+    }, {} as Record<string, string>)
+
+    const themeCoreCssVars = toCssVarsStr(themeCoreCss)
+    const enhancedCssVars = generateEnhancedColors(themeCoreCss, isDarkTheme)
+
+    return `${themeCoreCssVars} ${enhancedCssVars}`
   }
 
   /**
@@ -139,7 +265,7 @@ export class ThemeService {
       }
     }
 
-    return this._themeProvider?.getCssVars(this._currentTheme) || ''
+    return this.getCssVars(this._currentTheme)
   }
 
   /**
@@ -329,10 +455,6 @@ export class ThemeService {
     return this._highlighter
   }
 
-  get themeProvider(): ThemeProvider | undefined {
-    return this._themeProvider
-  }
-
   /**
    * 动态发现和缓存所有可用主题
    */
@@ -461,6 +583,5 @@ export class ThemeService {
 
   dispose(): void {
     this._highlighter = undefined
-    this._themeProvider = undefined
   }
 }

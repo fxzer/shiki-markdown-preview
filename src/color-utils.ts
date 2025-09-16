@@ -17,6 +17,18 @@ export function isDarkColor(color: string): boolean {
 }
 
 /**
+ * 将颜色映射对象转换为CSS变量字符串
+ * @param colorsMap 颜色映射对象
+ * @returns CSS变量字符串
+ */
+export function toCssVarsStr(colorsMap: Record<string, string>): string {
+  return Object.entries(colorsMap).map(([key, value]) => {
+    const cssVarName = key.replace(/\./g, '-')
+    return `--${cssVarName}: ${value};`
+  }).join('')
+}
+
+/**
  * 计算两个颜色之间的对比度
  * @param color1 第一个颜色（字符串或 chroma.Color 对象）
  * @param color2 第二个颜色（字符串或 chroma.Color 对象）

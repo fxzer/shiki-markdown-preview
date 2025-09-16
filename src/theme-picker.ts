@@ -77,7 +77,6 @@ export async function showThemePicker(panel: MarkdownPreviewPanel): Promise<void
   // 设置初始选中项
   if (currentIndex !== -1) {
     quickPick.activeItems = [themes[currentIndex]]
-    console.log(`设置活动项为索引: ${currentIndex}, 主题: ${themes[currentIndex].theme}`)
   }
   else {
     console.warn(`无法设置活动项，当前主题: ${currentThemeValue}`)
