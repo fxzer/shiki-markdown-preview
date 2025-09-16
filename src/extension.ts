@@ -1,40 +1,40 @@
 import * as vscode from 'vscode'
 import { MarkdownPreviewPanel } from './markdown-preview'
-import { ConfigService } from './services'
 import { showThemePicker } from './theme-picker'
+import { DocumentValidator } from './utils/document-validator'
+import { ErrorHandler } from './utils/error-handler'
+import { ThemeManager } from './utils/theme-manager'
 import { MarkdownPreviewSerializer } from './webview-serializer'
 
 export function activate(context: vscode.ExtensionContext) {
+  // 注册配置变更监听器，用于实时主题更新
   // 注册 markdown 预览命令
   context.subscriptions.push(
     vscode.commands.registerCommand('shiki-markdown-preview.show', () => {
-      const activeEditor = vscode.window.activeTextEditor
-      if (activeEditor && activeEditor.document.languageId === 'markdown') {
-        MarkdownPreviewPanel.createOrShow(context.extensionUri, activeEditor.document)
-      }
-      else {
-        vscode.window.showInformationMessage('Please open a Markdown file first')
+      const markdownDocument = DocumentValidator.validateMarkdownDocument()
+      if (markdownDocument) {
+        MarkdownPreviewPanel.createOrShow(context.extensionUri, markdownDocument)
       }
     }),
   )
 
   // 注册为当前文档显示预览的命令
   context.subscriptions.push(
-    vscode.commands.registerCommand('shiki-markdown-preview.showForDocument', (uri?: vscode.Uri) => {
+    vscode.commands.registerCommand('shiki-markdown-preview.showForDocument', async (uri?: vscode.Uri) => {
       if (uri) {
-        vscode.workspace.openTextDocument(uri).then((document) => {
-          if (document.languageId === 'markdown') {
-            MarkdownPreviewPanel.createOrShow(context.extensionUri, document)
-          }
-        })
+        const document = await ErrorHandler.safeExecute(
+          async () => await vscode.workspace.openTextDocument(uri),
+          `无法打开文档: ${uri.fsPath}`,
+          'Extension',
+        )
+        if (document && DocumentValidator.isMarkdownDocument(document)) {
+          MarkdownPreviewPanel.createOrShow(context.extensionUri, document)
+        }
       }
       else {
-        const activeEditor = vscode.window.activeTextEditor
-        if (activeEditor && activeEditor.document.languageId === 'markdown') {
-          MarkdownPreviewPanel.createOrShow(context.extensionUri, activeEditor.document)
-        }
-        else {
-          vscode.window.showInformationMessage('Please open a Markdown file first')
+        const markdownDocument = DocumentValidator.validateMarkdownDocument()
+        if (markdownDocument) {
+          MarkdownPreviewPanel.createOrShow(context.extensionUri, markdownDocument)
         }
       }
     }),
@@ -43,21 +43,23 @@ export function activate(context: vscode.ExtensionContext) {
   // 注册主题选择命令
   context.subscriptions.push(
     vscode.commands.registerCommand('shiki-markdown-preview.selectTheme', async () => {
-      const activeEditor = vscode.window.activeTextEditor
-      if (activeEditor && activeEditor.document.languageId === 'markdown') {
-        // 确保预览窗口已打开
-        if (!MarkdownPreviewPanel.currentPanel) {
-          MarkdownPreviewPanel.createOrShow(context.extensionUri, activeEditor.document)
-          // 等待预览窗口创建完成
-          await new Promise(resolve => setTimeout(resolve, 100))
-        }
+      const markdownDocument = DocumentValidator.validateMarkdownDocument()
+      if (!markdownDocument)
+        return
 
-        if (MarkdownPreviewPanel.currentPanel) {
-          await showThemePicker(MarkdownPreviewPanel.currentPanel)
-        }
+      // 确保预览窗口已打开
+      if (!MarkdownPreviewPanel.currentPanel) {
+        MarkdownPreviewPanel.createOrShow(context.extensionUri, markdownDocument)
+        // 等待预览窗口创建完成
+        await new Promise(resolve => setTimeout(resolve, 100))
       }
-      else {
-        vscode.window.showInformationMessage('Please open a Markdown file first')
+
+      if (MarkdownPreviewPanel.currentPanel) {
+        await ErrorHandler.safeExecute(
+          () => showThemePicker(MarkdownPreviewPanel.currentPanel!, ThemeManager.getCurrentTheme()),
+          '主题选择器打开失败',
+          'Extension',
+        )
       }
     }),
   )
@@ -67,9 +69,11 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (MarkdownPreviewPanel.currentPanel
         && event.document === MarkdownPreviewPanel.currentPanel.currentDocument) {
-        MarkdownPreviewPanel.currentPanel.updateContent(event.document).catch((error) => {
-          console.error('Error updating content on text document change:', error)
-        })
+        ErrorHandler.safeExecute(
+          () => MarkdownPreviewPanel.currentPanel!.updateContent(event.document),
+          '文档内容更新失败',
+          'Extension',
+        )
       }
     }),
   )
@@ -77,36 +81,46 @@ export function activate(context: vscode.ExtensionContext) {
   // 注册活动编辑器变更监听器
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor && editor.document.languageId === 'markdown' && MarkdownPreviewPanel.currentPanel) {
+      if (DocumentValidator.isMarkdownEditor(editor) && MarkdownPreviewPanel.currentPanel) {
         // 在切换 markdown 文件时自动更新预览
-        MarkdownPreviewPanel.currentPanel.updateContent(editor.document).catch((error) => {
-          console.error('Error updating content on active editor change:', error)
-        })
+        ErrorHandler.safeExecute(
+          () => MarkdownPreviewPanel.currentPanel!.updateContent(editor!.document),
+          '活动编辑器内容更新失败',
+          'Extension',
+        )
       }
     }),
   )
 
-  // 注册配置变更监听器，用于实时主题更新
-  const configService = new ConfigService()
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(async (event) => {
       // 检查是否是我们扩展的配置发生了变化
       if (event.affectsConfiguration('shiki-markdown-preview.currentTheme')) {
         if (MarkdownPreviewPanel.currentPanel) {
           // 使用配置服务获取新的主题设置
-          const newTheme = configService.getCurrentTheme()
+          const newTheme = ThemeManager.getCurrentTheme()
 
           // 实时更新预览主题
           const themeService = MarkdownPreviewPanel.currentPanel.themeService
-          if (await themeService.updateThemeForPreview(newTheme)) {
+          const success = await ErrorHandler.safeExecute(
+            () => themeService.updateThemeForPreview(newTheme),
+            `主题预览更新失败: ${newTheme}`,
+            'Extension',
+          )
+
+          if (success) {
             const currentDocument = MarkdownPreviewPanel.currentPanel.currentDocument
             if (currentDocument) {
-              MarkdownPreviewPanel.currentPanel.updateContent(currentDocument)
+              await ErrorHandler.safeExecute(
+                () => MarkdownPreviewPanel.currentPanel!.updateContent(currentDocument),
+                '主题更新后内容刷新失败',
+                'Extension',
+              )
             }
           }
 
           // 显示通知
-          vscode.window.showInformationMessage(`主题已更改为: ${newTheme}`)
+          ErrorHandler.showInfo(`主题已更改为: ${newTheme}`)
         }
       }
     }),

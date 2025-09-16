@@ -1,8 +1,11 @@
+import type * as vscode from 'vscode'
 import type { ThemeService } from './theme-service'
 import matter from 'gray-matter'
 import MarkdownIt from 'markdown-it'
-import * as vscode from 'vscode'
 import { escapeHtml } from '../utils'
+import { ErrorHandler } from '../utils/error-handler'
+import { PathResolver } from '../utils/path-resolver'
+import { LanguageDetector } from './language-detector'
 
 export class MarkdownRenderer {
   private _markdownIt: MarkdownIt | undefined
@@ -45,7 +48,7 @@ export class MarkdownRenderer {
       if (srcIndex >= 0 && token.attrs && token.attrs[srcIndex]) {
         const href = token.attrs[srcIndex][1]
         if (!href.startsWith('http') && !href.startsWith('data:')) {
-          const resolvedUri = this.resolveRelativePath(href)
+          const resolvedUri = this._currentDocument ? PathResolver.resolveRelativePath(this._currentDocument, href) : null
           if (resolvedUri) {
             token.attrs[srcIndex][1] = resolvedUri
           }
@@ -68,7 +71,7 @@ export class MarkdownRenderer {
         }
         // 对于 .md 文件，保持相对路径，不转换为绝对URI
         if (!href.startsWith('http') && !href.startsWith('data:') && !href.endsWith('.md')) {
-          const resolvedUri = this.resolveRelativePath(href)
+          const resolvedUri = this._currentDocument ? PathResolver.resolveRelativePath(this._currentDocument, href) : null
           if (resolvedUri) {
             token.attrs[hrefIndex][1] = resolvedUri
           }
@@ -129,29 +132,8 @@ export class MarkdownRenderer {
       return highlighted
     }
     catch (error) {
-      console.warn(`Failed to highlight code for language: ${lang}`, error)
+      ErrorHandler.logWarning(`代码高亮失败: ${lang}`, 'MarkdownRenderer')
       return `<pre><code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`
-    }
-  }
-
-  /**
-   * Resolve relative paths in markdown content
-   */
-  private resolveRelativePath(href: string): string | null {
-    if (!this._currentDocument) {
-      return null
-    }
-
-    try {
-      const documentDir = vscode.Uri.joinPath(this._currentDocument.uri, '..')
-
-      const resolvedUri = vscode.Uri.joinPath(documentDir, href)
-
-      return resolvedUri.toString()
-    }
-    catch (error) {
-      console.warn(`Failed to resolve relative path: ${href}`, error)
-      return null
     }
   }
 
@@ -180,7 +162,7 @@ export class MarkdownRenderer {
       }
     }
     catch (error) {
-      console.warn('Failed to parse front matter:', error)
+      ErrorHandler.logWarning('Front matter 解析失败', 'MarkdownRenderer')
       return {
         content,
         data: {},
@@ -191,7 +173,7 @@ export class MarkdownRenderer {
   /**
    * Render markdown content with line number tracking
    */
-  render(content: string, document?: vscode.TextDocument): string {
+  async render(content: string, document?: vscode.TextDocument): Promise<string> {
     if (!this._markdownIt) {
       throw new Error('Markdown renderer not initialized')
     }
@@ -203,6 +185,10 @@ export class MarkdownRenderer {
     try {
       // 使用 gray-matter 分离 front matter 和内容
       const { content: markdownContent } = this.parseFrontMatter(content)
+
+      // 在渲染前检测并预加载需要的语言
+      await this._preloadLanguagesForContent(content)
+
       const lines = markdownContent.split('\n')
       let currentLine = 0
 
@@ -262,7 +248,7 @@ export class MarkdownRenderer {
       return this._markdownIt.render(markdownContent)
     }
     catch (error) {
-      console.error('Error rendering markdown:', error)
+      ErrorHandler.handleRenderError(error, 'Markdown 渲染')
       throw error
     }
   }
@@ -273,6 +259,58 @@ export class MarkdownRenderer {
   getFrontMatterData(content: string): any {
     const { data } = this.parseFrontMatter(content)
     return data
+  }
+
+  /**
+   * 为内容预加载需要的语言
+   * @param content Markdown 内容
+   */
+  private async _preloadLanguagesForContent(content: string): Promise<void> {
+    try {
+      // 检查是否包含代码块
+      if (!LanguageDetector.hasCodeBlocks(content)) {
+        return
+      }
+
+      // 获取语言统计信息
+      const languageStats = LanguageDetector.getLanguageStats(content)
+      const codeBlockCount = LanguageDetector.getCodeBlockCount(content)
+
+      ErrorHandler.logInfo(`内容分析: ${codeBlockCount} 个代码块, ${languageStats.size} 种语言`, 'MarkdownRenderer')
+
+      // 预加载检测到的语言
+      await this._themeService.preloadLanguagesFromContent(content)
+    }
+    catch (error) {
+      ErrorHandler.logWarning('语言预加载失败', 'MarkdownRenderer')
+      // 不抛出错误，继续渲染
+    }
+  }
+
+  /**
+   * 获取内容分析信息（用于调试）
+   * @param content Markdown 内容
+   */
+  getContentAnalysis(content: string): {
+    hasCodeBlocks: boolean
+    codeBlockCount: number
+    languages: string[]
+    languageStats: Map<string, number>
+    loadingStats: { loaded: string[], total: number, unloaded: string[] }
+  } {
+    const hasCodeBlocks = LanguageDetector.hasCodeBlocks(content)
+    const codeBlockCount = LanguageDetector.getCodeBlockCount(content)
+    const languages = LanguageDetector.detectLanguages(content)
+    const languageStats = LanguageDetector.getLanguageStats(content)
+    const loadingStats = this._themeService.getLanguageLoadingStats()
+
+    return {
+      hasCodeBlocks,
+      codeBlockCount,
+      languages,
+      languageStats,
+      loadingStats,
+    }
   }
 
   get markdownIt(): MarkdownIt | undefined {

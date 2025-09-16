@@ -1,2 +1,6 @@
 export * from '../utils'
 export * from './theme-utils'
+export * from './error-handler'
+export * from './path-resolver'
+export * from './document-validator'
+export * from './theme-manager'

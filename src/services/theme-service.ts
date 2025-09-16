@@ -5,8 +5,10 @@ import * as vscode from 'vscode'
 import { generateEnhancedColors } from '../color-hander'
 import { toCssVarsStr } from '../color-utils'
 import { escapeHtml } from '../utils'
+import { ErrorHandler } from '../utils/error-handler'
 import { ThemeUtils } from '../utils/theme-utils'
 import { ConfigService } from './config-service'
+import { LanguageDetector } from './language-detector'
 
 const SUPPORTED_LANGUAGES = [
   'javascript',
@@ -71,7 +73,7 @@ export class ThemeService {
       // 高亮器初始化完成
     }
     catch (error) {
-      console.error('Failed to initialize highlighter:', error)
+      ErrorHandler.logError('语法高亮器初始化失败', error, 'ThemeService')
       throw error
     }
   }
@@ -102,14 +104,14 @@ export class ThemeService {
    */
   public getThemeColors(theme: string): any | null {
     if (!this._highlighter) {
-      console.warn('Highlighter not initialized')
+      ErrorHandler.logWarning('语法高亮器未初始化', 'ThemeService')
       return null
     }
 
     try {
       const themeData = (this._highlighter as any).getTheme(theme)
       if (!themeData) {
-        console.warn(`Theme ${theme} not found`)
+        ErrorHandler.logWarning(`主题未找到: ${theme}`, 'ThemeService')
         return null
       }
 
@@ -137,7 +139,7 @@ export class ThemeService {
       return colors
     }
     catch (error) {
-      console.error(`Failed to extract colors for theme ${theme}:`, error)
+      ErrorHandler.logError(`主题颜色提取失败: ${theme}`, error, 'ThemeService')
       return null
     }
   }
@@ -150,7 +152,7 @@ export class ThemeService {
   public getCssVars(theme: string): string {
     const themeColors = this.getThemeColors(theme)
     if (!themeColors) {
-      console.warn('Theme colors not found for theme:', theme)
+      ErrorHandler.logWarning(`主题颜色未找到: ${theme}`, 'ThemeService')
       return ''
     }
 
@@ -195,7 +197,7 @@ export class ThemeService {
    */
   async changeTheme(theme: string): Promise<boolean> {
     if (!await this.isValidTheme(theme)) {
-      vscode.window.showErrorMessage(`无效的主题: ${theme}`)
+      ErrorHandler.showError(`无效的主题: ${theme}`)
       return false
     }
 
@@ -205,8 +207,7 @@ export class ThemeService {
         await this.loadTheme(theme)
       }
       catch (error) {
-        console.error(`加载主题失败: ${theme}`, error)
-        vscode.window.showErrorMessage(`加载主题失败: ${theme}`)
+        ErrorHandler.handleThemeError(error, theme, '加载')
         return false
       }
     }
@@ -219,7 +220,7 @@ export class ThemeService {
       return true
     }
     catch (error) {
-      console.error('更新主题配置失败:', error)
+      ErrorHandler.logError('主题配置更新失败', error, 'ThemeService')
       return false
     }
   }
@@ -230,7 +231,7 @@ export class ThemeService {
    */
   async updateThemeForPreview(theme: string): Promise<boolean> {
     if (!this.isValidTheme(theme)) {
-      console.warn(`Invalid theme: ${theme}`)
+      ErrorHandler.logWarning(`无效主题: ${theme}`, 'ThemeService')
       return false
     }
 
@@ -240,7 +241,7 @@ export class ThemeService {
         await this.loadTheme(theme)
       }
       catch (error) {
-        console.error(`Failed to load theme for preview: ${theme}`, error)
+        ErrorHandler.logError(`预览主题加载失败: ${theme}`, error, 'ThemeService')
         return false
       }
     }
@@ -260,7 +261,7 @@ export class ThemeService {
         await this.loadTheme(this._currentTheme)
       }
       catch (error) {
-        console.error(`Failed to load theme for CSS variables: ${this._currentTheme}`, error)
+        ErrorHandler.logError(`CSS变量主题加载失败: ${this._currentTheme}`, error, 'ThemeService')
         return ''
       }
     }
@@ -280,13 +281,13 @@ export class ThemeService {
     try {
       // 检查主题是否已加载
       if (!this._loadedThemes.has(this._currentTheme)) {
-        console.warn(`Theme not loaded: ${this._currentTheme}, falling back to escaped HTML`)
+        ErrorHandler.logWarning(`主题未加载: ${this._currentTheme}, 回退到转义HTML`, 'ThemeService')
         return escapeHtml(code)
       }
 
       // 检查语言是否已加载
       if (!this._loadedLanguages.has(language)) {
-        console.warn(`Language not loaded: ${language}, falling back to escaped HTML`)
+        ErrorHandler.logWarning(`语言未加载: ${language}, 回退到转义HTML`, 'ThemeService')
         return escapeHtml(code)
       }
 
@@ -300,12 +301,12 @@ export class ThemeService {
         return highlighted
       }
       else {
-        console.warn(`Highlighted result is not a string: ${typeof highlighted}`)
+        ErrorHandler.logWarning(`高亮结果不是字符串: ${typeof highlighted}`, 'ThemeService')
         return escapeHtml(code)
       }
     }
-    catch (error) {
-      console.warn(`Failed to highlight code for language: ${language}`, error)
+    catch {
+      ErrorHandler.logWarning(`代码高亮失败: ${language}`, 'ThemeService')
       // 如果失败，返回简单的HTML转义代码
       return escapeHtml(code)
     }
@@ -341,12 +342,12 @@ export class ThemeService {
         return highlighted
       }
       else {
-        console.warn(`Highlighted result is not a string: ${typeof highlighted}`)
+        ErrorHandler.logWarning(`高亮结果不是字符串: ${typeof highlighted}`, 'ThemeService')
         return escapeHtml(code)
       }
     }
-    catch (error) {
-      console.warn(`Failed to highlight code for language: ${language}`, error)
+    catch {
+      ErrorHandler.logWarning(`代码高亮失败: ${language}`, 'ThemeService')
       // 如果失败，返回简单的HTML转义代码
       return escapeHtml(code)
     }
@@ -381,24 +382,24 @@ export class ThemeService {
           if (themeData) {
             (this._highlighter as any).setTheme(theme, themeData)
             this._loadedThemes.add(theme)
-            console.warn(`Theme loaded: ${theme}`)
+            ErrorHandler.logInfo(`主题已加载: ${theme}`, 'ThemeService')
           }
           else {
             throw new Error(`Could not get theme data for ${theme}`)
           }
         }
-        catch (themeError) {
-          console.warn(`Could not load theme ${theme} using getTheme, trying alternative method`, themeError)
+        catch {
+          ErrorHandler.logWarning(`无法使用getTheme加载主题 ${theme}, 尝试替代方法`, 'ThemeService')
 
           // 如果获取主题数据失败，尝试直接加载主题
           await (this._highlighter as any).loadTheme(theme)
           this._loadedThemes.add(theme)
-          console.warn(`Theme loaded using loadTheme: ${theme}`)
+          ErrorHandler.logInfo(`使用loadTheme加载主题: ${theme}`, 'ThemeService')
         }
       }
     }
     catch (error) {
-      console.error(`Failed to load theme: ${theme}`, error)
+      ErrorHandler.logError(`主题加载失败: ${theme}`, error, 'ThemeService')
       throw error
     }
   }
@@ -424,25 +425,25 @@ export class ThemeService {
         try {
           (this._highlighter as any).loadLanguage(language)
           this._loadedLanguages.add(language)
-          console.warn(`Language loaded: ${language}`)
+          ErrorHandler.logInfo(`语言已加载: ${language}`, 'ThemeService')
         }
-        catch (langError) {
-          console.warn(`Could not load language ${language} directly, trying alternative method`, langError)
+        catch {
+          ErrorHandler.logWarning(`无法直接加载语言 ${language}, 尝试替代方法`, 'ThemeService')
 
           // 如果直接加载失败，尝试从 shiki 内置语言中加载
           if (SUPPORTED_LANGUAGES.includes(language as any)) {
             await (this._highlighter as any).loadLanguage(language)
             this._loadedLanguages.add(language)
-            console.warn(`Language loaded from supported languages: ${language}`)
+            ErrorHandler.logInfo(`从支持的语言列表加载语言: ${language}`, 'ThemeService')
           }
           else {
-            throw new Error(`Language ${language} is not supported`)
+            throw new Error(`语言 ${language} 不受支持`)
           }
         }
       }
     }
     catch (error) {
-      console.error(`Failed to load language: ${language}`, error)
+      ErrorHandler.logError(`语言加载失败: ${language}`, error, 'ThemeService')
       throw error
     }
   }
@@ -579,6 +580,57 @@ export class ThemeService {
   async preloadLanguages(languages: string[]): Promise<void> {
     const promises = languages.map(lang => this.preloadLanguage(lang))
     await Promise.allSettled(promises)
+  }
+
+  /**
+   * 根据 Markdown 内容按需加载语言
+   * @param content Markdown 内容
+   */
+  async preloadLanguagesFromContent(content: string): Promise<void> {
+    try {
+      // 检测文档中使用的语言
+      const detectedLanguages = LanguageDetector.detectLanguages(content)
+
+      if (detectedLanguages.length === 0) {
+        console.warn('No languages detected in content')
+        return
+      }
+
+      console.warn(`Detected languages: ${detectedLanguages.join(', ')}`)
+
+      // 过滤出未加载的语言
+      const unloadedLanguages = detectedLanguages.filter(lang => !this._loadedLanguages.has(lang))
+
+      if (unloadedLanguages.length === 0) {
+        console.warn('All detected languages are already loaded')
+        return
+      }
+
+      console.warn(`Preloading ${unloadedLanguages.length} languages: ${unloadedLanguages.join(', ')}`)
+
+      // 并行加载所有需要的语言
+      await this.preloadLanguages(unloadedLanguages)
+
+      console.warn(`Successfully preloaded ${unloadedLanguages.length} languages`)
+    }
+    catch (error) {
+      console.error('Failed to preload languages from content:', error)
+    }
+  }
+
+  /**
+   * 获取语言加载状态信息
+   */
+  getLanguageLoadingStats(): { loaded: string[], total: number, unloaded: string[] } {
+    const loaded = Array.from(this._loadedLanguages).sort()
+    const allSupported = SUPPORTED_LANGUAGES
+    const unloaded = allSupported.filter(lang => !this._loadedLanguages.has(lang))
+
+    return {
+      loaded,
+      total: allSupported.length,
+      unloaded,
+    }
   }
 
   dispose(): void {

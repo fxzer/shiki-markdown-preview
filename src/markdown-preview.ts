@@ -7,13 +7,9 @@ import {
   StateManager,
   ThemeService,
 } from './services'
+import { ErrorHandler } from './utils/error-handler'
+import { PathResolver } from './utils/path-resolver'
 
-// 添加日志记录器
-const logger = {
-  info: (message: string, ...args: any[]) => console.warn(`[MarkdownPreview] ${message}`, ...args),
-  warn: (message: string, ...args: any[]) => console.warn(`[MarkdownPreview] ${message}`, ...args),
-  error: (message: string, ...args: any[]) => console.error(`[MarkdownPreview] ${message}`, ...args),
-}
 
 /**
  * Manages markdown preview webview panels
@@ -44,9 +40,11 @@ export class MarkdownPreviewPanel {
     if (MarkdownPreviewPanel.currentPanel) {
       MarkdownPreviewPanel.currentPanel._panel.reveal(vscode.ViewColumn.Two)
       if (document) {
-        MarkdownPreviewPanel.currentPanel.updateContent(document).catch((error) => {
-          console.error('Error updating content on createOrShow:', error)
-        })
+        ErrorHandler.safeExecute(
+          () => MarkdownPreviewPanel.currentPanel!.updateContent(document),
+          '创建或显示时内容更新失败',
+          'MarkdownPreviewPanel',
+        )
       }
       return
     }
@@ -106,9 +104,11 @@ export class MarkdownPreviewPanel {
     this._panel.onDidChangeViewState(
       () => {
         if (this._panel.visible && this._currentDocument) {
-          this.updateContent(this._currentDocument).catch((error) => {
-            console.error('Error updating content on view state change:', error)
-          })
+          ErrorHandler.safeExecute(
+            () => this.updateContent(this._currentDocument!),
+            '视图状态变化时内容更新失败',
+            'MarkdownPreviewPanel',
+          )
         }
       },
       null,
@@ -148,129 +148,52 @@ export class MarkdownPreviewPanel {
       this._stateManager.startPeriodicStateSave()
     }
     catch (error) {
-      console.error('Failed to initialize services:', error)
-      this.showError('Failed to initialize preview services').catch((err) => {
-        console.error('Error showing initialization error:', err)
-      })
+      ErrorHandler.logError('服务初始化失败', error, 'MarkdownPreviewPanel')
+      ErrorHandler.safeExecute(
+        () => this.showError('预览服务初始化失败'),
+        '显示初始化错误失败',
+        'MarkdownPreviewPanel',
+      )
     }
   }
 
-  /**
-   * 验证和规范化文件路径，防止路径遍历攻击
-   * @param basePath 基础路径
-   * @param relativePath 相对路径
-   * @returns 规范化后的安全路径，如果路径不安全则返回 null
-   */
-  private validateAndResolvePath(basePath: vscode.Uri, relativePath: string): vscode.Uri | null {
-    try {
-      // 解码 URL 编码的字符
-      const decodedPath = decodeURIComponent(relativePath)
-
-      // 检查路径是否包含可疑字符
-      if (decodedPath.includes('..') || decodedPath.includes('~') || decodedPath.startsWith('/')) {
-        logger.warn(`检测到潜在的路径遍历攻击: ${relativePath}`)
-        return null
-      }
-
-      // 检查路径是否包含非法字符（Windows 和 Unix）
-      // eslint-disable-next-line no-control-regex
-      const illegalChars = /[<>:"|?*\u0000-\u001F]/
-      if (illegalChars.test(decodedPath)) {
-        logger.warn(`路径包含非法字符: ${relativePath}`)
-        return null
-      }
-
-      // 检查文件扩展名，只允许安全的文件类型
-      const allowedExtensions = ['.md', '.markdown', '.txt', '.json', '.yaml', '.yml', '.xml', '.csv']
-      const fileExtension = decodedPath.toLowerCase().substring(decodedPath.lastIndexOf('.'))
-      if (fileExtension && !allowedExtensions.includes(fileExtension)) {
-        logger.warn(`不允许的文件扩展名: ${fileExtension}`)
-        return null
-      }
-
-      // 解析相对路径
-      const resolvedPath = vscode.Uri.joinPath(basePath, decodedPath)
-
-      // 规范化路径并检查是否仍在基础路径下
-      const normalizedBasePath = basePath.fsPath.replace(/[/\\]+$/, '')
-      const normalizedResolvedPath = resolvedPath.fsPath.replace(/[/\\]+$/, '')
-
-      // 确保解析后的路径仍然在基础路径下
-      if (!normalizedResolvedPath.startsWith(normalizedBasePath)) {
-        logger.warn(`路径遍历尝试检测: ${relativePath} 解析为 ${normalizedResolvedPath}`)
-        return null
-      }
-
-      return resolvedPath
-    }
-    catch (error) {
-      logger.error(`路径验证失败: ${relativePath}`, error)
-      return null
-    }
-  }
 
   // 处理相对路径文件点击
   private async handleRelativeFileClick(filePath: string) {
-    try {
-      const currentDocument = this._currentDocument
-      if (!currentDocument) {
-        // 只有在面板仍然有效时才显示错误消息
-        if (this._panel) {
-          vscode.window.showErrorMessage('无法获取当前文档信息')
-        }
-        else {
-          logger.info('面板已销毁，跳过文档信息错误消息显示')
-        }
-        return
-      }
-
-      // 解析相对路径
-      const currentFileUri = vscode.Uri.file(currentDocument.fileName)
-      const currentDir = vscode.Uri.joinPath(currentFileUri, '..')
-
-      // 验证和解析路径
-      const targetFile = this.validateAndResolvePath(currentDir, filePath)
-      if (!targetFile) {
-        if (this._panel) {
-          vscode.window.showErrorMessage(`无效或不安全的文件路径: ${filePath}`)
-        }
-        return
-      }
-
-      // 检查文件是否存在
-      try {
-        await vscode.workspace.fs.stat(targetFile)
-      }
-      catch {
-        // 只有在面板仍然有效时才显示错误消息
-        if (this._panel) {
-          vscode.window.showErrorMessage(`文件不存在: ${filePath}`)
-        }
-        else {
-          logger.info('面板已销毁，跳过文件不存在错误消息显示')
-        }
-        return
-      }
-
-      // 直接在编辑区打开文件，而不是在WebView中更新内容
-      const document = await vscode.workspace.openTextDocument(targetFile)
-      await vscode.window.showTextDocument(document, vscode.ViewColumn.One)
-
-      // 注意：不再调用 switchToDocument，避免WebView竞态条件
-      // 用户可以在编辑区查看文档，如果需要预览可以手动触发
-
-      logger.info(`已打开相对路径文件: ${filePath}`)
-    }
-    catch (error) {
-      logger.error('处理相对路径文件点击时出错:', error)
-
-      // 只有在面板仍然有效时才显示错误消息
+    const currentDocument = this._currentDocument
+    if (!currentDocument) {
       if (this._panel) {
-        vscode.window.showErrorMessage(`无法打开文件: ${filePath}`)
+        ErrorHandler.showError('无法获取当前文档信息')
       }
-      else {
-        logger.info('面板已销毁，跳过文件打开错误消息显示')
+      return
+    }
+
+    // 解析相对路径
+    const currentFileUri = vscode.Uri.file(currentDocument.fileName)
+    const currentDir = vscode.Uri.joinPath(currentFileUri, '..')
+
+    // 验证和解析路径
+    const targetFile = PathResolver.validateAndResolvePath(currentDir, filePath)
+    if (!targetFile) {
+      if (this._panel) {
+        ErrorHandler.showError(`无效或不安全的文件路径: ${filePath}`)
       }
+      return
+    }
+
+    // 检查文件是否存在
+    const fileExists = await PathResolver.fileExists(targetFile)
+    if (!fileExists) {
+      if (this._panel) {
+        ErrorHandler.showError(`文件不存在: ${filePath}`)
+      }
+      return
+    }
+
+    // 安全地打开文件
+    const success = await PathResolver.openFileSafely(targetFile, vscode.ViewColumn.One)
+    if (success) {
+      ErrorHandler.logInfo(`已打开相对路径文件: ${filePath}`, 'MarkdownPreviewPanel')
     }
   }
 
@@ -280,7 +203,7 @@ export class MarkdownPreviewPanel {
   private handleWebviewMessage(message: any): void {
     switch (message.command) {
       case 'alert':
-        vscode.window.showErrorMessage(message.text)
+        ErrorHandler.showError(message.text)
         return
 
       case 'scroll':
@@ -333,9 +256,11 @@ export class MarkdownPreviewPanel {
    */
   private handleThemeSelectionCancel(): void {
     if (this._currentDocument) {
-      this.updateContent(this._currentDocument).catch((error) => {
-        console.error('Error updating content after theme selection cancel:', error)
-      })
+      ErrorHandler.safeExecute(
+        () => this.updateContent(this._currentDocument!),
+        '主题选择取消后内容更新失败',
+        'MarkdownPreviewPanel',
+      )
     }
   }
 
@@ -344,7 +269,7 @@ export class MarkdownPreviewPanel {
    */
   public async updateContent(document: vscode.TextDocument): Promise<void> {
     if (!this._isInitialized) {
-      console.warn('Preview panel not initialized yet')
+      ErrorHandler.logWarning('预览面板尚未初始化', 'MarkdownPreviewPanel')
       return
     }
 
@@ -358,10 +283,10 @@ export class MarkdownPreviewPanel {
 
       // 获取 front matter 数据
       const frontMatterData = this._markdownRenderer.getFrontMatterData(content)
-      const renderedContent = this._markdownRenderer.render(content, document)
+      const renderedContent = await this._markdownRenderer.render(content, document)
 
       // 为 webview 解析相对路径
-      const processedContent = this.processContentForWebview(renderedContent)
+      const processedContent = PathResolver.processContentForWebview(renderedContent, document, this._panel.webview)
 
       // 等待主题 CSS 变量
       const themeCSSVariables = await this._themeService.getThemeCSSVariables()
@@ -383,54 +308,15 @@ export class MarkdownPreviewPanel {
       this._stateManager.saveState(document, this._themeService.currentTheme)
     }
     catch (error) {
-      console.error('Error updating content:', error)
-      this.showError(`Error updating preview: ${error instanceof Error ? error.message : String(error)}`).catch((err) => {
-        console.error('Error showing error message:', err)
-      })
+      ErrorHandler.logError('内容更新失败', error, 'MarkdownPreviewPanel')
+      ErrorHandler.safeExecute(
+        () => this.showError(`预览更新失败: ${error instanceof Error ? error.message : String(error)}`),
+        '显示错误消息失败',
+        'MarkdownPreviewPanel',
+      )
     }
   }
 
-  /**
-   * Process content for webview (resolve relative paths)
-   */
-  private processContentForWebview(content: string): string {
-    if (!this._currentDocument) {
-      return content
-    }
-
-    // 解析内容中的相对路径
-    // 这是一个简化版本 - 在实际实现中，
-    // 您可能希望使用更复杂的 HTML 解析器
-    return content.replace(
-      /(src|href)="([^"]+)"/g,
-      (match, attr, path) => {
-        if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('vscode-webview-resource:')) {
-          return match
-        }
-
-        // 对于锚点链接（以#开头），保持原样，不进行任何处理
-        if (attr === 'href' && path.startsWith('#')) {
-          return match
-        }
-
-        // 对于 .md 文件的链接，保持相对路径，不转换为webview URI
-        if (attr === 'href' && path.endsWith('.md')) {
-          return match
-        }
-
-        try {
-          const documentDir = vscode.Uri.joinPath(this._currentDocument!.uri, '..')
-          const resolvedUri = vscode.Uri.joinPath(documentDir, path)
-          const webviewUri = this._panel.webview.asWebviewUri(resolvedUri).toString()
-          return `${attr}="${webviewUri}"`
-        }
-        catch (error) {
-          console.warn(`Failed to resolve path: ${path}`, error)
-          return match
-        }
-      },
-    )
-  }
 
   /**
    * Update panel content when no document is available

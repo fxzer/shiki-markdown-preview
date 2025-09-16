@@ -1,7 +1,9 @@
 import * as vscode from 'vscode'
 import { MarkdownPreviewPanel } from './markdown-preview'
-import { ConfigService } from './services'
 import { findThemeIndex } from './utils'
+import { DocumentValidator } from './utils/document-validator'
+import { ErrorHandler } from './utils/error-handler'
+import { ThemeManager } from './utils/theme-manager'
 
 /**
  * 主题快速选择项接口
@@ -13,22 +15,31 @@ interface ThemeQuickPickItem extends vscode.QuickPickItem {
 /**
  * 显示主题选择器
  */
-export async function showThemePicker(panel: MarkdownPreviewPanel): Promise<void> {
+export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeValue: string): Promise<void> {
   // 使用ThemeService获取缓存的主题数据
   const themeService = panel.themeService
-  const groupedThemes = await themeService.getGroupedThemes()
+  const groupedThemes = await ErrorHandler.safeExecute(
+    () => themeService.getGroupedThemes(),
+    '获取主题数据失败',
+    'ThemePicker',
+  )
 
-  console.warn(`从缓存获取主题数据: Light(${groupedThemes.light.length}) Dark(${groupedThemes.dark.length})`)
+  if (!groupedThemes) {
+    ErrorHandler.showError('无法获取主题数据')
+    return
+  }
+
+  ErrorHandler.logInfo(`从缓存获取主题数据: Light(${groupedThemes.light.length}) Dark(${groupedThemes.dark.length})`, 'ThemePicker')
 
   // 构建QuickPick项目，增强视觉效果和区分度
-  const lightThemeItems: ThemeQuickPickItem[] = groupedThemes.light.map(theme => ({
-    label: `$(sun) ${theme.displayName}`,
+  const lightThemeItems: ThemeQuickPickItem[] = groupedThemes.light.map((theme: any) => ({
+    label: theme.displayName,
     theme: theme.name,
     description: theme.name,
   }))
 
-  const darkThemeItems: ThemeQuickPickItem[] = groupedThemes.dark.map(theme => ({
-    label: `$(moon) ${theme.displayName}`,
+  const darkThemeItems: ThemeQuickPickItem[] = groupedThemes.dark.map((theme: any) => ({
+    label: theme.displayName,
     theme: theme.name,
     description: theme.name,
   }))
@@ -55,8 +66,6 @@ export async function showThemePicker(panel: MarkdownPreviewPanel): Promise<void
     ...darkThemeItems,
   ]
 
-  const configService = new ConfigService()
-  const currentThemeValue = configService.getCurrentTheme()
 
   // 找到当前主题的索引
   const currentIndex = findThemeIndex(themes, currentThemeValue)
@@ -79,7 +88,7 @@ export async function showThemePicker(panel: MarkdownPreviewPanel): Promise<void
     quickPick.activeItems = [themes[currentIndex]]
   }
   else {
-    console.warn(`无法设置活动项，当前主题: ${currentThemeValue}`)
+    ErrorHandler.logWarning(`无法设置活动项，当前主题: ${currentThemeValue}`, 'ThemePicker')
   }
 
   let isPreviewMode = true
@@ -91,7 +100,7 @@ export async function showThemePicker(panel: MarkdownPreviewPanel): Promise<void
   quickPick.onDidChangeActive(async (items) => {
     if (items.length > 0 && isPreviewMode) {
       const selectedTheme = items[0].theme
-      console.warn(`预览主题: ${selectedTheme}`)
+      ErrorHandler.logInfo(`预览主题: ${selectedTheme}`, 'ThemePicker')
 
       // 清除之前的防抖计时器
       if (debounceTimer) {
@@ -100,58 +109,51 @@ export async function showThemePicker(panel: MarkdownPreviewPanel): Promise<void
 
       // 设置防抖计时器
       debounceTimer = setTimeout(async () => {
-        try {
-          // 确保预览窗口已打开
-          const activeEditor = vscode.window.activeTextEditor
-          // 如果有预览窗口，实时预览主题，但不保存到配置
-          if (MarkdownPreviewPanel.currentPanel) {
-            // 实时预览主题，但不保存到配置
-            const themeService = panel.themeService
-            if (await themeService.updateThemeForPreview(selectedTheme)) {
-              const currentDocument = panel.currentDocument
-              if (currentDocument) {
-                panel.updateContent(currentDocument).catch((error) => {
-                  console.error('Error updating content during theme preview:', error)
-                })
-              }
-            }
-          }
-          else if (activeEditor && activeEditor.document.fileName.endsWith('.md')) {
-            // 如果没有预览窗口，先打开它
-            // Note: We need to get the extension URI from somewhere. For now, we'll use the active editor
-            // In a real implementation, you might want to pass this as a parameter
-            const workspaceFolder = vscode.workspace.workspaceFolders?.[0]
-            if (workspaceFolder) {
-              const extensionUri = workspaceFolder.uri
-              MarkdownPreviewPanel.createOrShow(extensionUri, activeEditor.document)
-            }
-            // 等待预览窗口创建完成
-            await new Promise(resolve => setTimeout(resolve, 100))
-
-            // 实时预览主题，但不保存到配置
-            const currentPanel = MarkdownPreviewPanel.currentPanel
-            if (currentPanel) {
-              const themeService = (currentPanel as MarkdownPreviewPanel).themeService
+        await ErrorHandler.safeExecute(
+          async () => {
+            // 确保预览窗口已打开
+            const activeEditor = DocumentValidator.getActiveMarkdownEditor()
+            // 如果有预览窗口，实时预览主题，但不保存到配置
+            if (MarkdownPreviewPanel.currentPanel) {
+              // 实时预览主题，但不保存到配置
+              const themeService = panel.themeService
               if (await themeService.updateThemeForPreview(selectedTheme)) {
-                const currentDocument = (currentPanel as MarkdownPreviewPanel).currentDocument
+                const currentDocument = panel.currentDocument
                 if (currentDocument) {
-                  (currentPanel as MarkdownPreviewPanel).updateContent(currentDocument).catch((error) => {
-                    console.error('Error updating content during theme preview:', error)
-                  })
+                  await panel.updateContent(currentDocument)
                 }
               }
             }
-          }
-          else {
-            vscode.window.showWarningMessage('请先打开一个 Markdown 文件')
-          }
-        }
-        catch (error) {
-          console.error('Error updating theme preview:', error)
-        }
-        finally {
-          debounceTimer = undefined
-        }
+            else if (activeEditor) {
+              // 如果没有预览窗口，先打开它
+              const workspaceFolder = vscode.workspace.workspaceFolders?.[0]
+              if (workspaceFolder) {
+                const extensionUri = workspaceFolder.uri
+                MarkdownPreviewPanel.createOrShow(extensionUri, activeEditor.document)
+              }
+              // 等待预览窗口创建完成
+              await new Promise(resolve => setTimeout(resolve, 100))
+
+              // 实时预览主题，但不保存到配置
+              const currentPanel = MarkdownPreviewPanel.currentPanel
+              if (currentPanel) {
+                const themeService = (currentPanel as MarkdownPreviewPanel).themeService
+                if (await themeService.updateThemeForPreview(selectedTheme)) {
+                  const currentDocument = (currentPanel as MarkdownPreviewPanel).currentDocument
+                  if (currentDocument) {
+                    await (currentPanel as MarkdownPreviewPanel).updateContent(currentDocument)
+                  }
+                }
+              }
+            }
+            else {
+              ErrorHandler.showWarning('请先打开一个 Markdown 文件')
+            }
+          },
+          '主题预览更新失败',
+          'ThemePicker',
+        )
+        debounceTimer = undefined
       }, DEBOUNCE_DELAY)
     }
   })
@@ -160,19 +162,23 @@ export async function showThemePicker(panel: MarkdownPreviewPanel): Promise<void
   quickPick.onDidAccept(async () => {
     const selectedItem = quickPick.selectedItems[0] || quickPick.activeItems[0]
     if (selectedItem) {
-      // 使用配置服务更新主题
-      await configService.updateConfig('currentTheme', selectedItem.theme, vscode.ConfigurationTarget.Global)
+      await ErrorHandler.safeExecute(
+        async () => {
+          // 使用配置服务更新主题
+          await ThemeManager.updateTheme(selectedItem.theme, vscode.ConfigurationTarget.Global)
 
-      // 使用主题服务更新主题
-      const themeService = panel.themeService
-      if (await themeService.changeTheme(selectedItem.theme)) {
-        const currentDocument = panel.currentDocument
-        if (currentDocument) {
-          panel.updateContent(currentDocument).catch((error) => {
-            console.error('Error updating content after theme change:', error)
-          })
-        }
-      }
+          // 使用主题服务更新主题
+          const themeService = panel.themeService
+          if (await themeService.changeTheme(selectedItem.theme)) {
+            const currentDocument = panel.currentDocument
+            if (currentDocument) {
+              await panel.updateContent(currentDocument)
+            }
+          }
+        },
+        '主题切换失败',
+        'ThemePicker',
+      )
     }
     isPreviewMode = false
     quickPick.hide()
@@ -188,15 +194,19 @@ export async function showThemePicker(panel: MarkdownPreviewPanel): Promise<void
 
     if (isPreviewMode) {
       // 如果是取消操作，恢复原始主题
-      const themeService = panel.themeService
-      if (await themeService.updateThemeForPreview(originalTheme)) {
-        const currentDocument = panel.currentDocument
-        if (currentDocument) {
-          panel.updateContent(currentDocument).catch((error) => {
-            console.error('Error updating content after theme cancel:', error)
-          })
-        }
-      }
+      await ErrorHandler.safeExecute(
+        async () => {
+          const themeService = panel.themeService
+          if (await themeService.updateThemeForPreview(originalTheme)) {
+            const currentDocument = panel.currentDocument
+            if (currentDocument) {
+              await panel.updateContent(currentDocument)
+            }
+          }
+        },
+        '主题恢复失败',
+        'ThemePicker',
+      )
     }
     quickPick.dispose()
   })
