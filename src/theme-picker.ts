@@ -66,7 +66,6 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
     ...darkThemeItems,
   ]
 
-
   // 找到当前主题的索引
   const currentIndex = findThemeIndex(themes, currentThemeValue)
 

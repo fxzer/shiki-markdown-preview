@@ -10,7 +10,6 @@ import {
 import { ErrorHandler } from './utils/error-handler'
 import { PathResolver } from './utils/path-resolver'
 
-
 /**
  * Manages markdown preview webview panels
  */
@@ -156,7 +155,6 @@ export class MarkdownPreviewPanel {
       )
     }
   }
-
 
   // 处理相对路径文件点击
   private async handleRelativeFileClick(filePath: string) {
@@ -316,7 +314,6 @@ export class MarkdownPreviewPanel {
       )
     }
   }
-
 
   /**
    * Update panel content when no document is available

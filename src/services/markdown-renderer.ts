@@ -126,14 +126,35 @@ export class MarkdownRenderer {
 
       // 如果结果是空的，返回基本的 HTML
       if (!highlighted) {
-        return `<pre><code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`
+        return `<pre><code class="language-${lang}" data-lang="${lang}">${escapeHtml(code)}</code></pre>`
       }
 
+      // 确保高亮后的 HTML 包含语言信息
+      // 检查是否已经包含 language- 类
+      if (highlighted.includes(`class="language-${lang}"`) || highlighted.includes(`class='language-${lang}'`)) {
+        return highlighted
+      }
+
+      // 如果没有语言类，添加它
+      // 查找 <code> 标签并添加语言信息
+      const codeTagRegex = /<code([^>]*)>/i
+      const match = highlighted.match(codeTagRegex)
+
+      if (match) {
+        const existingAttrs = match[1] || ''
+        const newAttrs = existingAttrs.includes('class=')
+          ? existingAttrs.replace(/class="([^"]*)"/, `class="$1 language-${escapeHtml(lang)}"`)
+          : `${existingAttrs} class="language-${escapeHtml(lang)}"`
+
+        return highlighted.replace(codeTagRegex, `<code${newAttrs} data-lang="${escapeHtml(lang)}">`)
+      }
+
+      // 如果无法找到 code 标签，返回原始高亮结果
       return highlighted
     }
-    catch (error) {
+    catch {
       ErrorHandler.logWarning(`代码高亮失败: ${lang}`, 'MarkdownRenderer')
-      return `<pre><code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`
+      return `<pre><code class="language-${escapeHtml(lang)}" data-lang="${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`
     }
   }
 
@@ -161,7 +182,7 @@ export class MarkdownRenderer {
         data: parsed.data,
       }
     }
-    catch (error) {
+    catch {
       ErrorHandler.logWarning('Front matter 解析失败', 'MarkdownRenderer')
       return {
         content,
@@ -281,7 +302,7 @@ export class MarkdownRenderer {
       // 预加载检测到的语言
       await this._themeService.preloadLanguagesFromContent(content)
     }
-    catch (error) {
+    catch {
       ErrorHandler.logWarning('语言预加载失败', 'MarkdownRenderer')
       // 不抛出错误，继续渲染
     }

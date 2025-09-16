@@ -53,7 +53,7 @@ export class DocumentValidator {
     showMessage: boolean = true,
   ): vscode.TextDocument | undefined {
     const targetDocument = document || this.getActiveMarkdownDocument()
-    
+
     if (!targetDocument) {
       if (showMessage) {
         ErrorHandler.showInfo('请先打开一个 Markdown 文件')
@@ -77,7 +77,8 @@ export class DocumentValidator {
    * @returns 是否有效且可编辑
    */
   static isDocumentEditable(document?: vscode.TextDocument): boolean {
-    if (!document) return false
+    if (!document)
+      return false
     return !document.isClosed && !document.isUntitled
   }
 
@@ -87,7 +88,8 @@ export class DocumentValidator {
    * @returns 是否有未保存的更改
    */
   static hasUnsavedChanges(document?: vscode.TextDocument): boolean {
-    if (!document) return false
+    if (!document)
+      return false
     return document.isDirty
   }
 
@@ -105,7 +107,8 @@ export class DocumentValidator {
     lineCount: number
     size: number
   } | null {
-    if (!document) return null
+    if (!document)
+      return null
 
     return {
       fileName: document.fileName,
@@ -134,7 +137,7 @@ export class DocumentValidator {
 
     return new Promise((resolve) => {
       const startTime = Date.now()
-      
+
       const checkSave = () => {
         if (!this.hasUnsavedChanges(document)) {
           resolve(true)

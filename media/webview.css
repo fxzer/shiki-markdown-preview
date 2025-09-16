@@ -674,3 +674,67 @@ blockquote p:last-child {
 .custom-container p:last-child {
   margin-bottom: 0;
 }
+
+pre:hover .copy-button {
+  display: flex !important;
+}
+
+/* 代码块语言显示样式 */
+.lang {
+  position: absolute;
+  top: 6px;
+  right: 6px; /* 为复制按钮留出空间 */
+  color: var(--editor-foreground);
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: 3px;
+  z-index: 5;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  font-family: var(--vscode-font-family);
+  letter-spacing: 0.5px;
+}
+
+
+/* 复制按钮样式 */
+.copy-button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 4px;
+  color: var(--editor-foreground);
+  background: rgba(0, 0, 0, 0.15);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.2s;
+  z-index: 10;
+  width: 24px;
+  height: 24px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.copy-button:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+pre:hover .copy-button {
+  display: flex !important;
+}
+pre:hover .lang {
+  opacity: 0;
+}
+/* 复制按钮状态样式 */
+.copy-button.copied {
+  color: #4CAF50 !important;
+  background: rgba(76, 175, 80, 0.1) !important;
+}
+
+.copy-button.failed {
+  color: #f44336 !important;
+  background: rgba(244, 67, 54, 0.1) !important;
+}

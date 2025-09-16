@@ -83,7 +83,8 @@ export class ErrorHandler {
   ): Promise<T | null> {
     try {
       return await operation()
-    } catch (error) {
+    }
+    catch (error) {
       this.logError(errorMessage, error, context)
       return null
     }
@@ -105,7 +106,8 @@ export class ErrorHandler {
   ): T | undefined {
     try {
       return operation()
-    } catch (error) {
+    }
+    catch (error) {
       this.logError(errorMessage, error, context)
       return defaultValue
     }

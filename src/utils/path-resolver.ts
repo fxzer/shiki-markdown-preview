@@ -8,7 +8,20 @@ import { ErrorHandler } from './error-handler'
 export class PathResolver {
   // 允许的文件扩展名
   private static readonly ALLOWED_EXTENSIONS = [
-    '.md', '.markdown', '.txt', '.json', '.yaml', '.yml', '.xml', '.csv', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'
+    '.md',
+    '.markdown',
+    '.txt',
+    '.json',
+    '.yaml',
+    '.yml',
+    '.xml',
+    '.csv',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.svg',
+    '.webp',
   ]
 
   // 非法字符正则表达式
@@ -78,7 +91,8 @@ export class PathResolver {
    */
   private static getFileExtension(filePath: string): string {
     const lastDotIndex = filePath.lastIndexOf('.')
-    if (lastDotIndex === -1) return ''
+    if (lastDotIndex === -1)
+      return ''
     return filePath.substring(lastDotIndex).toLowerCase()
   }
 
@@ -136,7 +150,8 @@ export class PathResolver {
           const resolvedUri = vscode.Uri.joinPath(documentDir, path)
           const webviewUri = webview.asWebviewUri(resolvedUri).toString()
           return `${attr}="${webviewUri}"`
-        } catch (error) {
+        }
+        catch {
           ErrorHandler.logWarning(`路径转换失败: ${path}`, 'PathResolver')
           return match
         }
@@ -153,7 +168,8 @@ export class PathResolver {
     try {
       await vscode.workspace.fs.stat(fileUri)
       return true
-    } catch {
+    }
+    catch {
       return false
     }
   }
