@@ -24,8 +24,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "shiki-markdown-preview.show",
-        "title": "Open Preview",
+        "command": "shiki-markdown-preview.openPreviewSlide",
+        "title": "Open Markdown Preview Slide",
         "category": "Shiki Markdown Preview",
         "icon": {
           "light": "res/icon.svg",
@@ -33,9 +33,13 @@
         }
       },
       {
-        "command": "shiki-markdown-preview.showForDocument",
-        "title": "Open Preview to the Side",
-        "category": "Shiki Markdown Preview"
+        "command": "shiki-markdown-preview.openPreviewFull",
+        "title": "Open Markdown Preview Full",
+        "category": "Shiki Markdown Preview",
+        "icon": {
+          "light": "res/icon.svg",
+          "dark": "res/icon.svg"
+        }
       },
       {
         "command": "shiki-markdown-preview.selectTheme",
@@ -47,40 +51,40 @@
       "editor/title": [
         {
           "when": "resourceExtname == .md",
-          "command": "shiki-markdown-preview.show",
+          "command": "shiki-markdown-preview.openPreviewSlide",
           "group": "navigation",
-          "alt": "shiki-markdown-preview.showForDocument"
+          "alt": "shiki-markdown-preview.openPreviewFull"
         }
       ],
       "editor/context": [
         {
           "when": "resourceExtname == .md",
-          "command": "shiki-markdown-preview.show",
+          "command": "shiki-markdown-preview.openPreviewSlide",
           "group": "markdown"
         },
         {
           "when": "resourceExtname == .md",
-          "command": "shiki-markdown-preview.showForDocument",
+          "command": "shiki-markdown-preview.openPreviewFull",
           "group": "markdown"
         }
       ],
       "explorer/context": [
         {
           "when": "resourceExtname == .md",
-          "command": "shiki-markdown-preview.showForDocument",
+          "command": "shiki-markdown-preview.openPreviewSlide",
           "group": "navigation"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "shiki-markdown-preview.show",
+        "command": "shiki-markdown-preview.openPreviewSlide",
         "key": "ctrl+shift+v",
         "mac": "cmd+shift+v",
         "when": "editorTextFocus && resourceExtname == .md"
       },
       {
-        "command": "shiki-markdown-preview.showForDocument",
+        "command": "shiki-markdown-preview.openPreviewFull",
         "key": "ctrl+k v",
         "mac": "cmd+k v",
         "when": "editorTextFocus && resourceExtname == .md"

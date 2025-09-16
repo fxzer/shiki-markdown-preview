@@ -35,9 +35,17 @@ export class MarkdownPreviewPanel {
   private _currentDocument: vscode.TextDocument | undefined
   private _isInitialized: boolean = false
 
-  public static createOrShow(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
+  public static createOrShowSlide(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
+    MarkdownPreviewPanel._createOrShow(extensionUri, vscode.ViewColumn.Two, document)
+  }
+
+  public static createOrShowFull(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
+    MarkdownPreviewPanel._createOrShow(extensionUri, vscode.ViewColumn.One, document)
+  }
+
+  private static _createOrShow(extensionUri: vscode.Uri, viewColumn: vscode.ViewColumn, document?: vscode.TextDocument) {
     if (MarkdownPreviewPanel.currentPanel) {
-      MarkdownPreviewPanel.currentPanel._panel.reveal(vscode.ViewColumn.Two)
+      MarkdownPreviewPanel.currentPanel._panel.reveal(viewColumn)
       if (document) {
         ErrorHandler.safeExecute(
           () => MarkdownPreviewPanel.currentPanel!.updateContent(document),
@@ -51,7 +59,7 @@ export class MarkdownPreviewPanel {
     const panel = vscode.window.createWebviewPanel(
       MarkdownPreviewPanel.viewType,
       'Markdown Preview',
-      vscode.ViewColumn.Two,
+      viewColumn,
       HTMLTemplateService.getWebviewOptions(extensionUri),
     )
 
@@ -83,7 +91,7 @@ export class MarkdownPreviewPanel {
    */
   private setupPanel(): void {
     // 设置面板图标
-    this._panel.iconPath = vscode.Uri.joinPath(this._extensionUri, 'media/preview-icon.svg')
+    this._panel.iconPath = vscode.Uri.joinPath(this._extensionUri, 'res/preview-icon.svg')
 
     // 设置滚动同步管理器
     this._scrollSyncManager.setPanel(this._panel)

@@ -128,7 +128,7 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
               const workspaceFolder = vscode.workspace.workspaceFolders?.[0]
               if (workspaceFolder) {
                 const extensionUri = workspaceFolder.uri
-                MarkdownPreviewPanel.createOrShow(extensionUri, activeEditor.document)
+                MarkdownPreviewPanel.createOrShowSlide(extensionUri, activeEditor.document)
               }
               // 等待预览窗口创建完成
               await new Promise(resolve => setTimeout(resolve, 100))

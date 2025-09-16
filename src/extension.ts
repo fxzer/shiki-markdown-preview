@@ -8,34 +8,22 @@ import { MarkdownPreviewSerializer } from './webview-serializer'
 
 export function activate(context: vscode.ExtensionContext) {
   // 注册配置变更监听器，用于实时主题更新
-  // 注册 markdown 预览命令
+  // 注册 markdown 预览命令 - 侧边预览 (ViewColumn.Two)
   context.subscriptions.push(
-    vscode.commands.registerCommand('shiki-markdown-preview.show', () => {
+    vscode.commands.registerCommand('shiki-markdown-preview.openPreviewSlide', () => {
       const markdownDocument = DocumentValidator.validateMarkdownDocument()
       if (markdownDocument) {
-        MarkdownPreviewPanel.createOrShow(context.extensionUri, markdownDocument)
+        MarkdownPreviewPanel.createOrShowSlide(context.extensionUri, markdownDocument)
       }
     }),
   )
 
-  // 注册为当前文档显示预览的命令
+  // 注册 markdown 预览命令 - 全屏预览 (ViewColumn.One)
   context.subscriptions.push(
-    vscode.commands.registerCommand('shiki-markdown-preview.showForDocument', async (uri?: vscode.Uri) => {
-      if (uri) {
-        const document = await ErrorHandler.safeExecute(
-          async () => await vscode.workspace.openTextDocument(uri),
-          `无法打开文档: ${uri.fsPath}`,
-          'Extension',
-        )
-        if (document && DocumentValidator.isMarkdownDocument(document)) {
-          MarkdownPreviewPanel.createOrShow(context.extensionUri, document)
-        }
-      }
-      else {
-        const markdownDocument = DocumentValidator.validateMarkdownDocument()
-        if (markdownDocument) {
-          MarkdownPreviewPanel.createOrShow(context.extensionUri, markdownDocument)
-        }
+    vscode.commands.registerCommand('shiki-markdown-preview.openPreviewFull', () => {
+      const markdownDocument = DocumentValidator.validateMarkdownDocument()
+      if (markdownDocument) {
+        MarkdownPreviewPanel.createOrShowFull(context.extensionUri, markdownDocument)
       }
     }),
   )
@@ -49,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       // 确保预览窗口已打开
       if (!MarkdownPreviewPanel.currentPanel) {
-        MarkdownPreviewPanel.createOrShow(context.extensionUri, markdownDocument)
+        MarkdownPreviewPanel.createOrShowSlide(context.extensionUri, markdownDocument)
         // 等待预览窗口创建完成
         await new Promise(resolve => setTimeout(resolve, 100))
       }

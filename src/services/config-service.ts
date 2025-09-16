@@ -4,7 +4,7 @@ import * as vscode from 'vscode'
  * 配置服务，用于管理主题配置
  */
 export class ConfigService {
-  private static readonly SECTION = 'shiki-markdown-preview'
+  private static readonly SECTION = 'Shiki Mmarkdown Preview'
 
   /**
    * 获取当前主题

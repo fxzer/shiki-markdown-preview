@@ -15,7 +15,7 @@ export class MarkdownPreviewSerializer implements vscode.WebviewPanelSerializer 
     webviewPanel.webview.options = {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.joinPath(this.extensionUri, 'media'),
+        vscode.Uri.joinPath(this.extensionUri, 'src/webview'),
       ],
     }
 

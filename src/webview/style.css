@@ -8,7 +8,7 @@ html {
 
 body {
   margin: 0;
-  padding: 1.5rem;
+  padding: 24px;
   line-height: var(--line-height, 1.6);
   font-family: var(--font-family, var(--vscode-font-family));
   background-color: var(--editor-background, var(--vscode-editor-background));
@@ -695,7 +695,6 @@ pre:hover .copy-button {
   letter-spacing: 0.5px;
 }
 
-
 /* 复制按钮样式 */
 .copy-button {
   position: absolute;
@@ -730,7 +729,7 @@ pre:hover .lang {
 }
 /* 复制按钮状态样式 */
 .copy-button.copied {
-  color: #4CAF50 !important;
+  color: #4caf50 !important;
   background: rgba(76, 175, 80, 0.1) !important;
 }
 

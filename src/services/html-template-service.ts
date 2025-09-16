@@ -24,8 +24,8 @@ export class HTMLTemplateService {
       nonce = getNonce(),
     } = options
 
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media/main.js'))
-    const webviewCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media/webview.css'))
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/index.js'))
+    const webviewCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/style.css'))
 
     return `<!DOCTYPE html>
             <html lang="en">
@@ -114,7 +114,7 @@ export class HTMLTemplateService {
     return {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.joinPath(extensionUri, 'media'),
+        vscode.Uri.joinPath(extensionUri, 'src/webview'),
       ],
     }
   }
