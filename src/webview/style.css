@@ -729,7 +729,7 @@ pre:hover .lang {
 }
 /* 复制按钮状态样式 */
 .copy-button.copied {
-  color: #4caf50 !important;
+  color: #4CAF50 !important;
   background: rgba(76, 175, 80, 0.1) !important;
 }
 
