@@ -8,6 +8,13 @@ import {
   ThemeService,
 } from './services'
 
+// 添加日志记录器
+const logger = {
+  info: (message: string, ...args: any[]) => console.warn(`[MarkdownPreview] ${message}`, ...args),
+  warn: (message: string, ...args: any[]) => console.warn(`[MarkdownPreview] ${message}`, ...args),
+  error: (message: string, ...args: any[]) => console.error(`[MarkdownPreview] ${message}`, ...args),
+}
+
 /**
  * Manages markdown preview webview panels
  */
@@ -149,6 +156,125 @@ export class MarkdownPreviewPanel {
   }
 
   /**
+   * 验证和规范化文件路径，防止路径遍历攻击
+   * @param basePath 基础路径
+   * @param relativePath 相对路径
+   * @returns 规范化后的安全路径，如果路径不安全则返回 null
+   */
+  private validateAndResolvePath(basePath: vscode.Uri, relativePath: string): vscode.Uri | null {
+    try {
+      // 解码 URL 编码的字符
+      const decodedPath = decodeURIComponent(relativePath)
+
+      // 检查路径是否包含可疑字符
+      if (decodedPath.includes('..') || decodedPath.includes('~') || decodedPath.startsWith('/')) {
+        logger.warn(`检测到潜在的路径遍历攻击: ${relativePath}`)
+        return null
+      }
+
+      // 检查路径是否包含非法字符（Windows 和 Unix）
+      // eslint-disable-next-line no-control-regex
+      const illegalChars = /[<>:"|?*\u0000-\u001F]/
+      if (illegalChars.test(decodedPath)) {
+        logger.warn(`路径包含非法字符: ${relativePath}`)
+        return null
+      }
+
+      // 检查文件扩展名，只允许安全的文件类型
+      const allowedExtensions = ['.md', '.markdown', '.txt', '.json', '.yaml', '.yml', '.xml', '.csv']
+      const fileExtension = decodedPath.toLowerCase().substring(decodedPath.lastIndexOf('.'))
+      if (fileExtension && !allowedExtensions.includes(fileExtension)) {
+        logger.warn(`不允许的文件扩展名: ${fileExtension}`)
+        return null
+      }
+
+      // 解析相对路径
+      const resolvedPath = vscode.Uri.joinPath(basePath, decodedPath)
+
+      // 规范化路径并检查是否仍在基础路径下
+      const normalizedBasePath = basePath.fsPath.replace(/[/\\]+$/, '')
+      const normalizedResolvedPath = resolvedPath.fsPath.replace(/[/\\]+$/, '')
+
+      // 确保解析后的路径仍然在基础路径下
+      if (!normalizedResolvedPath.startsWith(normalizedBasePath)) {
+        logger.warn(`路径遍历尝试检测: ${relativePath} 解析为 ${normalizedResolvedPath}`)
+        return null
+      }
+
+      return resolvedPath
+    }
+    catch (error) {
+      logger.error(`路径验证失败: ${relativePath}`, error)
+      return null
+    }
+  }
+
+  // 处理相对路径文件点击
+  private async handleRelativeFileClick(filePath: string) {
+    try {
+      const currentDocument = this._currentDocument
+      if (!currentDocument) {
+        // 只有在面板仍然有效时才显示错误消息
+        if (this._panel) {
+          vscode.window.showErrorMessage('无法获取当前文档信息')
+        }
+        else {
+          logger.info('面板已销毁，跳过文档信息错误消息显示')
+        }
+        return
+      }
+
+      // 解析相对路径
+      const currentFileUri = vscode.Uri.file(currentDocument.fileName)
+      const currentDir = vscode.Uri.joinPath(currentFileUri, '..')
+
+      // 验证和解析路径
+      const targetFile = this.validateAndResolvePath(currentDir, filePath)
+      if (!targetFile) {
+        if (this._panel) {
+          vscode.window.showErrorMessage(`无效或不安全的文件路径: ${filePath}`)
+        }
+        return
+      }
+
+      // 检查文件是否存在
+      try {
+        await vscode.workspace.fs.stat(targetFile)
+      }
+      catch {
+        // 只有在面板仍然有效时才显示错误消息
+        if (this._panel) {
+          vscode.window.showErrorMessage(`文件不存在: ${filePath}`)
+        }
+        else {
+          logger.info('面板已销毁，跳过文件不存在错误消息显示')
+        }
+        return
+      }
+
+      // 直接在编辑区打开文件，而不是在WebView中更新内容
+      const document = await vscode.workspace.openTextDocument(targetFile)
+      await vscode.window.showTextDocument(document, vscode.ViewColumn.One)
+
+      // 注意：不再调用 switchToDocument，避免WebView竞态条件
+      // 用户可以在编辑区查看文档，如果需要预览可以手动触发
+
+      logger.info(`已打开相对路径文件: ${filePath}`)
+    }
+    catch (error) {
+      logger.error('处理相对路径文件点击时出错:', error)
+
+      // 只有在面板仍然有效时才显示错误消息
+      if (this._panel) {
+        vscode.window.showErrorMessage(`无法打开文件: ${filePath}`)
+      }
+      else {
+        logger.info('面板已销毁，跳过文件打开错误消息显示')
+      }
+    }
+  }
+
+  /**
    * Handle messages from the webview
    */
   private handleWebviewMessage(message: any): void {
@@ -168,6 +294,14 @@ export class MarkdownPreviewPanel {
 
       case 'cancelThemeSelection':
         this.handleThemeSelectionCancel()
+        return
+      case 'openExternal':
+        vscode.env.openExternal(vscode.Uri.parse(message.url))
+        return
+
+      case 'openRelativeFile':
+        this.handleRelativeFileClick(message.filePath)
+        break
     }
   }
 
@@ -271,6 +405,16 @@ export class MarkdownPreviewPanel {
       /(src|href)="([^"]+)"/g,
       (match, attr, path) => {
         if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('vscode-webview-resource:')) {
+          return match
+        }
+
+        // 对于锚点链接（以#开头），保持原样，不进行任何处理
+        if (attr === 'href' && path.startsWith('#')) {
+          return match
+        }
+
+        // 对于 .md 文件的链接，保持相对路径，不转换为webview URI
+        if (attr === 'href' && path.endsWith('.md')) {
           return match
         }
 

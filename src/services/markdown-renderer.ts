@@ -1,8 +1,8 @@
 import type { ThemeService } from './theme-service'
+import matter from 'gray-matter'
 import MarkdownIt from 'markdown-it'
 import * as vscode from 'vscode'
 import { escapeHtml } from '../utils'
-import matter from 'gray-matter'
 
 export class MarkdownRenderer {
   private _markdownIt: MarkdownIt | undefined
@@ -61,12 +61,48 @@ export class MarkdownRenderer {
 
       if (hrefIndex >= 0 && token.attrs && token.attrs[hrefIndex]) {
         const href = token.attrs[hrefIndex][1]
-        if (!href.startsWith('http') && !href.startsWith('#') && !href.startsWith('data:')) {
+        // 对于锚点链接（以#开头），保持原样，不进行任何处理
+        if (href.startsWith('#')) {
+          // 锚点链接，保持原样
+          return renderer.renderToken(tokens, idx, options)
+        }
+        // 对于 .md 文件，保持相对路径，不转换为绝对URI
+        if (!href.startsWith('http') && !href.startsWith('data:') && !href.endsWith('.md')) {
           const resolvedUri = this.resolveRelativePath(href)
           if (resolvedUri) {
             token.attrs[hrefIndex][1] = resolvedUri
           }
         }
+      }
+
+      return renderer.renderToken(tokens, idx, options)
+    }
+
+    // 为标题添加id属性，支持锚点链接
+    this._markdownIt.renderer.rules.heading_open = (tokens, idx, options, env, renderer) => {
+      const token = tokens[idx]
+      token.tag.replace('h', '')
+
+      // 获取标题文本内容
+      let titleText = ''
+      let i = idx + 1
+      while (i < tokens.length && tokens[i].type !== 'heading_close') {
+        if (tokens[i].type === 'inline') {
+          titleText += tokens[i].content
+        }
+        i++
+      }
+
+      // 生成id（移除特殊字符，转换为URL友好的格式）
+      const id = this.generateHeadingId(titleText)
+
+      // 添加id属性
+      const attrIndex = token.attrIndex('id')
+      if (attrIndex < 0) {
+        token.attrPush(['id', id])
+      }
+      else {
+        token.attrs![attrIndex][1] = id
       }
 
       return renderer.renderToken(tokens, idx, options)
@@ -120,20 +156,34 @@ export class MarkdownRenderer {
   }
 
   /**
+   * Generate heading ID from title text
+   */
+  private generateHeadingId(titleText: string): string {
+    return titleText
+      .trim()
+      .toLowerCase()
+      .replace(/[^\u4E00-\u9FA5a-z0-9\s-]/g, '') // 保留中文、英文、数字、空格、连字符
+      .replace(/\s+/g, '-') // 空格替换为连字符
+      .replace(/-+/g, '-') // 多个连字符合并为一个
+      .replace(/^-|-$/g, '') // 移除首尾连字符
+  }
+
+  /**
    * Parse front matter from markdown content
    */
-  parseFrontMatter(content: string): { content: string; data: any } {
+  parseFrontMatter(content: string): { content: string, data: any } {
     try {
       const parsed = matter(content)
       return {
         content: parsed.content, // 只使用内容部分，忽略元数据
-        data: parsed.data
+        data: parsed.data,
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.warn('Failed to parse front matter:', error)
       return {
         content,
-        data: {}
+        data: {},
       }
     }
   }
@@ -220,7 +270,7 @@ export class MarkdownRenderer {
   /**
    * Get front matter data from markdown content
    */
-   getFrontMatterData(content: string): any {
+  getFrontMatterData(content: string): any {
     const { data } = this.parseFrontMatter(content)
     return data
   }

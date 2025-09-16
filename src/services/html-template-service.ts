@@ -115,7 +115,6 @@ export class HTMLTemplateService {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.joinPath(extensionUri, 'media'),
-        vscode.Uri.joinPath(extensionUri, 'node_modules'),
       ],
     }
   }

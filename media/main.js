@@ -302,17 +302,42 @@
     }
   }
 
-  contentContainer.addEventListener('click', (event) => {
-    const target = event.target
-    if (target.tagName === 'A') {
-      const href = target.getAttribute('href')
-      if (href && !href.startsWith('#') && !href.startsWith('http')) {
+  // 处理链接点击事件
+  document.addEventListener('click', (event) => {
+    let target = event.target
+    // 处理 <a> 标签内部元素的点击事件，确保我们总能拿到 <a> 元素
+    while (target && target.tagName !== 'A') {
+      target = target.parentElement
+    }
+
+    if (target && target.tagName === 'A') {
+      const hrefAttr = target.getAttribute('href')
+
+      if (!hrefAttr) {
+        return
+      }
+
+      // 处理外部链接（排除VS Code内部资源）
+      if ((hrefAttr.startsWith('http://') || hrefAttr.startsWith('https://') || hrefAttr.startsWith('//'))
+        && !hrefAttr.includes('vscode-resource.vscode-cdn.net')) {
         event.preventDefault()
+        event.stopPropagation() // 阻止事件冒泡
         vscode.postMessage({
-          command: 'openLink',
-          href,
+          command: 'openExternal',
+          url: hrefAttr,
         })
       }
+      // 处理相对路径链接（.md 文件）
+      else if (hrefAttr.endsWith('.md')) {
+        event.preventDefault()
+        vscode.postMessage({
+          command: 'openRelativeFile',
+          // 关键修复：使用 href 属性值作为文件路径
+          filePath: hrefAttr,
+          href: hrefAttr, // 保持消息结构一致性
+        })
+      }
+      // 锚点链接（以 # 开头）让浏览器原生处理，不需要特殊处理
     }
   })
 

@@ -187,7 +187,6 @@ ol ul {
 table {
   border-collapse: collapse;
   border-spacing: 0;
-  border-collapse: separate;
   margin-bottom: 1rem;
   width: max-content;
 }
