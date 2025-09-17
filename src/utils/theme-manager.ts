@@ -182,7 +182,7 @@ export class ThemeManager {
    */
   static onThemeConfigChange(callback: (_themeName: string) => void): vscode.Disposable {
     return vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration('shiki-markdown-preview.currentTheme')) {
+      if (event.affectsConfiguration('shikiMarkdownPreview.currentTheme')) {
         const newTheme = this.getCurrentTheme()
         callback(newTheme)
       }

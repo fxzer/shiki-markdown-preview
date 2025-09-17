@@ -6,7 +6,7 @@
 
 ```javascript
 function hello() {
-  console.log("Hello, World!");
+  console.log('Hello, World!')
 }
 ```
 
@@ -27,14 +27,14 @@ def hello():
 
 ```typescript
 interface User {
-  name: string;
-  age: number;
+  name: string
+  age: number
 }
 
 const user: User = {
-  name: "John",
+  name: 'John',
   age: 30
-};
+}
 ```
 
 ## CSS 代码块
@@ -49,13 +49,13 @@ body {
 ## HTML 代码块
 
 ```html
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <title>Test</title>
-</head>
-<body>
-  <h1>Hello World</h1>
-</body>
+  <head>
+    <title>Test</title>
+  </head>
+  <body>
+    <h1>Hello World</h1>
+  </body>
 </html>
 ```

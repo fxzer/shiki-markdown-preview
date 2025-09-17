@@ -226,26 +226,27 @@ class NotionToc {
     const documentHeight = document.documentElement.scrollHeight
 
     // 计算滚动百分比并发送给扩展
-    const scrollPercentage = documentHeight > viewportHeight 
+    const scrollPercentage = documentHeight > viewportHeight
       ? Math.max(0, Math.min(1, scrollTop / (documentHeight - viewportHeight)))
       : 0
 
     // 发送滚动事件给扩展
     if (window.vscode && window.vscode.postMessage) {
       console.warn('Sending scroll event to extension:', {
-        scrollPercentage: scrollPercentage,
-        scrollTop: scrollTop,
-        documentHeight: documentHeight,
-        viewportHeight: viewportHeight,
-        timestamp: Date.now()
+        scrollPercentage,
+        scrollTop,
+        documentHeight,
+        viewportHeight,
+        timestamp: Date.now(),
       })
       window.vscode.postMessage({
         command: 'scroll',
-        scrollPercentage: scrollPercentage,
+        scrollPercentage,
         source: 'preview',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       })
-    } else {
+    }
+    else {
       console.warn('vscode.postMessage not available')
     }
 
@@ -584,6 +585,11 @@ window.addEventListener('message', (event) => {
         markdownContent.innerHTML = message.content
         applySyntaxHighlighting()
       }
+      break
+    }
+    case 'updateDocumentWidth': {
+      // 更新文档宽度CSS变量
+      document.documentElement.style.setProperty('--document-width', message.width)
       break
     }
   }

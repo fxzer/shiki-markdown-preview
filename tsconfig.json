@@ -19,7 +19,7 @@
   "exclude": [
     "node_modules",
     ".vscode-test",
-    "shiki-markdown-preview-0.0.1",
+    "shikiMarkdownPreview-0.0.1",
     "out",
     "media/**/*.js"
   ]

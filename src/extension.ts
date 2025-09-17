@@ -10,7 +10,7 @@ export function activate(context: vscode.ExtensionContext) {
   // 注册配置变更监听器，用于实时主题更新
   // 注册 markdown 预览命令 - 侧边预览 (ViewColumn.Two)
   context.subscriptions.push(
-    vscode.commands.registerCommand('shiki-markdown-preview.openPreviewSlide', () => {
+    vscode.commands.registerCommand('shikiMarkdownPreview.openPreviewSlide', () => {
       const markdownDocument = DocumentValidator.validateMarkdownDocument()
       if (markdownDocument) {
         MarkdownPreviewPanel.createOrShowSlide(context.extensionUri, markdownDocument)
@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 注册 markdown 预览命令 - 全屏预览 (ViewColumn.One)
   context.subscriptions.push(
-    vscode.commands.registerCommand('shiki-markdown-preview.openPreviewFull', () => {
+    vscode.commands.registerCommand('shikiMarkdownPreview.openPreviewFull', () => {
       const markdownDocument = DocumentValidator.validateMarkdownDocument()
       if (markdownDocument) {
         MarkdownPreviewPanel.createOrShowFull(context.extensionUri, markdownDocument)
@@ -30,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 注册主题选择命令
   context.subscriptions.push(
-    vscode.commands.registerCommand('shiki-markdown-preview.selectTheme', async () => {
+    vscode.commands.registerCommand('shikiMarkdownPreview.selectTheme', async () => {
       const markdownDocument = DocumentValidator.validateMarkdownDocument()
       if (!markdownDocument)
         return
@@ -83,7 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(async (event) => {
       // 检查是否是我们扩展的配置发生了变化
-      if (event.affectsConfiguration('shiki-markdown-preview.currentTheme')) {
+      if (event.affectsConfiguration('shikiMarkdownPreview.currentTheme')) {
         if (MarkdownPreviewPanel.currentPanel) {
           // 使用配置服务获取新的主题设置
           const newTheme = ThemeManager.getCurrentTheme()

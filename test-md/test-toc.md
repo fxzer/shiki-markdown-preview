@@ -25,10 +25,12 @@
 
 这是第二个二级标题的内容。我们继续添加一些内容来让页面更长。
 这是第二个二级标题的内容。我们继续添加一些内容来让页面更长。这是第二个二级标题的内容。我们继续添加一些内容来让页面更长。这是第二个二级标题的内容。我们继续添加一些内容来让页面更长。这是第二个二级标题的内容。我们继续添加一些内容来让页面更长。这是第二个二级标题的内容。我们继续添加一些内容来让页面更长。
+
 ## 另一个一级标题
 
 这是一个新的一级标题，应该显示为最长的横线在目录中。
 这是一个新的一级标题，应该显示为最长的横线在目录中。这是一个新的一级标题，应该显示为最长的横线在目录中。这是一个新的一级标题，应该显示为最长的横线在目录中。这是一个新的一级标题，应该显示为最长的横线在目录中。这是一个新的一级标题，应该显示为最长的横线在目录中。这是一个新的一级标题，应该显示为最长的横线在目录中。这是一个新的一级标题，应该显示为最长的横线在目录中。这是一个新的一级标题，应该显示为最长的横线在目录中。这是一个新的一级标题，应该显示为最长的横线在目录中。
+
 ### 二级标题3
 
 这个二级标题下面有很多内容，用于测试滚动时的目录高亮更新。
@@ -39,10 +41,12 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
 
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
 ### 二级标题4二级标题4二级标题4二级标题4二级标题4二级标题4二级标题4
 
 更多内容在这里，继续测试目录功能。
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
 #### 三级标题4.1
 
 三级标题的内容，应该有适当的缩进。
@@ -52,6 +56,7 @@ Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu 
 另一个三级标题。
 
 ##### 四级标题
+
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 甚至四级标题也应该能正常工作，虽然它不会显示在目录中（我们目前只支持h1-h3）。
 

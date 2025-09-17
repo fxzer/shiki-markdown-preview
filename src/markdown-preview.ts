@@ -19,7 +19,7 @@ export class MarkdownPreviewPanel {
    */
   public static currentPanel: MarkdownPreviewPanel | undefined
 
-  public static readonly viewType = 'shiki-markdown-preview'
+  public static readonly viewType = 'shikiMarkdownPreview'
 
   private readonly _panel: vscode.WebviewPanel
   private readonly _extensionUri: vscode.Uri
@@ -125,10 +125,17 @@ export class MarkdownPreviewPanel {
     // 监听配置变化，特别是主题变化
     vscode.workspace.onDidChangeConfiguration(
       (event) => {
-        if (event.affectsConfiguration('shiki-markdown-preview.currentTheme')) {
+        if (event.affectsConfiguration('shikiMarkdownPreview.currentTheme')) {
           ErrorHandler.safeExecute(
             () => this.handleThemeChange(),
             '主题变化处理失败',
+            'MarkdownPreviewPanel',
+          )
+        }
+        if (event.affectsConfiguration('shikiMarkdownPreview.documentWidth')) {
+          ErrorHandler.safeExecute(
+            () => this.handleDocumentWidthChange(),
+            '文档宽度变化处理失败',
             'MarkdownPreviewPanel',
           )
         }
@@ -312,6 +319,11 @@ export class MarkdownPreviewPanel {
       // 等待主题 CSS 变量
       const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
+      // 获取文档宽度配置
+      const { ConfigService } = await import('./services/config-service')
+      const configService = new ConfigService()
+      const documentWidth = configService.getDocumentWidth()
+
       // 确保在渲染前获取最新的主题类型
       const currentThemeType = await this._themeService.refreshCurrentThemeType()
       ErrorHandler.logInfo(`渲染时主题类型: ${currentThemeType}`, 'MarkdownPreviewPanel')
@@ -323,6 +335,7 @@ export class MarkdownPreviewPanel {
         themeCSSVariables,
         frontMatterData, // 传递 front matter 数据
         markdownThemeType: currentThemeType, // 传递主题类型
+        documentWidth, // 传递文档宽度
       })
 
       // 更新面板标题 - 优先使用 front matter 中的 title
@@ -350,12 +363,18 @@ export class MarkdownPreviewPanel {
     const content = HTMLTemplateService.generateNoDocumentContent()
     const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
+    // 获取文档宽度配置
+    const { ConfigService } = await import('./services/config-service')
+    const configService = new ConfigService()
+    const documentWidth = configService.getDocumentWidth()
+
     this._panel.webview.html = HTMLTemplateService.generateHTML({
       webview: this._panel.webview,
       extensionUri: this._extensionUri,
       content,
       themeCSSVariables,
       markdownThemeType: this._themeService.getCurrentThemeType(), // 传递主题类型
+      documentWidth, // 传递文档宽度
     })
   }
 
@@ -366,12 +385,18 @@ export class MarkdownPreviewPanel {
     const content = HTMLTemplateService.generateErrorContent(message)
     const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
+    // 获取文档宽度配置
+    const { ConfigService } = await import('./services/config-service')
+    const configService = new ConfigService()
+    const documentWidth = configService.getDocumentWidth()
+
     this._panel.webview.html = HTMLTemplateService.generateHTML({
       webview: this._panel.webview,
       extensionUri: this._extensionUri,
       content,
       themeCSSVariables,
       markdownThemeType: this._themeService.getCurrentThemeType(), // 传递主题类型
+      documentWidth, // 传递文档宽度
     })
   }
 
@@ -399,6 +424,33 @@ export class MarkdownPreviewPanel {
     }
     catch (error) {
       ErrorHandler.logError('主题变化处理失败', error, 'MarkdownPreviewPanel')
+    }
+  }
+
+  /**
+   * Handle document width change
+   */
+  private async handleDocumentWidthChange(): Promise<void> {
+    if (!this._isInitialized) {
+      return
+    }
+
+    try {
+      // 获取新的文档宽度
+      const { ConfigService } = await import('./services/config-service')
+      const configService = new ConfigService()
+      const documentWidth = configService.getDocumentWidth()
+
+      // 向webview发送文档宽度更新消息
+      this._panel.webview.postMessage({
+        command: 'updateDocumentWidth',
+        width: documentWidth,
+      })
+
+      ErrorHandler.logInfo(`文档宽度变化已应用到预览: ${documentWidth}`, 'MarkdownPreviewPanel')
+    }
+    catch (error) {
+      ErrorHandler.logError('文档宽度变化处理失败', error, 'MarkdownPreviewPanel')
     }
   }
 

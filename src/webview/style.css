@@ -729,7 +729,7 @@ pre:hover .lang {
 }
 /* 复制按钮状态样式 */
 .copy-button.copied {
-  color: #4CAF50 !important;
+  color: #4caf50 !important;
   background: rgba(76, 175, 80, 0.1) !important;
 }
 
@@ -776,10 +776,10 @@ pre:hover .lang {
 }
 
 .toc-line-bar {
-  background-color:  var(--editor-foreground, var(--vscode-foreground));
+  background-color: var(--editor-foreground, var(--vscode-foreground));
   height: 2px;
   opacity: 0.25;
-  transition:opacity 0.2s;
+  transition: opacity 0.2s;
   box-shadow: none;
   border-radius: 1px;
 }
@@ -789,17 +789,16 @@ pre:hover .lang {
   box-shadow: var(--editor-foreground, var(--vscode-foreground)) 0px 0px 3px;
 }
 
-
 /* 详细菜单样式 */
 .notion-toc-detailed {
-  background-color: var(--editor-background, var(--vscode-editor-background)); 
+  background-color: var(--editor-background, var(--vscode-editor-background));
   border: 1px solid var(--markdown-blockQuote-background-level3);
   border-radius: 8px;
   padding: 10px;
   /* box-shadow: 0 0 6px var(--markdown-blockQuote-background-level1); */
   backdrop-filter: blur(10px);
   min-width: 200px;
-  max-width: 280px;
+  max-width: 240px;
   max-height: 400px;
   overflow-y: auto;
 }
@@ -814,7 +813,7 @@ pre:hover .lang {
   padding: 2px 4px;
   border-radius: 4px;
   cursor: pointer;
-  text-align: left; 
+  text-align: left;
   transition: all 0.2s ease;
   font-size: 12px;
   color: var(--editor-foreground, var(--vscode-foreground));
@@ -844,5 +843,3 @@ pre:hover .lang {
     right: 10px;
   }
 }
-
-

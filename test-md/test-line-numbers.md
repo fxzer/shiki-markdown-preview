@@ -5,17 +5,17 @@
 ```javascript
 function fibonacci(n) {
   if (n <= 1) {
-    return n;
+    return n
   }
-  return fibonacci(n - 1) + fibonacci(n - 2);
+  return fibonacci(n - 1) + fibonacci(n - 2)
 }
 
-console.log(fibonacci(10));
+console.log(fibonacci(10))
 // 输出: 55
 
-const numbers = [1, 2, 3, 4, 5];
-const squared = numbers.map(n => n * n);
-console.log(squared);
+const numbers = [1, 2, 3, 4, 5]
+const squared = numbers.map(n => n * n)
+console.log(squared)
 ```
 
 ## Python 示例
@@ -40,30 +40,30 @@ print(squares)
 
 ```typescript
 interface User {
-  id: number;
-  name: string;
-  email: string;
+  id: number
+  name: string
+  email: string
 }
 
 class UserService {
-  private users: User[] = [];
+  private users: User[] = []
 
   addUser(user: User): void {
-    this.users.push(user);
+    this.users.push(user)
   }
 
   findUser(id: number): User | undefined {
-    return this.users.find(user => user.id === id);
+    return this.users.find(user => user.id === id)
   }
 
   getAllUsers(): User[] {
-    return [...this.users];
+    return [...this.users]
   }
 }
 
-const userService = new UserService();
-userService.addUser({ id: 1, name: "张三", email: "zhangsan@example.com" });
-console.log(userService.getAllUsers());
+const userService = new UserService()
+userService.addUser({ id: 1, name: '张三', email: 'zhangsan@example.com' })
+console.log(userService.getAllUsers())
 ```
 
 ## CSS 示例

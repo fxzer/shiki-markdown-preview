@@ -1,9 +1,10 @@
 {
   "publisher": "fxzer",
   "name": "shiki-markdown-preview",
-  "version": "0.0.1",
+  "displayName": "Shiki Markdown Preview",
+  "version": "0.0.3",
   "private": true,
-  "description": "Cat Coding - A Webview API Sample",
+  "description": "一个功能强大的 VS Code 扩展，提供基于 Shiki 的 Markdown 预览功能，支持 60+ 种语法高亮主题。",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -19,12 +20,12 @@
   },
   "activationEvents": [
     "onLanguage:markdown",
-    "onWebviewPanel:shiki-markdown-preview"
+    "onWebviewPanel:shikiMarkdownPreview"
   ],
   "contributes": {
     "commands": [
       {
-        "command": "shiki-markdown-preview.openPreviewSlide",
+        "command": "shikiMarkdownPreview.openPreviewSlide",
         "title": "Open Markdown Preview Slide",
         "category": "Shiki Markdown Preview",
         "icon": {
@@ -33,7 +34,7 @@
         }
       },
       {
-        "command": "shiki-markdown-preview.openPreviewFull",
+        "command": "shikiMarkdownPreview.openPreviewFull",
         "title": "Open Markdown Preview Full",
         "category": "Shiki Markdown Preview",
         "icon": {
@@ -42,7 +43,7 @@
         }
       },
       {
-        "command": "shiki-markdown-preview.selectTheme",
+        "command": "shikiMarkdownPreview.selectTheme",
         "title": "Select Theme",
         "category": "Shiki Markdown Preview"
       }
@@ -51,46 +52,46 @@
       "editor/title": [
         {
           "when": "resourceExtname == .md",
-          "command": "shiki-markdown-preview.openPreviewSlide",
+          "command": "shikiMarkdownPreview.openPreviewSlide",
           "group": "navigation",
-          "alt": "shiki-markdown-preview.openPreviewFull"
+          "alt": "shikiMarkdownPreview.openPreviewFull"
         }
       ],
       "editor/context": [
         {
           "when": "resourceExtname == .md",
-          "command": "shiki-markdown-preview.openPreviewSlide",
+          "command": "shikiMarkdownPreview.openPreviewSlide",
           "group": "markdown"
         },
         {
           "when": "resourceExtname == .md",
-          "command": "shiki-markdown-preview.openPreviewFull",
+          "command": "shikiMarkdownPreview.openPreviewFull",
           "group": "markdown"
         }
       ],
       "explorer/context": [
         {
           "when": "resourceExtname == .md",
-          "command": "shiki-markdown-preview.openPreviewSlide",
+          "command": "shikiMarkdownPreview.openPreviewSlide",
           "group": "navigation"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "shiki-markdown-preview.openPreviewSlide",
+        "command": "shikiMarkdownPreview.openPreviewSlide",
         "key": "ctrl+shift+v",
         "mac": "cmd+shift+v",
         "when": "editorTextFocus && resourceExtname == .md"
       },
       {
-        "command": "shiki-markdown-preview.openPreviewFull",
+        "command": "shikiMarkdownPreview.openPreviewFull",
         "key": "ctrl+k v",
         "mac": "cmd+k v",
         "when": "editorTextFocus && resourceExtname == .md"
       },
       {
-        "command": "shiki-markdown-preview.selectTheme",
+        "command": "shikiMarkdownPreview.selectTheme",
         "key": "ctrl+shift+t",
         "mac": "cmd+shift+t",
         "when": "resourceExtname == .md"
@@ -99,7 +100,7 @@
     "configuration": {
       "title": "Shiki Markdown Preview",
       "properties": {
-        "shiki-markdown-preview.currentTheme": {
+        "shikiMarkdownPreview.currentTheme": {
           "type": "string",
           "default": "vitesse-dark",
           "description": "Current theme for the markdown preview.",
@@ -165,13 +166,20 @@
             "vitesse-black",
             "vitesse-dark"
           ]
+        },
+        "shikiMarkdownPreview.documentWidth": {
+          "type": "string",
+          "default": "800px",
+          "description": "文档宽度，支持所有CSS宽度值（如 800px, 100%, 60rem, 1200px 等）",
+          "pattern": "^[0-9]+(px|em|rem|%|vw|ch|ex|cm|mm|in|pt|pc)$",
+          "patternErrorMessage": "请输入有效的CSS宽度值，如：800px, 100%, 60rem, 1200px 等"
         }
       }
     }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./ && node scripts/build.js",
+    "compile": "tsc -p ./",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "watch": "tsc -w -p ./",

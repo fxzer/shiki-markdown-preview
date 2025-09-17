@@ -8,7 +8,7 @@
 ## Markdown 文件链接
 
 - [相对路径文件](./test-code-blocks.md)
-- [绝对路径文件](/Users/dev/m/shiki-markdown-preview/test-md/test-code-blocks.md)
+- [绝对路径文件](/Users/dev/m/shikiMarkdownPreview/test-md/test-code-blocks.md)
 
 ## 其他链接（应该被忽略）
 

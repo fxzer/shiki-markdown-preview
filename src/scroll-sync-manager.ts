@@ -99,7 +99,7 @@ export class ScrollSyncManager {
       source,
       currentScrollSource: this._scrollSource,
       hasDocument: !!this._currentDocument,
-      hasPanel: !!this._panel
+      hasPanel: !!this._panel,
     })
 
     // 检查基本条件：必须有文档和面板
@@ -162,7 +162,7 @@ export class ScrollSyncManager {
       console.warn('Scrolling editor to line:', {
         targetLine,
         totalLines,
-        scrollPercentage
+        scrollPercentage,
       })
 
       // 设置滚动源并即时滚动编辑器

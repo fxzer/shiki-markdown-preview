@@ -12,8 +12,9 @@
 - 支持`代码`和代码块
 
 ```javascript
-console.log('Hello, World!');
+console.log('Hello, World!')
 ```
+
 :::
 
 ## 警告容器
@@ -22,7 +23,7 @@ console.log('Hello, World!');
 这是一个警告容器，用于显示警告信息。
 
 > 注意：这是一个重要的警告信息！
-:::
+> :::
 
 ## 危险容器
 
@@ -52,7 +53,7 @@ console.log('Hello, World!');
 - 列表项
 - **粗体文本**
 - `代码`
-:::
+  :::
 
 ### 自定义标题
 
@@ -77,7 +78,7 @@ console.log('Hello, World!');
 
 - ID: my-details
 - 类名: custom-class
-:::
+  :::
 
 ### 复杂示例
 
@@ -93,7 +94,7 @@ console.log('Hello, World!');
 ```javascript
 // 代码示例
 function example() {
-  console.log('这是一个示例函数');
+  console.log('这是一个示例函数')
 }
 ```
 
@@ -126,6 +127,7 @@ function example() {
 这个容器包含各种内容：
 
 ### 标题
+
 普通段落文本。
 
 1. 有序列表
@@ -136,7 +138,7 @@ function example() {
 - 另一项
 
 | 表格 | 列2 |
-|------|-----|
+| ---- | --- |
 | 数据 | 值  |
 
 ```python

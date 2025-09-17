@@ -9,6 +9,7 @@ export interface HTMLTemplateOptions {
   frontMatterData?: any
   nonce?: string
   markdownThemeType?: 'light' | 'dark'
+  documentWidth?: string
 }
 
 export class HTMLTemplateService {
@@ -24,6 +25,7 @@ export class HTMLTemplateService {
       frontMatterData = {},
       nonce = getNonce(),
       markdownThemeType = 'dark',
+      documentWidth = '800px',
     } = options
 
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/index.js'))
@@ -39,12 +41,13 @@ export class HTMLTemplateService {
                 <style>
                     :root {
                         ${themeCSSVariables}
+                        --document-width: ${documentWidth};
                     }
                 </style>
                 <title>${frontMatterData?.title ? escapeHtml(frontMatterData.title) : 'Markdown Preview'}</title>
             </head>
             <body>
-                <div class="markdown-body" id="markdown-content">
+                <div class="container" id="markdown-content">
                     ${content}
                 </div>
                 <script nonce="${nonce}" src="${scriptUri}"></script>

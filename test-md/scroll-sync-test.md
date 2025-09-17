@@ -16,12 +16,12 @@ Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu 
 
 ```javascript
 function testFunction() {
-  console.log('This is a test function');
-  return 'Hello World';
+  console.log('This is a test function')
+  return 'Hello World'
 }
 
-const result = testFunction();
-console.log(result);
+const result = testFunction()
+console.log(result)
 ```
 
 ## 第三部分
@@ -74,20 +74,20 @@ Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatib
 
 ```typescript
 interface TestInterface {
-  name: string;
-  value: number;
+  name: string
+  value: number
 }
 
 class TestClass implements TestInterface {
   constructor(public name: string, public value: number) {}
-  
+
   getInfo(): string {
-    return `${this.name}: ${this.value}`;
+    return `${this.name}: ${this.value}`
   }
 }
 
-const instance = new TestClass("test", 42);
-console.log(instance.getInfo());
+const instance = new TestClass('test', 42)
+console.log(instance.getInfo())
 ```
 
 ## 第九部分
@@ -105,6 +105,7 @@ Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed 
 ---
 
 **测试说明：**
+
 1. 打开这个文件
 2. 滚动预览区，观察编辑器是否同步滚动
 3. 滚动编辑器，观察预览区是否同步滚动
