@@ -21,6 +21,12 @@ class NotionToc {
       this.renderToc();
       this.bindEvents();
       this.observeContentChanges();
+      
+      // 初始化时立即检测当前滚动位置并设置活跃项
+      setTimeout(() => {
+        this.handleScroll();
+      }, 100);
+      
       console.log('NotionToc init() completed successfully');
     } catch (error) {
       console.error('Error in NotionToc init():', error);
@@ -178,6 +184,9 @@ class NotionToc {
   showDetailedView() {
     this.minimalView.style.display = 'none';
     this.detailedView.style.display = 'block';
+    
+    // 确保详细视图显示时同步当前的活跃状态
+    this.syncDetailedViewActiveState();
   }
 
   // 隐藏详细视图
@@ -225,22 +234,34 @@ class NotionToc {
     
     let activeIndex = -1;
     
-    // 找到当前视口中的标题
-    for (let i = this.headers.length - 1; i >= 0; i--) {
-      const header = this.headers[i];
-      const elementTop = header.element.offsetTop;
-      const elementBottom = elementTop + header.element.offsetHeight;
-      
-      // 判断标题是否在视口中
-      if (scrollTop + 100 >= elementTop && scrollTop < elementBottom) {
-        activeIndex = i;
-        break;
-      }
+    // 如果页面滚动到顶部，激活第一个标题
+    if (scrollTop <= 100) {
+      activeIndex = 0;
     }
-    
     // 如果在页面底部，激活最后一个标题
-    if (scrollTop + viewportHeight >= documentHeight - 100) {
+    else if (scrollTop + viewportHeight >= documentHeight - 100) {
       activeIndex = this.headers.length - 1;
+    }
+    // 否则找到当前视口中的标题
+    else {
+      // 从后往前遍历，找到第一个在视口上方或视口中的标题
+      for (let i = this.headers.length - 1; i >= 0; i--) {
+        const header = this.headers[i];
+        const elementTop = header.element.offsetTop;
+        const elementBottom = elementTop + header.element.offsetHeight;
+        
+        // 更精确的检测逻辑：
+        // 1. 如果标题在视口上方但距离视口顶部不超过200px，则激活
+        // 2. 如果标题在视口中，则激活
+        // 3. 优先选择距离视口顶部最近的标题
+        if (scrollTop + 200 >= elementTop) {
+          // 如果标题在视口中，或者距离视口顶部很近，则激活
+          if (scrollTop < elementBottom || scrollTop + 100 >= elementTop) {
+            activeIndex = i;
+            break;
+          }
+        }
+      }
     }
     
     this.updateActiveItem(activeIndex);
@@ -259,9 +280,14 @@ class NotionToc {
     });
     
     // 更新详细视图
+    this.syncDetailedViewActiveState();
+  }
+
+  // 同步详细视图的活跃状态
+  syncDetailedViewActiveState() {
     const items = this.itemsContainer.querySelectorAll('.toc-item');
     items.forEach((item, i) => {
-      item.classList.toggle('active', i === index);
+      item.classList.toggle('active', i === this.currentActiveIndex);
     });
   }
 
@@ -359,8 +385,6 @@ function initializeNotionToc() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded event fired');
-  // 等待内容加载完成
   setTimeout(initializeNotionToc, 100);
 });
 

@@ -58,6 +58,11 @@ export class ThemeService {
    */
   async initializeHighlighter(): Promise<void> {
     try {
+      // 首先初始化主题缓存
+      if (!this._themeCache.loaded) {
+        await this.discoverAndCacheThemes()
+      }
+
       // 只预加载当前主题和常用语言
       const currentTheme = this._configService.getCurrentTheme()
 
@@ -88,8 +93,58 @@ export class ThemeService {
   /**
    * 返回当前主题类型
    */
-  getCurrentThemeType(themeName: string): 'light' | 'dark' {
-    return this._themeCache.metadata.get(themeName)?.type || 'light'
+  getCurrentThemeType(): 'light' | 'dark' {
+    try {
+      // 确保主题缓存已加载
+      if (!this._themeCache.loaded) {
+        ErrorHandler.logWarning('主题缓存未加载，尝试同步加载', 'ThemeService')
+        // 尝试同步加载主题缓存
+        this.discoverAndCacheThemes().catch((error) => {
+          ErrorHandler.logError('同步加载主题缓存失败', error, 'ThemeService')
+        })
+        return 'light'
+      }
+
+      // 获取当前主题的类型
+      const themeMetadata = this._themeCache.metadata.get(this._currentTheme)
+      if (!themeMetadata) {
+        ErrorHandler.logWarning(`主题元数据未找到: ${this._currentTheme}`, 'ThemeService')
+        return 'light'
+      }
+
+      const themeType = themeMetadata.type
+      ErrorHandler.logInfo(`当前主题类型: ${this._currentTheme} -> ${themeType}`, 'ThemeService')
+      return themeType
+    }
+    catch (error) {
+      ErrorHandler.logError('获取主题类型失败', error, 'ThemeService')
+      return 'light'
+    }
+  }
+
+  /**
+   * 强制刷新当前主题类型（用于确保获取最新值）
+   */
+  async refreshCurrentThemeType(): Promise<'light' | 'dark'> {
+    try {
+      // 确保主题缓存是最新的
+      if (!this._themeCache.loaded) {
+        await this.discoverAndCacheThemes()
+      }
+
+      // 重新获取当前主题（从配置中）
+      const configTheme = this._configService.getCurrentTheme()
+      if (configTheme !== this._currentTheme) {
+        ErrorHandler.logInfo(`主题配置已更新: ${this._currentTheme} -> ${configTheme}`, 'ThemeService')
+        this._currentTheme = configTheme
+      }
+
+      return this.getCurrentThemeType()
+    }
+    catch (error) {
+      ErrorHandler.logError('刷新主题类型失败', error, 'ThemeService')
+      return 'light'
+    }
   }
 
   /* 是暗黑主题 */
@@ -213,10 +268,12 @@ export class ThemeService {
     }
 
     this._currentTheme = theme
+    ErrorHandler.logInfo(`主题已切换到: ${theme}`, 'ThemeService')
 
     // 使用配置服务更新配置
     try {
       await this._configService.updateConfig('currentTheme', theme, vscode.ConfigurationTarget.Global)
+      ErrorHandler.logInfo(`主题配置已更新: ${theme}`, 'ThemeService')
       return true
     }
     catch (error) {

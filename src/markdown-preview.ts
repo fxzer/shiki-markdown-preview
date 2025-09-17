@@ -122,6 +122,21 @@ export class MarkdownPreviewPanel {
       this._disposables,
     )
 
+    // 监听配置变化，特别是主题变化
+    vscode.workspace.onDidChangeConfiguration(
+      (event) => {
+        if (event.affectsConfiguration('shiki-markdown-preview.currentTheme')) {
+          ErrorHandler.safeExecute(
+            () => this.handleThemeChange(),
+            '主题变化处理失败',
+            'MarkdownPreviewPanel',
+          )
+        }
+      },
+      null,
+      this._disposables,
+    )
+
     // 处理来自 webview 的消息
     this._panel.webview.onDidReceiveMessage(
       message => this.handleWebviewMessage(message),
@@ -297,12 +312,17 @@ export class MarkdownPreviewPanel {
       // 等待主题 CSS 变量
       const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
+      // 确保在渲染前获取最新的主题类型
+      const currentThemeType = await this._themeService.refreshCurrentThemeType()
+      ErrorHandler.logInfo(`渲染时主题类型: ${currentThemeType}`, 'MarkdownPreviewPanel')
+
       this._panel.webview.html = HTMLTemplateService.generateHTML({
         webview: this._panel.webview,
         extensionUri: this._extensionUri,
         content: processedContent,
         themeCSSVariables,
         frontMatterData, // 传递 front matter 数据
+        markdownThemeType: currentThemeType, // 传递主题类型
       })
 
       // 更新面板标题 - 优先使用 front matter 中的 title
@@ -335,6 +355,7 @@ export class MarkdownPreviewPanel {
       extensionUri: this._extensionUri,
       content,
       themeCSSVariables,
+      markdownThemeType: this._themeService.getCurrentThemeType(), // 传递主题类型
     })
   }
 
@@ -350,7 +371,35 @@ export class MarkdownPreviewPanel {
       extensionUri: this._extensionUri,
       content,
       themeCSSVariables,
+      markdownThemeType: this._themeService.getCurrentThemeType(), // 传递主题类型
     })
+  }
+
+  /**
+   * Handle theme change
+   */
+  private async handleThemeChange(): Promise<void> {
+    if (!this._isInitialized) {
+      return
+    }
+
+    try {
+      // 重新初始化主题服务以获取新主题
+      await this._themeService.initializeHighlighter()
+
+      // 更新内容以应用新主题
+      if (this._currentDocument) {
+        await this.updateContent(this._currentDocument)
+      }
+      else {
+        await this.updatePanelContent()
+      }
+
+      ErrorHandler.logInfo('主题变化已应用到预览', 'MarkdownPreviewPanel')
+    }
+    catch (error) {
+      ErrorHandler.logError('主题变化处理失败', error, 'MarkdownPreviewPanel')
+    }
   }
 
   /**

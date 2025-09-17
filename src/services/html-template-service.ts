@@ -8,6 +8,7 @@ export interface HTMLTemplateOptions {
   themeCSSVariables?: string
   frontMatterData?: any
   nonce?: string
+  markdownThemeType?: 'light' | 'dark'
 }
 
 export class HTMLTemplateService {
@@ -22,13 +23,14 @@ export class HTMLTemplateService {
       themeCSSVariables = '',
       frontMatterData = {},
       nonce = getNonce(),
+      markdownThemeType = 'dark',
     } = options
 
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/index.js'))
     const webviewCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/style.css'))
 
     return `<!DOCTYPE html>
-            <html lang="en">
+            <html lang="en" data-markdown-theme-type="${markdownThemeType}">
             <head>
                 <meta charset="UTF-8">
                 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">

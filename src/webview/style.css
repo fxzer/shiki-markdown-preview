@@ -61,7 +61,7 @@ blockquote blockquote blockquote blockquote blockquote {
 /* 表格样式 */
 th,
 td {
-  border: 0.03125rem solid var(--markdown-table-border);
+  border: 1px solid var(--markdown-table-border);
   padding: 0.5rem 0.75rem;
 }
 
@@ -752,7 +752,7 @@ pre:hover .lang {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 6px;
+  padding: 4px;
 }
 
 .toc-lines {
@@ -776,32 +776,27 @@ pre:hover .lang {
 }
 
 .toc-line-bar {
-  background-color: rgba(254, 250, 240, 0.208);
+  background-color:  var(--editor-foreground, var(--vscode-foreground));
   height: 2px;
-  transition:
-    background 0.2s,
-    box-shadow 0.2s;
+  opacity: 0.25;
+  transition:opacity 0.2s;
   box-shadow: none;
-  border-radius: 2px;
-  margin-inline-start: 0px;
+  border-radius: 1px;
 }
 
 .toc-line-bar.active {
-  background-color: rgb(211, 211, 211);
-  box-shadow: rgb(211, 211, 211) 0px 0px 3px;
+  opacity: 1;
+  box-shadow: var(--editor-foreground, var(--vscode-foreground)) 0px 0px 3px;
 }
 
-.toc-line:hover .toc-line-bar {
-  background-color: rgba(255, 255, 255, 0.6);
-}
 
 /* 详细菜单样式 */
 .notion-toc-detailed {
-  background: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-widget-border);
+  background-color: var(--editor-background, var(--vscode-editor-background)); 
+  border: 1px solid var(--markdown-blockQuote-background-level3);
   border-radius: 8px;
   padding: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  /* box-shadow: 0 0 6px var(--markdown-blockQuote-background-level1); */
   backdrop-filter: blur(10px);
   min-width: 200px;
   max-width: 280px;
@@ -816,26 +811,25 @@ pre:hover .lang {
 }
 
 .toc-item {
-  padding: 4px 6px;
+  padding: 2px 4px;
   border-radius: 4px;
   cursor: pointer;
+  text-align: left; 
   transition: all 0.2s ease;
   font-size: 12px;
-  line-height: 1.4;
   color: var(--editor-foreground, var(--vscode-foreground));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: left;
 }
 
 .toc-item:hover {
-  background-color: var(--vscode-list-hoverBackground);
+  background-color: var(--markdown-blockQuote-background-level1);
 }
 
 .toc-item.active {
-  background-color: var(--vscode-list-activeSelectionBackground);
-  color: var(--vscode-list-activeSelectionForeground);
+  background-color: var(--markdown-blockQuote-background-level3);
+  color: var(--textLink-foreground);
 }
 
 .toc-item-text {
@@ -851,54 +845,4 @@ pre:hover .lang {
   }
 }
 
-@media (max-width: 768px) {
-  .notion-toc-container {
-    display: none;
-  }
-}
 
-/* 暗色主题适配 */
-body[data-vscode-theme-kind='vscode-dark'] .toc-line-bar {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-body[data-vscode-theme-kind='vscode-dark'] .toc-line-bar.active {
-  background-color: rgba(255, 255, 255, 0.8);
-  box-shadow: rgba(255, 255, 255, 0.8) 0px 0px 3px;
-}
-
-body[data-vscode-theme-kind='vscode-dark'] .toc-line:hover .toc-line-bar {
-  background-color: rgba(255, 255, 255, 0.4);
-}
-
-/* 亮色主题适配 */
-body[data-vscode-theme-kind='vscode-light'] .toc-line-bar {
-  background-color: rgba(0, 0, 0, 0.2);
-}
-
-body[data-vscode-theme-kind='vscode-light'] .toc-line-bar.active {
-  background-color: rgba(0, 0, 0, 0.8);
-  box-shadow: rgba(0, 0, 0, 0.8) 0px 0px 3px;
-}
-
-body[data-vscode-theme-kind='vscode-light'] .toc-line:hover .toc-line-bar {
-  background-color: rgba(0, 0, 0, 0.4);
-}
-
-/* 滚动条样式 */
-.notion-toc-detailed::-webkit-scrollbar {
-  width: 4px;
-}
-
-.notion-toc-detailed::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.notion-toc-detailed::-webkit-scrollbar-thumb {
-  background: var(--vscode-scrollbarSlider-background);
-  border-radius: 2px;
-}
-
-.notion-toc-detailed::-webkit-scrollbar-thumb:hover {
-  background: var(--vscode-scrollbarSlider-hoverBackground);
-}
