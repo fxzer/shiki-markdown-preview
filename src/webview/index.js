@@ -225,6 +225,30 @@ class NotionToc {
     const viewportHeight = window.innerHeight
     const documentHeight = document.documentElement.scrollHeight
 
+    // 计算滚动百分比并发送给扩展
+    const scrollPercentage = documentHeight > viewportHeight 
+      ? Math.max(0, Math.min(1, scrollTop / (documentHeight - viewportHeight)))
+      : 0
+
+    // 发送滚动事件给扩展
+    if (window.vscode && window.vscode.postMessage) {
+      console.warn('Sending scroll event to extension:', {
+        scrollPercentage: scrollPercentage,
+        scrollTop: scrollTop,
+        documentHeight: documentHeight,
+        viewportHeight: viewportHeight,
+        timestamp: Date.now()
+      })
+      window.vscode.postMessage({
+        command: 'scroll',
+        scrollPercentage: scrollPercentage,
+        source: 'preview',
+        timestamp: Date.now()
+      })
+    } else {
+      console.warn('vscode.postMessage not available')
+    }
+
     let activeIndex = -1
 
     // 如果页面滚动到顶部，激活第一个标题
@@ -551,7 +575,7 @@ window.addEventListener('message', (event) => {
       // 滚动完成后的清理工作
       setTimeout(() => {
         // 可以在这里添加滚动完成后的逻辑
-      }, 50) // 缩短到50ms，避免阻塞用户滚动
+      }, 100) // 与扩展端保持一致
       break
     }
     case 'updateContent': {

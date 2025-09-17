@@ -49,14 +49,16 @@ export class ScrollSyncManager {
     })
     this._scrollSyncDisposables.push(selectionDisposable)
 
-    // 添加定时器来定期检查编辑器滚动位置
+    // 添加定时器来定期检查编辑器滚动位置（降低频率以减少性能影响）
     this._scrollCheckInterval = setInterval(() => {
       const activeEditor = vscode.window.activeTextEditor
       if (activeEditor && activeEditor.document === document && this._panel && this._scrollSource !== 'preview') {
         const currentVisibleRange = activeEditor.visibleRanges[0]
         if (currentVisibleRange && this._lastVisibleRange) {
-          // 检查可见区域是否发生变化
-          if (!currentVisibleRange.isEqual(this._lastVisibleRange)) {
+          // 检查可见区域是否发生显著变化（至少相差2行）
+          const startDiff = Math.abs(currentVisibleRange.start.line - this._lastVisibleRange.start.line)
+          const endDiff = Math.abs(currentVisibleRange.end.line - this._lastVisibleRange.end.line)
+          if (startDiff >= 2 || endDiff >= 2) {
             this.syncEditorScrollToPreview(activeEditor)
             this._lastVisibleRange = currentVisibleRange
           }
@@ -65,7 +67,7 @@ export class ScrollSyncManager {
           this._lastVisibleRange = currentVisibleRange
         }
       }
-    }, 100) // 每100ms检查一次
+    }, 200) // 每200ms检查一次，减少频率
 
     // 监听编辑器变化
     const editorChangeDisposable = vscode.window.onDidChangeVisibleTextEditors((editors) => {
@@ -92,8 +94,29 @@ export class ScrollSyncManager {
    * 处理预览窗口滚动事件
    */
   public handlePreviewScroll(scrollPercentage: number, source?: string, _timestamp?: number): void {
-    // 只有当消息来源是编辑器时才跳过，或者当前正在从编辑器同步滚动
-    if (!this._currentDocument || source === 'editor' || this._scrollSource === 'editor') {
+    console.warn('handlePreviewScroll called:', {
+      scrollPercentage,
+      source,
+      currentScrollSource: this._scrollSource,
+      hasDocument: !!this._currentDocument,
+      hasPanel: !!this._panel
+    })
+
+    // 检查基本条件：必须有文档和面板
+    if (!this._currentDocument || !this._panel) {
+      console.warn('Skipping preview scroll sync: missing document or panel')
+      return
+    }
+
+    // 如果消息来源是编辑器，跳过避免循环
+    if (source === 'editor') {
+      console.warn('Skipping preview scroll sync: source is editor')
+      return
+    }
+
+    // 如果当前正在从编辑器同步滚动，跳过避免冲突
+    if (this._scrollSource === 'editor') {
+      console.warn('Skipping preview scroll sync: currently syncing from editor')
       return
     }
 
@@ -119,12 +142,14 @@ export class ScrollSyncManager {
     }
 
     if (!targetEditor) {
+      console.warn('No target editor found for scroll sync')
       return
     }
 
     try {
       const totalLines = this._currentDocument.lineCount
       if (totalLines === 0) {
+        console.warn('Document has no lines')
         return
       }
 
@@ -134,17 +159,23 @@ export class ScrollSyncManager {
       )
       const range = new vscode.Range(targetLine, 0, targetLine, 0)
 
+      console.warn('Scrolling editor to line:', {
+        targetLine,
+        totalLines,
+        scrollPercentage
+      })
+
       // 设置滚动源并即时滚动编辑器
       this._scrollSource = 'preview'
       targetEditor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport)
 
-      // 延迟重置滚动源，与编辑器端保持一致，避免循环滚动
+      // 延迟重置滚动源，避免循环滚动
       if (this._scrollTimeout) {
         clearTimeout(this._scrollTimeout)
       }
       this._scrollTimeout = setTimeout(() => {
         this._scrollSource = 'none'
-      }, 50) // 与预览端保持一致
+      }, 100) // 增加延迟时间，确保滚动操作完成
     }
     catch (error) {
       console.error('Error syncing preview scroll to editor:', error)
@@ -181,13 +212,13 @@ export class ScrollSyncManager {
       source: 'editor',
     })
 
-    // 延迟重置滚动源，避免死循环，与预览区保持一致的延迟时间
+    // 延迟重置滚动源，避免死循环
     if (this._scrollTimeout) {
       clearTimeout(this._scrollTimeout)
     }
     this._scrollTimeout = setTimeout(() => {
       this._scrollSource = 'none'
-    }, 50) // 与预览端保持一致
+    }, 100) // 与预览端保持一致
   }
 
   /**
