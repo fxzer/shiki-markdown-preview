@@ -178,6 +178,7 @@
     "ext:package": "vsce package"
   },
   "dependencies": {
+    "@mdit/plugin-container": "^0.22.1",
     "@types/markdown-it": "^14.1.2",
     "chroma-js": "^3.1.2",
     "gray-matter": "^4.0.3",

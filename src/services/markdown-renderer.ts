@@ -1,5 +1,6 @@
 import type * as vscode from 'vscode'
 import type { ThemeService } from './theme-service'
+import { container } from '@mdit/plugin-container'
 import matter from 'gray-matter'
 import MarkdownIt from 'markdown-it'
 import { escapeHtml } from '../utils'
@@ -31,7 +32,138 @@ export class MarkdownRenderer {
       },
     })
 
+    this.setupContainerPlugins()
     this.setupCustomRules()
+  }
+
+  /**
+   * Set up container plugins for custom containers
+   */
+  private setupContainerPlugins(): void {
+    if (!this._markdownIt)
+      return
+
+    // 集成自定义容器支持
+    this._markdownIt.use(container, {
+      name: 'info',
+      marker: ':',
+      validate: (params: string) => params.trim().split(' ', 2)[0] === 'info',
+      openRender: () => {
+        return '<div class="custom-container info">\n'
+      },
+      closeRender: () => {
+        return '</div>\n'
+      },
+    })
+
+    this._markdownIt.use(container, {
+      name: 'warning',
+      marker: ':',
+      validate: (params: string) => params.trim().split(' ', 2)[0] === 'warning',
+      openRender: () => {
+        return '<div class="custom-container warning">\n'
+      },
+      closeRender: () => {
+        return '</div>\n'
+      },
+    })
+
+    this._markdownIt.use(container, {
+      name: 'danger',
+      marker: ':',
+      validate: (params: string) => params.trim().split(' ', 2)[0] === 'danger',
+      openRender: () => {
+        return '<div class="custom-container danger">\n'
+      },
+      closeRender: () => {
+        return '</div>\n'
+      },
+    })
+
+    this._markdownIt.use(container, {
+      name: 'tip',
+      marker: ':',
+      validate: (params: string) => params.trim().split(' ', 2)[0] === 'tip',
+      openRender: () => {
+        return '<div class="custom-container tip">\n'
+      },
+      closeRender: () => {
+        return '</div>\n'
+      },
+    })
+
+    // 集成details容器支持
+    this._markdownIt.use(container, {
+      name: 'details',
+      marker: ':',
+      validate: (params: string) => {
+        // @mdit/plugin-container 的验证函数
+        // 返回 true 表示接受这个容器
+        return params.trim().startsWith('details')
+      },
+      openRender: (tokens: any[], idx: number, _options: any, _env: any, _self: any) => {
+        const token = tokens[idx]
+        const info = token.info.trim()
+
+        // 默认值
+        let summary = '点击展开'
+        let attributes = ''
+        let isOpen = false
+
+        // 解析参数
+        if (info !== 'details') {
+          // 提取标题 [标题]
+          const titleMatch = info.match(/^details\s*\[([^\]]+)\]/)
+          if (titleMatch && titleMatch[1]) {
+            summary = titleMatch[1]
+          }
+
+          // 检查是否默认展开 {open}
+          if (info.includes('{open}')) {
+            isOpen = true
+          }
+
+          // 提取ID #id
+          const idMatch = info.match(/#([^\s{#.]+)/)
+          if (idMatch) {
+            attributes += ` id="${idMatch[1]}"`
+          }
+
+          // 提取类名 .class
+          const classMatches = info.match(/\.([^\s{#.]+)/g)
+          if (classMatches) {
+            const classes = classMatches.map((match: string) => match.substring(1)).join(' ')
+            attributes += ` class="${classes}"`
+          }
+
+          // 提取其他属性 {key="value"}
+          const attrMatches = info.match(/\{([^}]+)\}/g)
+          if (attrMatches) {
+            attrMatches.forEach((match: string) => {
+              const content = match.slice(1, -1) // 去掉 { 和 }
+              if (content !== 'open') { // 已经处理过 open
+                const parts = content.split('=')
+                if (parts.length === 2) {
+                  const key = parts[0].trim()
+                  const value = parts[1].trim().replace(/^["']|["']$/g, '')
+                  attributes += ` ${key}="${value}"`
+                }
+              }
+            })
+          }
+        }
+
+        return `<details${attributes}${isOpen ? ' open' : ''}>
+<summary>${summary}</summary>
+<div class="details-inner">
+`
+      },
+      closeRender: () => {
+        return `</div>
+</details>
+`
+      },
+    })
   }
 
   /**

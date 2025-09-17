@@ -1,7 +1,6 @@
 // Notion风格的文档结构导航菜单
 class NotionToc {
   constructor() {
-    console.log('NotionToc constructor called');
     this.headers = [];
     this.tocContainer = null;
     this.detailedMenu = null;
@@ -14,7 +13,6 @@ class NotionToc {
   }
 
   init() {
-    console.log('NotionToc init() called');
     try {
       this.createTocContainer();
       this.parseHeaders();
@@ -27,7 +25,6 @@ class NotionToc {
         this.handleScroll();
       }, 100);
       
-      console.log('NotionToc init() completed successfully');
     } catch (error) {
       console.error('Error in NotionToc init():', error);
     }
@@ -35,7 +32,6 @@ class NotionToc {
 
   // 创建TOC容器
   createTocContainer() {
-    console.log('Creating TOC container...');
     this.tocContainer = document.createElement('div');
     this.tocContainer.className = 'notion-toc-container';
     this.tocContainer.innerHTML = `
@@ -48,26 +44,21 @@ class NotionToc {
     `;
     
     document.body.appendChild(this.tocContainer);
-    console.log('TOC container appended to body');
     
     this.minimalView = this.tocContainer.querySelector('.notion-toc-minimal');
     this.detailedView = this.tocContainer.querySelector('.notion-toc-detailed');
     this.linesContainer = this.tocContainer.querySelector('.toc-lines');
     this.itemsContainer = this.tocContainer.querySelector('.toc-items');
     
-    console.log('TOC container created successfully');
   }
 
   // 解析文章标题结构
   parseHeaders() {
-    console.log('NotionToc parseHeaders() called');
     const content = document.getElementById('markdown-content');
-    console.log('Found markdown-content element:', content);
     if (!content) return;
 
     this.headers = [];
     const headers = content.querySelectorAll('h1, h2, h3');
-    console.log('Found headers:', headers.length);
     
     headers.forEach((header, index) => {
       const id = header.id || `header-${index}`;
@@ -84,7 +75,6 @@ class NotionToc {
       });
     });
     
-    console.log('Parsed headers:', this.headers.length);
   }
 
   // 渲染目录
@@ -357,11 +347,9 @@ class NotionToc {
 
 // 初始化Notion TOC
 function initializeNotionToc() {
-  console.log('Initializing NotionToc...');
   
   // 检查必要的DOM元素是否存在
   const content = document.getElementById('markdown-content');
-  console.log('Markdown content element:', content);
   
   if (!content) {
     console.warn('Markdown content not found, retrying in 500ms...');
@@ -371,7 +359,6 @@ function initializeNotionToc() {
   
   // 检查是否有标题元素
   const headers = content.querySelectorAll('h1, h2, h3');
-  console.log('Found headers:', headers.length);
   
   if (headers.length === 0) {
     console.warn('No headers found, retrying in 1000ms...');
@@ -379,9 +366,7 @@ function initializeNotionToc() {
     return;
   }
   
-  console.log('Creating NotionToc instance...');
   window.notionToc = new NotionToc();
-  console.log('NotionToc instance created:', window.notionToc);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
