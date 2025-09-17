@@ -8,7 +8,7 @@ html {
 
 body {
   margin: 0;
-  padding: 24px;
+  padding: 40px;
   line-height: var(--line-height, 1.6);
   font-family: var(--font-family, var(--vscode-font-family));
   background-color: var(--editor-background, var(--vscode-editor-background));
@@ -736,4 +736,169 @@ pre:hover .lang {
 .copy-button.failed {
   color: #f44336 !important;
   background: rgba(244, 67, 54, 0.1) !important;
+}
+
+/* Notion风格目录样式 */
+.notion-toc-container {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1000;
+  user-select: none;
+}
+
+.notion-toc-minimal {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px;
+}
+
+.toc-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  align-items: flex-end;
+}
+
+.toc-line {
+  cursor: pointer;
+  padding: 2px 0;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.toc-line:hover {
+  transform: scale(1.1);
+}
+
+.toc-line-bar {
+  background-color: rgba(254, 250, 240, 0.208);
+  height: 2px;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+  box-shadow: none;
+  border-radius: 2px;
+  margin-inline-start: 0px;
+}
+
+.toc-line-bar.active {
+  background-color: rgb(211, 211, 211);
+  box-shadow: rgb(211, 211, 211) 0px 0px 3px;
+}
+
+.toc-line:hover .toc-line-bar {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+/* 详细菜单样式 */
+.notion-toc-detailed {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  min-width: 200px;
+  max-width: 280px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.toc-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toc-item {
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--editor-foreground, var(--vscode-foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.toc-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.toc-item.active {
+  background-color: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.toc-item-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .notion-toc-container {
+    right: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .notion-toc-container {
+    display: none;
+  }
+}
+
+/* 暗色主题适配 */
+body[data-vscode-theme-kind='vscode-dark'] .toc-line-bar {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+body[data-vscode-theme-kind='vscode-dark'] .toc-line-bar.active {
+  background-color: rgba(255, 255, 255, 0.8);
+  box-shadow: rgba(255, 255, 255, 0.8) 0px 0px 3px;
+}
+
+body[data-vscode-theme-kind='vscode-dark'] .toc-line:hover .toc-line-bar {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* 亮色主题适配 */
+body[data-vscode-theme-kind='vscode-light'] .toc-line-bar {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+body[data-vscode-theme-kind='vscode-light'] .toc-line-bar.active {
+  background-color: rgba(0, 0, 0, 0.8);
+  box-shadow: rgba(0, 0, 0, 0.8) 0px 0px 3px;
+}
+
+body[data-vscode-theme-kind='vscode-light'] .toc-line:hover .toc-line-bar {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* 滚动条样式 */
+.notion-toc-detailed::-webkit-scrollbar {
+  width: 4px;
+}
+
+.notion-toc-detailed::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notion-toc-detailed::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background);
+  border-radius: 2px;
+}
+
+.notion-toc-detailed::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
 }

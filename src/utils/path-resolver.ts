@@ -25,7 +25,7 @@ export class PathResolver {
   ]
 
   // 非法字符正则表达式
-  private static readonly ILLEGAL_CHARS = /[<>:"|?*\u0000-\u001F]/
+  private static readonly ILLEGAL_CHARS = /[<>:"|?*]/
 
   /**
    * 验证和规范化文件路径，防止路径遍历攻击

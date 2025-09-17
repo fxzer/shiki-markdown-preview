@@ -180,7 +180,7 @@ export class ThemeManager {
    * @param callback 配置变化回调
    * @returns 可释放的资源
    */
-  static onThemeConfigChange(callback: (themeName: string) => void): vscode.Disposable {
+  static onThemeConfigChange(callback: (_themeName: string) => void): vscode.Disposable {
     return vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('shiki-markdown-preview.currentTheme')) {
         const newTheme = this.getCurrentTheme()

@@ -121,7 +121,6 @@ lib/
 build/
 
 # Compiled JavaScript files from TypeScript
-src/**/*.js
 src/**/*.js.map
 
 # Test results
