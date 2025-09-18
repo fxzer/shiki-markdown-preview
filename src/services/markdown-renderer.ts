@@ -5,8 +5,8 @@ import matter from 'gray-matter'
 import MarkdownIt from 'markdown-it'
 import { escapeHtml } from '../utils'
 import { ErrorHandler } from '../utils/error-handler'
+import { detectLanguages } from '../utils/language-detector'
 import { PathResolver } from '../utils/path-resolver'
-import { LanguageDetector } from './language-detector'
 
 export class MarkdownRenderer {
   private _markdownIt: MarkdownIt | undefined
@@ -420,16 +420,14 @@ export class MarkdownRenderer {
    */
   private async _preloadLanguagesForContent(content: string): Promise<void> {
     try {
-      // 检查是否包含代码块
-      if (!LanguageDetector.hasCodeBlocks(content)) {
+      // 获取检测到的语言
+      const languages = detectLanguages(content)
+
+      if (languages.length === 0) {
         return
       }
 
-      // 获取语言统计信息
-      const languageStats = LanguageDetector.getLanguageStats(content)
-      const codeBlockCount = LanguageDetector.getCodeBlockCount(content)
-
-      ErrorHandler.logInfo(`内容分析: ${codeBlockCount} 个代码块, ${languageStats.size} 种语言`, 'MarkdownRenderer')
+      ErrorHandler.logInfo(`内容分析: ${languages.length} 种语言`, 'MarkdownRenderer')
 
       // 预加载检测到的语言
       await this._themeService.preloadLanguagesFromContent(content)
@@ -437,32 +435,6 @@ export class MarkdownRenderer {
     catch {
       ErrorHandler.logWarning('语言预加载失败', 'MarkdownRenderer')
       // 不抛出错误，继续渲染
-    }
-  }
-
-  /**
-   * 获取内容分析信息（用于调试）
-   * @param content Markdown 内容
-   */
-  getContentAnalysis(content: string): {
-    hasCodeBlocks: boolean
-    codeBlockCount: number
-    languages: string[]
-    languageStats: Map<string, number>
-    loadingStats: { loaded: string[], total: number, unloaded: string[] }
-  } {
-    const hasCodeBlocks = LanguageDetector.hasCodeBlocks(content)
-    const codeBlockCount = LanguageDetector.getCodeBlockCount(content)
-    const languages = LanguageDetector.detectLanguages(content)
-    const languageStats = LanguageDetector.getLanguageStats(content)
-    const loadingStats = this._themeService.getLanguageLoadingStats()
-
-    return {
-      hasCodeBlocks,
-      codeBlockCount,
-      languages,
-      languageStats,
-      loadingStats,
     }
   }
 

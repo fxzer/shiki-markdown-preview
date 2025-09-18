@@ -1,6 +1,6 @@
 export * from './config-service'
 export * from './html-template-service'
-export * from './language-detector'
+export * from '../utils/language-detector'
 export * from './markdown-renderer'
 export * from './state-manager'
 export * from './theme-service'

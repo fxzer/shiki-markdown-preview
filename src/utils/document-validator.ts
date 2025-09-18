@@ -72,17 +72,6 @@ export class DocumentValidator {
   }
 
   /**
-   * 检查文档是否有效且可编辑
-   * @param document 文档
-   * @returns 是否有效且可编辑
-   */
-  static isDocumentEditable(document?: vscode.TextDocument): boolean {
-    if (!document)
-      return false
-    return !document.isClosed && !document.isUntitled
-  }
-
-  /**
    * 检查文档是否有未保存的更改
    * @param document 文档
    * @returns 是否有未保存的更改
@@ -91,69 +80,5 @@ export class DocumentValidator {
     if (!document)
       return false
     return document.isDirty
-  }
-
-  /**
-   * 获取文档的基本信息
-   * @param document 文档
-   * @returns 文档信息对象
-   */
-  static getDocumentInfo(document?: vscode.TextDocument): {
-    fileName: string
-    languageId: string
-    isMarkdown: boolean
-    isEditable: boolean
-    hasUnsavedChanges: boolean
-    lineCount: number
-    size: number
-  } | null {
-    if (!document)
-      return null
-
-    return {
-      fileName: document.fileName,
-      languageId: document.languageId,
-      isMarkdown: this.isMarkdownDocument(document),
-      isEditable: this.isDocumentEditable(document),
-      hasUnsavedChanges: this.hasUnsavedChanges(document),
-      lineCount: document.lineCount,
-      size: document.getText().length,
-    }
-  }
-
-  /**
-   * 等待文档保存（如果文档有未保存的更改）
-   * @param document 文档
-   * @param timeout 超时时间（毫秒）
-   * @returns Promise<boolean> 是否成功保存
-   */
-  static async waitForDocumentSave(
-    document: vscode.TextDocument,
-    timeout: number = 5000,
-  ): Promise<boolean> {
-    if (!this.hasUnsavedChanges(document)) {
-      return true
-    }
-
-    return new Promise((resolve) => {
-      const startTime = Date.now()
-
-      const checkSave = () => {
-        if (!this.hasUnsavedChanges(document)) {
-          resolve(true)
-          return
-        }
-
-        if (Date.now() - startTime > timeout) {
-          ErrorHandler.logWarning(`文档保存超时: ${document.fileName}`, 'DocumentValidator')
-          resolve(false)
-          return
-        }
-
-        setTimeout(checkSave, 100)
-      }
-
-      checkSave()
-    })
   }
 }

@@ -6,32 +6,9 @@ import { generateEnhancedColors } from '../color-hander'
 import { toCssVarsStr } from '../color-utils'
 import { escapeHtml } from '../utils'
 import { ErrorHandler } from '../utils/error-handler'
+import { detectLanguages, isSupportedLanguage } from '../utils/language-detector'
 import { ThemeUtils } from '../utils/theme-utils'
 import { ConfigService } from './config-service'
-import { LanguageDetector } from './language-detector'
-
-const SUPPORTED_LANGUAGES = [
-  'javascript',
-  'typescript',
-  'python',
-  'java',
-  'cpp',
-  'c',
-  'csharp',
-  'php',
-  'ruby',
-  'go',
-  'rust',
-  'swift',
-  'kotlin',
-  'html',
-  'css',
-  'scss',
-  'json',
-  'xml',
-  'yaml',
-  'markdown',
-]
 
 export class ThemeService {
   private _highlighter: Highlighter | undefined
@@ -488,7 +465,7 @@ export class ThemeService {
           ErrorHandler.logWarning(`无法直接加载语言 ${language}, 尝试替代方法`, 'ThemeService')
 
           // 如果直接加载失败，尝试从 shiki 内置语言中加载
-          if (SUPPORTED_LANGUAGES.includes(language as any)) {
+          if (isSupportedLanguage(language)) {
             await (this._highlighter as any).loadLanguage(language)
             this._loadedLanguages.add(language)
             ErrorHandler.logInfo(`从支持的语言列表加载语言: ${language}`, 'ThemeService')
@@ -646,7 +623,7 @@ export class ThemeService {
   async preloadLanguagesFromContent(content: string): Promise<void> {
     try {
       // 检测文档中使用的语言
-      const detectedLanguages = LanguageDetector.detectLanguages(content)
+      const detectedLanguages = detectLanguages(content)
 
       if (detectedLanguages.length === 0) {
         console.warn('No languages detected in content')
@@ -656,7 +633,7 @@ export class ThemeService {
       console.warn(`Detected languages: ${detectedLanguages.join(', ')}`)
 
       // 过滤出未加载的语言
-      const unloadedLanguages = detectedLanguages.filter(lang => !this._loadedLanguages.has(lang))
+      const unloadedLanguages = detectedLanguages.filter((lang: string) => !this._loadedLanguages.has(lang))
 
       if (unloadedLanguages.length === 0) {
         console.warn('All detected languages are already loaded')
@@ -672,21 +649,6 @@ export class ThemeService {
     }
     catch (error) {
       console.error('Failed to preload languages from content:', error)
-    }
-  }
-
-  /**
-   * 获取语言加载状态信息
-   */
-  getLanguageLoadingStats(): { loaded: string[], total: number, unloaded: string[] } {
-    const loaded = Array.from(this._loadedLanguages).sort()
-    const allSupported = SUPPORTED_LANGUAGES
-    const unloaded = allSupported.filter(lang => !this._loadedLanguages.has(lang))
-
-    return {
-      loaded,
-      total: allSupported.length,
-      unloaded,
     }
   }
 
