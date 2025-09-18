@@ -210,7 +210,6 @@ class NotionToc {
     }, 1000)
   }
 
-
   // 处理滚动事件
   handleScroll() {
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop

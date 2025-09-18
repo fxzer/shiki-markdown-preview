@@ -99,19 +99,41 @@ export function adjustContrastColor(colorInput: string | chroma.Color, options: 
 }
 
 /**
- * 核心主题颜色接口 - 只包含频率最高的变量
+ * 生成多层级颜色渐变
+ * 根据基础颜色和覆盖色生成指定数量的颜色层级
+ *
+ * @param baseColor - 基础颜色
+ * @param overlayColor - 覆盖颜色，用于混合生成渐变
+ * @param levels - 生成的层级数量
+ * @param baseAlpha - 基础透明度
+ * @param alphaStep - 透明度步长
+ * @param maxMixRatio - 最大混合比例
+ * @returns 生成的颜色数组，按层级从浅到深排序
  */
-export interface CoreThemeColors {
-  'editor.background': string
-  'editor.foreground': string
-  'activityBar.background': string
-  'button.background': string
-  'focusBorder': string
-  'list.activeSelectionBackground': string
-  'list.hoverBackground': string
-  'statusBar.background': string
-  'titleBar.activeBackground': string
-  'activityBarBadge.background': string
-  'textLink.foreground': string
-  'textLink.activeForeground': string
+export function generateColorLevels(
+  baseColor: string,
+  overlayColor: string,
+  levels: number,
+  baseAlpha: number,
+  alphaStep: number,
+  maxMixRatio: number = 0.4,
+): string[] {
+  try {
+    const base = chroma(baseColor)
+    const overlay = chroma(overlayColor)
+    const colors: string[] = []
+
+    for (let i = 0; i < levels; i++) {
+      const alpha = baseAlpha + (alphaStep * i)
+      const mixRatio = Math.min(alpha * 2, maxMixRatio)
+      const levelColor = chroma.mix(base, overlay, mixRatio, 'lab')
+      colors.push(levelColor.hex())
+    }
+
+    return colors
+  }
+  catch (error) {
+    console.error('生成颜色层级失败:', error)
+    return []
+  }
 }

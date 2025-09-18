@@ -2,7 +2,7 @@
   "publisher": "fxzer",
   "name": "shiki-markdown-preview",
   "displayName": "Shiki Markdown Preview",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "private": true,
   "description": "一个功能强大的 VS Code 扩展，提供基于 Shiki 的 Markdown 预览功能，支持 60+ 种语法高亮主题。",
   "license": "MIT",
@@ -13,7 +13,7 @@
   "categories": [
     "Other"
   ],
-  "main": "./out/extension.js",
+  "main": "./out/core/extension.js",
   "icon": "res/icon.png",
   "engines": {
     "vscode": "^1.100.0"

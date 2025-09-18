@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid'
 import * as vscode from 'vscode'
-import { escapeHtml } from '../utils'
+import { escapeHtml } from '../../utils'
 
 export interface HTMLTemplateOptions {
   webview: vscode.Webview

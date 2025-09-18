@@ -1,11 +1,21 @@
 import chroma from 'chroma-js'
-import { adjustContrastColor, getContrastRatio, isDarkColor, toCssVarsStr } from './color-utils'
+import { adjustContrastColor, generateColorLevels, getContrastRatio, isDarkColor, toCssVarsStr } from './color-handler'
 
+/**
+ * 透明度常量配置
+ * 用于生成不同层级的背景色透明度
+ */
 const ALPHA = {
+  /** 暗色主题的透明度级别 */
   DARK: [0.05, 0.08, 0.12, 0.16, 0.20],
+  /** 亮色主题的透明度级别 */
   LIGHT: [0.04, 0.07, 0.10, 0.13, 0.16],
 }
-// 定义回退颜色常量
+
+/**
+ * 暗色主题的回退颜色常量
+ * 当主题颜色解析失败时使用的默认颜色
+ */
 const DARK_FALLBACKS = {
   tableHeader: '#2d3748',
   codeBlock: '#1a202c',
@@ -14,6 +24,10 @@ const DARK_FALLBACKS = {
   blockQuoteBorder: 'rgba(255, 255, 255, 0.3)',
 }
 
+/**
+ * 亮色主题的回退颜色常量
+ * 当主题颜色解析失败时使用的默认颜色
+ */
 const LIGHT_FALLBACKS = {
   tableHeader: '#f7fafc',
   codeBlock: '#f7fafc',
@@ -22,6 +36,15 @@ const LIGHT_FALLBACKS = {
   blockQuoteBorder: 'rgba(0, 0, 0, 0.3)',
 }
 
+/**
+ * 生成引用块边框颜色
+ * 根据背景色自动计算合适的边框颜色，确保足够的对比度
+ *
+ * @param backgroundColor - 背景颜色
+ * @param borderColor - 可选的原始边框颜色，如果对比度足够则直接使用
+ * @param minContrast - 最小对比度要求，默认为 3.0
+ * @returns 生成的边框颜色字符串
+ */
 export function generateBlockquoteBorderColor(
   backgroundColor: string,
   borderColor?: string,
@@ -81,94 +104,173 @@ export function generateBlockquoteBorderColor(
   }
 }
 
+/**
+ * 生成引用块的多层级背景颜色
+ * 根据基础颜色生成不同层级的引用块背景色，用于嵌套引用
+ *
+ * @param baseColor - 基础背景颜色
+ * @param levels - 生成的层级数量，默认为 5
+ * @returns 生成的背景颜色数组，按层级从浅到深排序
+ */
 export function generateBlockquoteColors(baseColor: string, levels: number = 5): string[] {
   try {
-    const base = chroma(baseColor)
     const isDark = isDarkColor(baseColor)
-    const colors: string[] = []
-
     const baseAlpha = isDark ? 0.08 : 0.05
     const alphaStep = 0.03
+    const overlayColor = isDark ? '#ffffff' : '#4a5568'
 
-    let overlayColor: chroma.Color
-    if (isDark) {
-      overlayColor = chroma('#ffffff')
-    }
-    else {
-      overlayColor = chroma('#4a5568')
-    }
-
-    for (let i = 0; i < levels; i++) {
-      const alpha = baseAlpha + (alphaStep * i)
-      const mixRatio = Math.min(alpha * 2, 0.4)
-      const levelColor = chroma.mix(base, overlayColor, mixRatio, 'lab')
-      colors.push(levelColor.hex())
-    }
-
-    return colors
+    return generateColorLevels(
+      baseColor,
+      overlayColor,
+      levels,
+      baseAlpha,
+      alphaStep,
+      0.4,
+    )
   }
   catch (error) {
     console.error('生成blockquote颜色失败:', error)
     const isDark = isDarkColor(baseColor)
-    if (isDark) {
-      return DARK_FALLBACKS.blockQuoteBackgrounds
-    }
-    else {
-      return LIGHT_FALLBACKS.blockQuoteBackgrounds
-    }
+    return isDark
+      ? DARK_FALLBACKS.blockQuoteBackgrounds
+      : LIGHT_FALLBACKS.blockQuoteBackgrounds
   }
 }
 
+/**
+ * 高对比度背景配置接口
+ */
+interface ContrastBackgroundConfig {
+  lightnessOffset: number
+  alpha: number
+  step: number
+  maxIterations: number
+  minLightness?: number
+  maxLightness?: number
+}
+
+/**
+ * 生成高对比度背景颜色
+ * 根据前景色自动计算合适的背景色，确保足够的对比度
+ *
+ * @param foregroundColor - 前景颜色（文本颜色）
+ * @param existingBackground - 可选的现有背景色
+ * @param minContrast - 最小对比度要求
+ * @param lightBgConfig - 亮色背景配置对象
+ * @param darkBgConfig - 暗色背景配置对象
+ * @param fallbackColors - 回退颜色配置对象
+ * @param fallbackColors.light - 亮色主题的回退颜色
+ * @param fallbackColors.dark - 暗色主题的回退颜色
+ * @returns 生成的背景颜色字符串
+ */
+export function generateHighContrastBackground(
+  foregroundColor: string,
+  existingBackground: string | undefined,
+  minContrast: number,
+  lightBgConfig: ContrastBackgroundConfig,
+  darkBgConfig: ContrastBackgroundConfig,
+  fallbackColors: {
+    light: string
+    dark: string
+  },
+): string {
+  const isDarkForeground = isDarkColor(foregroundColor)
+
+  try {
+    const fgColor = chroma(foregroundColor)
+
+    // 检查现有背景色是否满足对比度要求
+    if (existingBackground) {
+      try {
+        const currentBg = chroma(existingBackground)
+        const contrast = getContrastRatio(currentBg, fgColor)
+        if (contrast >= minContrast) {
+          return existingBackground
+        }
+      }
+      catch {
+        console.warn('无效的背景色:', existingBackground)
+      }
+    }
+
+    const config = isDarkForeground ? lightBgConfig : darkBgConfig
+    const lightness = fgColor.get('hsl.l')
+
+    let bgLightness: number
+    if (isDarkForeground) {
+      // 对于暗色前景，需要更亮的背景
+      const minLightness = config.minLightness ?? 0.7
+      bgLightness = Math.max(lightness + config.lightnessOffset, minLightness)
+    }
+    else {
+      // 对于亮色前景，需要更暗的背景
+      const maxLightness = config.maxLightness ?? 0.3
+      bgLightness = Math.min(lightness - config.lightnessOffset, maxLightness)
+    }
+
+    // 迭代调整亮度直到满足对比度要求
+    for (let i = 0; i < config.maxIterations; i++) {
+      const testBg = fgColor.set('hsl.l', bgLightness).alpha(config.alpha)
+      const contrast = getContrastRatio(testBg, fgColor)
+      if (contrast >= minContrast) {
+        return testBg.css()
+      }
+
+      if (isDarkForeground) {
+        bgLightness = Math.min(bgLightness + config.step, 0.95)
+      }
+      else {
+        bgLightness = Math.max(bgLightness - config.step, 0.05)
+      }
+    }
+
+    // 如果迭代失败，返回回退颜色
+    return isDarkForeground ? fallbackColors.light : fallbackColors.dark
+  }
+  catch (error) {
+    console.error('生成高对比度背景色失败:', error)
+    return isDarkForeground ? fallbackColors.light : fallbackColors.dark
+  }
+}
+
+/**
+ * 生成文本选择背景颜色
+ * 根据前景色自动计算合适的文本选择背景色，确保足够的对比度
+ *
+ * @param foregroundColor - 前景颜色（文本颜色）
+ * @param selectionBackground - 可选的原始选择背景色，如果对比度足够则直接使用
+ * @param minContrast - 最小对比度要求，默认为 3.0
+ * @returns 生成的选择背景颜色字符串
+ */
 export function generateSelectionBackgroundColor(
   foregroundColor: string,
   selectionBackground?: string,
   minContrast: number = 3.0,
 ): string {
   try {
-    const fgColor = chroma(foregroundColor)
-    const isDarkForeground = isDarkColor(foregroundColor)
-
-    if (selectionBackground) {
-      try {
-        const currentSelection = chroma(selectionBackground)
-        const contrast = getContrastRatio(currentSelection, fgColor)
-        if (contrast >= minContrast) {
-          return selectionBackground
-        }
-      }
-      catch {
-        console.warn('无效的选择背景色:', selectionBackground)
-      }
-    }
-
-    if (isDarkForeground) {
-      const lightness = fgColor.get('hsl.l')
-      let bgLightness = Math.max(lightness + 0.4, 0.7)
-
-      for (let i = 0; i < 10; i++) {
-        const testBg = fgColor.set('hsl.l', bgLightness).alpha(0.3)
-        const contrast = getContrastRatio(testBg, fgColor)
-        if (contrast >= minContrast) {
-          return testBg.css()
-        }
-        bgLightness = Math.min(bgLightness + 0.05, 0.95)
-      }
-      return 'rgba(255, 255, 255, 0.3)'
-    }
-    else {
-      const lightness = fgColor.get('hsl.l')
-      let bgLightness = Math.min(lightness - 0.4, 0.3)
-
-      for (let i = 0; i < 10; i++) {
-        const testBg = fgColor.set('hsl.l', bgLightness).alpha(0.4)
-        const contrast = getContrastRatio(testBg, fgColor)
-        if (contrast >= minContrast) {
-          return testBg.css()
-        }
-        bgLightness = Math.max(bgLightness - 0.05, 0.05)
-      }
-      return 'rgba(0, 0, 0, 0.4)'
-    }
+    return generateHighContrastBackground(
+      foregroundColor,
+      selectionBackground,
+      minContrast,
+      {
+        lightnessOffset: 0.4,
+        maxLightness: 0.3,
+        alpha: 0.4,
+        step: 0.05,
+        maxIterations: 10,
+      },
+      {
+        lightnessOffset: 0.4,
+        minLightness: 0.7,
+        alpha: 0.4,
+        step: 0.05,
+        maxIterations: 10,
+      },
+      {
+        light: 'rgba(0, 0, 0, 0.25)',
+        dark: 'rgba(255, 255, 255, 0.25)',
+      },
+    )
   }
   catch (error) {
     console.error('生成选择背景色失败:', error)
@@ -178,6 +280,15 @@ export function generateSelectionBackgroundColor(
   }
 }
 
+/**
+ * 生成增强的主题颜色
+ * 根据主题颜色配置生成完整的 Markdown 预览样式颜色变量
+ * 包括表格、代码块、引用块、选择背景等所有 UI 元素的颜色
+ *
+ * @param themeColors - 主题颜色配置对象，包含各种 UI 元素的颜色定义
+ * @param isDark - 是否为暗色主题
+ * @returns 生成的 CSS 变量字符串，可直接用于样式注入
+ */
 export function generateEnhancedColors(
   themeColors: Record<string, string>,
   isDark: boolean,

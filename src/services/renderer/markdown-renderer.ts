@@ -1,12 +1,12 @@
 import type * as vscode from 'vscode'
-import type { ThemeService } from './theme-service'
+import type { ThemeService } from '../theme/theme-service'
 import { container } from '@mdit/plugin-container'
 import matter from 'gray-matter'
 import MarkdownIt from 'markdown-it'
-import { escapeHtml } from '../utils'
-import { ErrorHandler } from '../utils/error-handler'
-import { detectLanguages } from '../utils/language-detector'
-import { PathResolver } from '../utils/path-resolver'
+import { escapeHtml } from '../../utils/common'
+import { ErrorHandler } from '../../utils/error-handler'
+import { detectLanguages } from '../../utils/language-detector'
+import { PathResolver } from '../../utils/path-resolver'
 
 export class MarkdownRenderer {
   private _markdownIt: MarkdownIt | undefined

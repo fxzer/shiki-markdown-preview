@@ -1,14 +1,14 @@
 import * as vscode from 'vscode'
 
-import { ScrollSyncManager } from './scroll-sync-manager'
 import {
   HTMLTemplateService,
-  MarkdownRenderer,
   StateManager,
   ThemeService,
-} from './services'
-import { ErrorHandler } from './utils/error-handler'
-import { PathResolver } from './utils/path-resolver'
+} from '..'
+import { ErrorHandler } from '../../utils/error-handler'
+import { PathResolver } from '../../utils/path-resolver'
+import { ScrollSyncManager } from '../../utils/scroll-sync-manager'
+import { MarkdownRenderer } from './markdown-renderer'
 
 /**
  * Manages markdown preview webview panels
@@ -318,7 +318,7 @@ export class MarkdownPreviewPanel {
       const currentTheme = this._themeService.currentTheme
 
       // 检查是否需要重新渲染（内容或主题发生变化）
-      const shouldRerender = this._lastRenderedContent !== content 
+      const shouldRerender = this._lastRenderedContent !== content
         || this._lastRenderedDocumentVersion !== document.version
         || this._lastRenderedTheme !== currentTheme
 
@@ -338,7 +338,7 @@ export class MarkdownPreviewPanel {
       const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
       // 获取文档宽度配置
-      const { ConfigService } = await import('./services/config-service')
+      const { ConfigService } = await import('../config')
       const configService = new ConfigService()
       const documentWidth = configService.getDocumentWidth()
 
@@ -363,7 +363,7 @@ export class MarkdownPreviewPanel {
 
       // 保存状态
       this._stateManager.saveState(document, this._themeService.currentTheme)
-      
+
       // 更新渲染缓存状态
       this._lastRenderedContent = content
       this._lastRenderedDocumentVersion = document.version
@@ -387,7 +387,7 @@ export class MarkdownPreviewPanel {
     const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
     // 获取文档宽度配置
-    const { ConfigService } = await import('./services/config-service')
+    const { ConfigService } = await import('../config')
     const configService = new ConfigService()
     const documentWidth = configService.getDocumentWidth()
 
@@ -409,7 +409,7 @@ export class MarkdownPreviewPanel {
     const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
     // 获取文档宽度配置
-    const { ConfigService } = await import('./services/config-service')
+    const { ConfigService } = await import('../config')
     const configService = new ConfigService()
     const documentWidth = configService.getDocumentWidth()
 
@@ -460,7 +460,7 @@ export class MarkdownPreviewPanel {
 
     try {
       // 获取新的文档宽度
-      const { ConfigService } = await import('./services/config-service')
+      const { ConfigService } = await import('../config')
       const configService = new ConfigService()
       const documentWidth = configService.getDocumentWidth()
 

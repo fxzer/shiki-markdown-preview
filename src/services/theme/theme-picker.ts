@@ -1,10 +1,8 @@
 import { debounce } from 'throttle-debounce'
 import * as vscode from 'vscode'
-import { MarkdownPreviewPanel } from './markdown-preview'
-import { findThemeIndex } from './utils'
-import { DocumentValidator } from './utils/document-validator'
-import { ErrorHandler } from './utils/error-handler'
-import { ThemeManager } from './utils/theme-manager'
+import { DocumentValidator } from '../../utils/document-validator'
+import { ErrorHandler } from '../../utils/error-handler'
+import { MarkdownPreviewPanel } from '../renderer/markdown-preview'
 
 /**
  * 主题快速选择项接口
@@ -12,6 +10,31 @@ import { ThemeManager } from './utils/theme-manager'
 interface ThemeQuickPickItem extends vscode.QuickPickItem {
   theme: string
 }
+
+/*
+* 查找当前主题的辅助函数
+*/
+export function findThemeIndex(themes: any[], themeName: string): number {
+  // 首先尝试精确匹配
+  let index = themes.findIndex(t => t.theme === themeName)
+
+  if (index === -1) {
+    // 如果精确匹配失败，尝试模糊匹配
+    const fuzzyMatch = themes.find(t =>
+      t.theme && (
+        t.theme.includes(themeName)
+        || themeName.includes(t.theme)
+        || t.label.toLowerCase().includes(themeName.toLowerCase())
+      ),
+    )
+
+    if (fuzzyMatch) {
+      index = themes.findIndex(t => t.theme === fuzzyMatch.theme)
+    }
+  }
+
+  return index
+};
 
 /**
  * 显示主题选择器
@@ -160,7 +183,7 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
       await ErrorHandler.safeExecute(
         async () => {
           // 使用配置服务更新主题
-          await ThemeManager.updateTheme(selectedItem.theme, vscode.ConfigurationTarget.Global)
+          await themeService.updateTheme(selectedItem.theme, vscode.ConfigurationTarget.Global)
 
           // 注意：不在这里直接调用 updateContent，让配置变更监听器处理
           // 这样可以避免重复更新导致的闪烁

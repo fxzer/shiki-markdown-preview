@@ -1,14 +1,13 @@
 import type { Highlighter } from 'shiki'
-import type { GroupedThemes, ThemeCache, ThemeMetadata } from '../types/theme'
+import type { GroupedThemes, ThemeCache, ThemeMetadata } from '../../types/theme'
 import { bundledThemes, createHighlighter } from 'shiki'
 import * as vscode from 'vscode'
-import { generateEnhancedColors } from '../color-hander'
-import { toCssVarsStr } from '../color-utils'
-import { escapeHtml } from '../utils'
-import { ErrorHandler } from '../utils/error-handler'
-import { detectLanguages, isSupportedLanguage } from '../utils/language-detector'
-import { ThemeUtils } from '../utils/theme-utils'
-import { ConfigService } from './config-service'
+import { toCssVarsStr } from '../../utils/color-handler'
+import { escapeHtml } from '../../utils/common'
+import { ErrorHandler } from '../../utils/error-handler'
+import { detectLanguages, isSupportedLanguage } from '../../utils/language-detector'
+import { generateEnhancedColors } from '../../utils/theme-enhance'
+import { ConfigService } from '../config'
 
 export class ThemeService {
   private _highlighter: Highlighter | undefined
@@ -65,6 +64,27 @@ export class ThemeService {
    */
   isValidThemeSync(theme: string): boolean {
     return this._themeCache.loaded && this._themeCache.metadata.has(theme)
+  }
+
+  /**
+   * 根据主题类型进行分组
+   */
+  groupThemesByType(themes: ThemeMetadata[]): GroupedThemes {
+    const light = themes.filter(theme => theme.type === 'light') // 筛选亮色主题
+    const dark = themes.filter(theme => theme.type === 'dark') // 筛选暗色主题
+
+    return {
+      light: this.sortThemes(light), // 排序亮色主题
+      dark: this.sortThemes(dark), // 排序暗色主题
+      all: this.sortThemes([...light, ...dark]), // 排序所有主题
+    }
+  }
+
+  /**
+   * 按显示名称排序主题
+   */
+  sortThemes(themes: ThemeMetadata[]): ThemeMetadata[] {
+    return themes.sort((a, b) => a.displayName.localeCompare(b.displayName))
   }
 
   /**
@@ -257,6 +277,23 @@ export class ThemeService {
       ErrorHandler.logError('主题配置更新失败', error, 'ThemeService')
       return false
     }
+  }
+
+  /**
+   * 更新主题配置
+   * @param themeName 主题名称
+   * @param target 配置目标
+   * @returns Promise<boolean> 是否成功更新
+   */
+  async updateTheme(themeName: string, target: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Global): Promise<boolean> {
+    return ErrorHandler.safeExecute(
+      async () => {
+        await this._configService.updateConfig('currentTheme', themeName, target)
+        return true
+      },
+      `主题配置更新失败: ${themeName}`,
+      'ThemeService',
+    ) !== null
   }
 
   /**
@@ -511,7 +548,7 @@ export class ThemeService {
           const themeModule = await themeImporter()
           const themeData = themeModule.default
 
-          if (themeData && themeData.name && ThemeUtils.isValidThemeName(themeData.name)) {
+          if (themeData && themeData.name) {
             const metadata: ThemeMetadata = {
               name: themeData.name,
               displayName: themeData.displayName || themeData.name,
@@ -536,7 +573,7 @@ export class ThemeService {
         .map(result => result.value!)
 
       // 分组和排序
-      this._themeCache.grouped = ThemeUtils.groupThemesByType(validThemes)
+      this._themeCache.grouped = this.groupThemesByType(validThemes)
       this._themeCache.loaded = true
 
       const duration = Date.now() - startTime

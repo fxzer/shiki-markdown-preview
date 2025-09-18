@@ -12,7 +12,7 @@
     "checkJs": false,
     "strict": true,
     "outDir": "out",
-    "sourceMap": true,
+    "sourceMap": false,
     "esModuleInterop": true,
     "skipLibCheck": true
   },

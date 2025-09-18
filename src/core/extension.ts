@@ -1,12 +1,14 @@
 import * as vscode from 'vscode'
-import { MarkdownPreviewPanel } from './markdown-preview'
-import { showThemePicker } from './theme-picker'
-import { DocumentValidator } from './utils/document-validator'
-import { ErrorHandler } from './utils/error-handler'
-import { ThemeManager } from './utils/theme-manager'
-import { MarkdownPreviewSerializer } from './webview-serializer'
+import { ConfigService } from '../services'
+import { MarkdownPreviewSerializer } from '../services/renderer'
+import { MarkdownPreviewPanel } from '../services/renderer/markdown-preview'
+import { showThemePicker } from '../services/theme'
+import { DocumentValidator } from '../utils/document-validator'
+import { ErrorHandler } from '../utils/error-handler'
 
 export function activate(context: vscode.ExtensionContext) {
+  const configService = new ConfigService()
+
   // 注册配置变更监听器，用于实时主题更新
   // 注册 markdown 预览命令 - 侧边预览 (ViewColumn.Two)
   context.subscriptions.push(
@@ -44,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (MarkdownPreviewPanel.currentPanel) {
         await ErrorHandler.safeExecute(
-          () => showThemePicker(MarkdownPreviewPanel.currentPanel!, ThemeManager.getCurrentTheme()),
+          () => showThemePicker(MarkdownPreviewPanel.currentPanel!, configService.getCurrentTheme()),
           '主题选择器打开失败',
           'Extension',
         )
@@ -89,7 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (event.affectsConfiguration('shikiMarkdownPreview.currentTheme')) {
         if (MarkdownPreviewPanel.currentPanel) {
           // 使用配置服务获取新的主题设置
-          const newTheme = ThemeManager.getCurrentTheme()
+          const newTheme = configService.getCurrentTheme()
           const currentTheme = MarkdownPreviewPanel.currentPanel.themeService.currentTheme
 
           // 如果主题没有实际变化，跳过更新
