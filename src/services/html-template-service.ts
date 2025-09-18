@@ -1,5 +1,6 @@
+import { nanoid } from 'nanoid'
 import * as vscode from 'vscode'
-import { escapeHtml, getNonce } from '../utils'
+import { escapeHtml } from '../utils'
 
 export interface HTMLTemplateOptions {
   webview: vscode.Webview
@@ -23,7 +24,7 @@ export class HTMLTemplateService {
       content,
       themeCSSVariables = '',
       frontMatterData = {},
-      nonce = getNonce(),
+      nonce = nanoid(),
       markdownThemeType = 'dark',
       documentWidth = '800px',
     } = options
