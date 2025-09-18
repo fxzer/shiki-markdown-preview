@@ -34,6 +34,8 @@ export class MarkdownPreviewPanel {
   // 状态
   private _currentDocument: vscode.TextDocument | undefined
   private _isInitialized: boolean = false
+  private _lastRenderedContent: string | undefined
+  private _lastRenderedDocumentVersion: number | undefined
 
   public static createOrShowSlide(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
     MarkdownPreviewPanel._createOrShow(extensionUri, vscode.ViewColumn.Two, document)
@@ -111,11 +113,15 @@ export class MarkdownPreviewPanel {
     this._panel.onDidChangeViewState(
       () => {
         if (this._panel.visible && this._currentDocument) {
-          ErrorHandler.safeExecute(
-            () => this.updateContent(this._currentDocument!),
-            '视图状态变化时内容更新失败',
-            'MarkdownPreviewPanel',
-          )
+          // 只有在文档版本发生变化时才重新渲染，避免不必要的闪烁
+          const currentVersion = this._currentDocument.version
+          if (this._lastRenderedDocumentVersion !== currentVersion) {
+            ErrorHandler.safeExecute(
+              () => this.updateContent(this._currentDocument!),
+              '视图状态变化时内容更新失败',
+              'MarkdownPreviewPanel',
+            )
+          }
         }
       },
       null,
@@ -345,6 +351,10 @@ export class MarkdownPreviewPanel {
 
       // 保存状态
       this._stateManager.saveState(document, this._themeService.currentTheme)
+      
+      // 更新渲染缓存状态
+      this._lastRenderedContent = content
+      this._lastRenderedDocumentVersion = document.version
     }
     catch (error) {
       ErrorHandler.logError('内容更新失败', error, 'MarkdownPreviewPanel')

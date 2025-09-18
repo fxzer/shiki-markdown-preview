@@ -70,12 +70,15 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (DocumentValidator.isMarkdownEditor(editor) && MarkdownPreviewPanel.currentPanel) {
-        // 在切换 markdown 文件时自动更新预览
-        ErrorHandler.safeExecute(
-          () => MarkdownPreviewPanel.currentPanel!.updateContent(editor!.document),
-          '活动编辑器内容更新失败',
-          'Extension',
-        )
+        // 只有在切换到不同的 markdown 文件时才更新预览
+        const currentDocument = MarkdownPreviewPanel.currentPanel.currentDocument
+        if (!currentDocument || editor!.document !== currentDocument) {
+          ErrorHandler.safeExecute(
+            () => MarkdownPreviewPanel.currentPanel!.updateContent(editor!.document),
+            '活动编辑器内容更新失败',
+            'Extension',
+          )
+        }
       }
     }),
   )
