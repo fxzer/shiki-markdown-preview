@@ -1,3 +1,4 @@
+import { debounce } from 'throttle-debounce'
 import * as vscode from 'vscode'
 import { MarkdownPreviewPanel } from './markdown-preview'
 import { findThemeIndex } from './utils'
@@ -92,8 +93,54 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
 
   let isPreviewMode = true
   const originalTheme = currentThemeValue
-  let debounceTimer: NodeJS.Timeout | undefined
-  const DEBOUNCE_DELAY = 300
+
+  // 使用 throttle-debounce 库创建防抖函数
+  const debouncedPreviewUpdate = debounce(300, async (selectedTheme: string) => {
+    await ErrorHandler.safeExecute(
+      async () => {
+        // 确保预览窗口已打开
+        const activeEditor = DocumentValidator.getActiveMarkdownEditor()
+        // 如果有预览窗口，实时预览主题，但不保存到配置
+        if (MarkdownPreviewPanel.currentPanel) {
+          // 实时预览主题，但不保存到配置
+          const themeService = panel.themeService
+          if (await themeService.updateThemeForPreview(selectedTheme)) {
+            const currentDocument = panel.currentDocument
+            if (currentDocument) {
+              await panel.updateContent(currentDocument)
+            }
+          }
+        }
+        else if (activeEditor) {
+          // 如果没有预览窗口，先打开它
+          const workspaceFolder = vscode.workspace.workspaceFolders?.[0]
+          if (workspaceFolder) {
+            const extensionUri = workspaceFolder.uri
+            MarkdownPreviewPanel.createOrShowSlide(extensionUri, activeEditor.document)
+          }
+          // 等待预览窗口创建完成
+          await new Promise(resolve => setTimeout(resolve, 100))
+
+          // 实时预览主题，但不保存到配置
+          const currentPanel = MarkdownPreviewPanel.currentPanel
+          if (currentPanel) {
+            const themeService = (currentPanel as MarkdownPreviewPanel).themeService
+            if (await themeService.updateThemeForPreview(selectedTheme)) {
+              const currentDocument = (currentPanel as MarkdownPreviewPanel).currentDocument
+              if (currentDocument) {
+                await (currentPanel as MarkdownPreviewPanel).updateContent(currentDocument)
+              }
+            }
+          }
+        }
+        else {
+          ErrorHandler.showWarning('请先打开一个 Markdown 文件')
+        }
+      },
+      '主题预览更新失败',
+      'ThemePicker',
+    )
+  })
 
   // 监听活动项变化（键盘导航时触发）
   quickPick.onDidChangeActive(async (items) => {
@@ -101,59 +148,8 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
       const selectedTheme = items[0].theme
       ErrorHandler.logInfo(`预览主题: ${selectedTheme}`, 'ThemePicker')
 
-      // 清除之前的防抖计时器
-      if (debounceTimer) {
-        clearTimeout(debounceTimer)
-      }
-
-      // 设置防抖计时器
-      debounceTimer = setTimeout(async () => {
-        await ErrorHandler.safeExecute(
-          async () => {
-            // 确保预览窗口已打开
-            const activeEditor = DocumentValidator.getActiveMarkdownEditor()
-            // 如果有预览窗口，实时预览主题，但不保存到配置
-            if (MarkdownPreviewPanel.currentPanel) {
-              // 实时预览主题，但不保存到配置
-              const themeService = panel.themeService
-              if (await themeService.updateThemeForPreview(selectedTheme)) {
-                const currentDocument = panel.currentDocument
-                if (currentDocument) {
-                  await panel.updateContent(currentDocument)
-                }
-              }
-            }
-            else if (activeEditor) {
-              // 如果没有预览窗口，先打开它
-              const workspaceFolder = vscode.workspace.workspaceFolders?.[0]
-              if (workspaceFolder) {
-                const extensionUri = workspaceFolder.uri
-                MarkdownPreviewPanel.createOrShowSlide(extensionUri, activeEditor.document)
-              }
-              // 等待预览窗口创建完成
-              await new Promise(resolve => setTimeout(resolve, 100))
-
-              // 实时预览主题，但不保存到配置
-              const currentPanel = MarkdownPreviewPanel.currentPanel
-              if (currentPanel) {
-                const themeService = (currentPanel as MarkdownPreviewPanel).themeService
-                if (await themeService.updateThemeForPreview(selectedTheme)) {
-                  const currentDocument = (currentPanel as MarkdownPreviewPanel).currentDocument
-                  if (currentDocument) {
-                    await (currentPanel as MarkdownPreviewPanel).updateContent(currentDocument)
-                  }
-                }
-              }
-            }
-            else {
-              ErrorHandler.showWarning('请先打开一个 Markdown 文件')
-            }
-          },
-          '主题预览更新失败',
-          'ThemePicker',
-        )
-        debounceTimer = undefined
-      }, DEBOUNCE_DELAY)
+      // 使用防抖函数
+      debouncedPreviewUpdate(selectedTheme)
     }
   })
 
@@ -185,11 +181,8 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
 
   // 监听隐藏事件（ESC 或点击外部）
   quickPick.onDidHide(async () => {
-    // 清理防抖计时器
-    if (debounceTimer) {
-      clearTimeout(debounceTimer)
-      debounceTimer = undefined
-    }
+    // 取消防抖函数（throttle-debounce 库会自动处理）
+    debouncedPreviewUpdate.cancel()
 
     if (isPreviewMode) {
       // 如果是取消操作，恢复原始主题

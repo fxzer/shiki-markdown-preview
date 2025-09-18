@@ -1,3 +1,5 @@
+import type { debounce as DebounceFunction } from 'throttle-debounce'
+import { debounce } from 'throttle-debounce'
 import * as vscode from 'vscode'
 
 /**
@@ -8,13 +10,16 @@ export class ScrollSyncManager {
   private _currentDocument: vscode.TextDocument | undefined
   private _scrollSyncDisposables: vscode.Disposable[] = []
   private _scrollSource: 'editor' | 'preview' | 'none' = 'none'
-  private _scrollTimeout: NodeJS.Timeout | undefined
   private _panel: vscode.WebviewPanel | undefined
   private _lastVisibleRange: vscode.Range | undefined
   private _scrollCheckInterval: NodeJS.Timeout | undefined
+  private _resetScrollSourceDebounced: DebounceFunction<() => void>
 
   constructor() {
-    // 初始化时不设置任何监听器，等待设置面板和文档
+    // 使用 throttle-debounce 库创建防抖函数来重置滚动源
+    this._resetScrollSourceDebounced = debounce(100, () => {
+      this._scrollSource = 'none'
+    })
   }
 
   /**
@@ -169,13 +174,8 @@ export class ScrollSyncManager {
       this._scrollSource = 'preview'
       targetEditor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport)
 
-      // 延迟重置滚动源，避免循环滚动
-      if (this._scrollTimeout) {
-        clearTimeout(this._scrollTimeout)
-      }
-      this._scrollTimeout = setTimeout(() => {
-        this._scrollSource = 'none'
-      }, 100) // 增加延迟时间，确保滚动操作完成
+      // 使用防抖函数重置滚动源，避免循环滚动
+      this._resetScrollSourceDebounced()
     }
     catch (error) {
       console.error('Error syncing preview scroll to editor:', error)
@@ -212,13 +212,8 @@ export class ScrollSyncManager {
       source: 'editor',
     })
 
-    // 延迟重置滚动源，避免死循环
-    if (this._scrollTimeout) {
-      clearTimeout(this._scrollTimeout)
-    }
-    this._scrollTimeout = setTimeout(() => {
-      this._scrollSource = 'none'
-    }, 100) // 与预览端保持一致
+    // 使用防抖函数重置滚动源，避免死循环
+    this._resetScrollSourceDebounced()
   }
 
   /**
@@ -245,11 +240,8 @@ export class ScrollSyncManager {
     this._scrollSyncDisposables.forEach(disposable => disposable.dispose())
     this._scrollSyncDisposables = []
 
-    // 清理滚动超时
-    if (this._scrollTimeout) {
-      clearTimeout(this._scrollTimeout)
-      this._scrollTimeout = undefined
-    }
+    // 取消防抖函数
+    this._resetScrollSourceDebounced.cancel()
 
     // 清理定时器
     if (this._scrollCheckInterval) {

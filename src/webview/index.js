@@ -6,8 +6,10 @@ class NotionToc {
     this.detailedMenu = null
     this.isHovering = false
     this.currentActiveIndex = -1
-    this.scrollThrottleTimer = null
     this.isScrollingToTarget = false
+
+    // 使用 throttle-debounce 库创建节流函数
+    this.throttledScrollHandler = window.throttleDebounce.throttle(100, this.handleScroll.bind(this))
 
     this.init()
   }
@@ -163,7 +165,7 @@ class NotionToc {
     })
 
     // 滚动事件（节流）
-    window.addEventListener('scroll', this.throttledScrollHandler.bind(this))
+    window.addEventListener('scroll', this.throttledScrollHandler)
 
     // 窗口大小改变事件
     window.addEventListener('resize', () => {
@@ -208,16 +210,6 @@ class NotionToc {
     }, 1000)
   }
 
-  // 节流的滚动处理
-  throttledScrollHandler() {
-    if (this.scrollThrottleTimer || this.isScrollingToTarget)
-      return
-
-    this.scrollThrottleTimer = setTimeout(() => {
-      this.handleScroll()
-      this.scrollThrottleTimer = null
-    }, 100)
-  }
 
   // 处理滚动事件
   handleScroll() {
@@ -368,8 +360,9 @@ class NotionToc {
     if (this.tocContainer) {
       this.tocContainer.remove()
     }
-    if (this.scrollThrottleTimer) {
-      clearTimeout(this.scrollThrottleTimer)
+    // 取消防抖函数
+    if (this.throttledScrollHandler) {
+      this.throttledScrollHandler.cancel()
     }
   }
 }
