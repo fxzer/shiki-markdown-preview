@@ -90,6 +90,13 @@ export function activate(context: vscode.ExtensionContext) {
         if (MarkdownPreviewPanel.currentPanel) {
           // 使用配置服务获取新的主题设置
           const newTheme = ThemeManager.getCurrentTheme()
+          const currentTheme = MarkdownPreviewPanel.currentPanel.themeService.currentTheme
+
+          // 如果主题没有实际变化，跳过更新
+          if (newTheme === currentTheme) {
+            ErrorHandler.logInfo(`主题未变化，跳过更新: ${newTheme}`, 'Extension')
+            return
+          }
 
           // 实时更新预览主题
           const themeService = MarkdownPreviewPanel.currentPanel.themeService

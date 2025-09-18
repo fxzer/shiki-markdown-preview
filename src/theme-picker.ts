@@ -162,14 +162,8 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
           // 使用配置服务更新主题
           await ThemeManager.updateTheme(selectedItem.theme, vscode.ConfigurationTarget.Global)
 
-          // 使用主题服务更新主题
-          const themeService = panel.themeService
-          if (await themeService.changeTheme(selectedItem.theme)) {
-            const currentDocument = panel.currentDocument
-            if (currentDocument) {
-              await panel.updateContent(currentDocument)
-            }
-          }
+          // 注意：不在这里直接调用 updateContent，让配置变更监听器处理
+          // 这样可以避免重复更新导致的闪烁
         },
         '主题切换失败',
         'ThemePicker',

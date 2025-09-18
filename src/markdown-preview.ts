@@ -36,6 +36,7 @@ export class MarkdownPreviewPanel {
   private _isInitialized: boolean = false
   private _lastRenderedContent: string | undefined
   private _lastRenderedDocumentVersion: number | undefined
+  private _lastRenderedTheme: string | undefined
 
   public static createOrShowSlide(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
     MarkdownPreviewPanel._createOrShow(extensionUri, vscode.ViewColumn.Two, document)
@@ -314,6 +315,17 @@ export class MarkdownPreviewPanel {
 
     try {
       const content = document.getText()
+      const currentTheme = this._themeService.currentTheme
+
+      // 检查是否需要重新渲染（内容或主题发生变化）
+      const shouldRerender = this._lastRenderedContent !== content 
+        || this._lastRenderedDocumentVersion !== document.version
+        || this._lastRenderedTheme !== currentTheme
+
+      if (!shouldRerender) {
+        ErrorHandler.logInfo('内容未变化，跳过重新渲染', 'MarkdownPreviewPanel')
+        return
+      }
 
       // 获取 front matter 数据
       const frontMatterData = this._markdownRenderer.getFrontMatterData(content)
@@ -355,6 +367,7 @@ export class MarkdownPreviewPanel {
       // 更新渲染缓存状态
       this._lastRenderedContent = content
       this._lastRenderedDocumentVersion = document.version
+      this._lastRenderedTheme = currentTheme
     }
     catch (error) {
       ErrorHandler.logError('内容更新失败', error, 'MarkdownPreviewPanel')
