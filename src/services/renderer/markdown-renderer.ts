@@ -3,6 +3,7 @@ import type { ThemeService } from '../theme/theme-service'
 import { container } from '@mdit/plugin-container'
 import matter from 'gray-matter'
 import MarkdownIt from 'markdown-it'
+import lazy_loading from 'markdown-it-image-lazy-loading'
 import { escapeHtml } from '../../utils/common'
 import { ErrorHandler } from '../../utils/error-handler'
 import { detectLanguages } from '../../utils/language-detector'
@@ -31,6 +32,9 @@ export class MarkdownRenderer {
         return this.highlightCode(code, lang)
       },
     })
+
+    // 集成图片懒加载插件
+    this._markdownIt.use(lazy_loading)
 
     this.setupContainerPlugins()
     this.setupCustomRules()
@@ -172,23 +176,6 @@ export class MarkdownRenderer {
   private setupCustomRules(): void {
     if (!this._markdownIt)
       return
-
-    this._markdownIt.renderer.rules.image = (tokens, idx, options, env, renderer) => {
-      const token = tokens[idx]
-      const srcIndex = token.attrIndex('src')
-
-      if (srcIndex >= 0 && token.attrs && token.attrs[srcIndex]) {
-        const href = token.attrs[srcIndex][1]
-        if (!href.startsWith('http') && !href.startsWith('data:')) {
-          const resolvedUri = this._currentDocument ? PathResolver.resolveRelativePath(this._currentDocument, href) : null
-          if (resolvedUri) {
-            token.attrs[srcIndex][1] = resolvedUri
-          }
-        }
-      }
-
-      return renderer.renderToken(tokens, idx, options)
-    }
 
     this._markdownIt.renderer.rules.link_open = (tokens, idx, options, env, renderer) => {
       const token = tokens[idx]
