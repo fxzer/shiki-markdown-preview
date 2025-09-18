@@ -39,7 +39,6 @@ export class HTMLTemplateService {
                 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}' https://unpkg.com; connect-src https:;">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <link href="${webviewCssUri}" rel="stylesheet">
-                <script nonce="${nonce}" src="https://unpkg.com/throttle-debounce@5.0.2/dist/index.umd.js"></script>
                 <style>
                     :root {
                         ${themeCSSVariables}

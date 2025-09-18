@@ -1,5 +1,38 @@
+// 判断是否为相对路径的 Markdown 文件
+function isRelativeMarkdownFile(href) {
+  const isMarkdownFile = href.toLowerCase().endsWith('.md')
+
+  const isLocalFile = href.startsWith('/') || href.startsWith('./') || href.startsWith('../')
+  if (isMarkdownFile && isLocalFile) {
+    return true
+  }
+
+  return false
+}
+
 // Notion风格的文档结构导航菜单
 class NotionToc {
+  // 自定义节流函数
+  throttle(delay, func) {
+    let timeoutId
+    let lastExecTime = 0
+    return function (...args) {
+      const currentTime = Date.now()
+
+      if (currentTime - lastExecTime > delay) {
+        func.apply(this, args)
+        lastExecTime = currentTime
+      }
+      else {
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => {
+          func.apply(this, args)
+          lastExecTime = Date.now()
+        }, delay - (currentTime - lastExecTime))
+      }
+    }
+  }
+
   constructor() {
     this.headers = []
     this.tocContainer = null
@@ -8,8 +41,8 @@ class NotionToc {
     this.currentActiveIndex = -1
     this.isScrollingToTarget = false
 
-    // 使用 throttle-debounce 库创建节流函数
-    this.throttledScrollHandler = window.throttleDebounce.throttle(100, this.handleScroll.bind(this))
+    // 使用自定义节流函数
+    this.throttledScrollHandler = this.throttle(100, this.handleScroll.bind(this))
 
     this.init()
   }
@@ -212,6 +245,11 @@ class NotionToc {
 
   // 处理滚动事件
   handleScroll() {
+    // 确保初始化完成后再处理滚动事件
+    if (!this.linesContainer || !this.itemsContainer || !this.headers.length) {
+      return
+    }
+
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop
     const viewportHeight = window.innerHeight
     const documentHeight = document.documentElement.scrollHeight
@@ -284,10 +322,12 @@ class NotionToc {
     this.currentActiveIndex = index
 
     // 更新简约视图
-    const lines = this.linesContainer.querySelectorAll('.toc-line-bar')
-    lines.forEach((line, i) => {
-      line.classList.toggle('active', i === index)
-    })
+    if (this.linesContainer) {
+      const lines = this.linesContainer.querySelectorAll('.toc-line-bar')
+      lines.forEach((line, i) => {
+        line.classList.toggle('active', i === index)
+      })
+    }
 
     // 更新详细视图
     this.syncDetailedViewActiveState()
@@ -295,10 +335,12 @@ class NotionToc {
 
   // 同步详细视图的活跃状态
   syncDetailedViewActiveState() {
-    const items = this.itemsContainer.querySelectorAll('.toc-item')
-    items.forEach((item, i) => {
-      item.classList.toggle('active', i === this.currentActiveIndex)
-    })
+    if (this.itemsContainer) {
+      const items = this.itemsContainer.querySelectorAll('.toc-item')
+      items.forEach((item, i) => {
+        item.classList.toggle('active', i === this.currentActiveIndex)
+      })
+    }
   }
 
   // 更新标题位置
@@ -393,6 +435,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(initializeNotionToc, 100)
   // 确保在页面加载完成后应用语法高亮
   setTimeout(applySyntaxHighlighting, 200)
+  // 初始化链接点击处理
+  setTimeout(initializeLinkHandling, 300)
 })
 
 // 页面加载完成后也调用一次，确保语法高亮被应用
@@ -576,6 +620,8 @@ window.addEventListener('message', (event) => {
       if (markdownContent) {
         markdownContent.innerHTML = message.content
         applySyntaxHighlighting()
+        // 重新初始化链接处理
+        setTimeout(initializeLinkHandling, 100)
       }
       break
     }
@@ -586,3 +632,78 @@ window.addEventListener('message', (event) => {
     }
   }
 })
+
+// 初始化链接点击处理
+function initializeLinkHandling() {
+  const markdownContent = document.getElementById('markdown-content')
+  if (!markdownContent) {
+    console.warn('Markdown content not found for link handling, retrying in 500ms...')
+    setTimeout(initializeLinkHandling, 500)
+    return
+  }
+
+  // 为所有链接添加点击事件监听器
+  const links = markdownContent.querySelectorAll('a[href]')
+  console.warn(`Found ${links.length} links to process`)
+
+  links.forEach((link, index) => {
+    const href = link.getAttribute('href')
+    if (!href)
+      return
+
+    console.warn(`Processing link ${index}: ${href}`)
+
+    // 只有相对路径的 .md 文件才通过扩展处理，其他所有链接都保持默认行为
+    if (isRelativeMarkdownFile(href)) {
+      console.warn(`Setting up relative file link: ${href}`)
+
+      link.addEventListener('click', (event) => {
+        event.preventDefault()
+        console.warn(`Clicked relative file link: ${href}`)
+
+        // 发送消息给扩展
+        if (window.vscode && window.vscode.postMessage) {
+          window.vscode.postMessage({
+            command: 'openRelativeFile',
+            filePath: href,
+          })
+        }
+        else {
+          console.error('vscode.postMessage not available')
+        }
+      })
+
+      // 添加视觉提示，表明这是一个可点击的相对链接
+      link.style.cursor = 'pointer'
+      link.title = `点击打开文件: ${href}`
+    }
+  })
+
+  // 监听内容变化，重新处理新添加的链接
+  const observer = new MutationObserver((mutations) => {
+    let shouldReinitialize = false
+
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // 检查是否添加了新的链接
+            if (node.tagName === 'A' || node.querySelector && node.querySelector('a')) {
+              shouldReinitialize = true
+            }
+          }
+        })
+      }
+    })
+
+    if (shouldReinitialize) {
+      console.warn('Content changed, reinitializing link handling...')
+      setTimeout(initializeLinkHandling, 100)
+    }
+  })
+
+  observer.observe(markdownContent, {
+    childList: true,
+    subtree: true,
+  })
+}

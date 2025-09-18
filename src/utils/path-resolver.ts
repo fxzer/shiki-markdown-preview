@@ -116,50 +116,6 @@ export class PathResolver {
   }
 
   /**
-   * 处理内容中的相对路径，转换为 webview URI
-   * @param content HTML 内容
-   * @param currentDocument 当前文档
-   * @param webview webview 实例
-   * @returns 处理后的内容
-   */
-  static processContentForWebview(
-    content: string,
-    currentDocument: vscode.TextDocument,
-    webview: vscode.Webview,
-  ): string {
-    return content.replace(
-      /(src|href)="([^"]+)"/g,
-      (match, attr, path) => {
-        // 跳过已经是绝对路径的链接
-        if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('vscode-webview-resource:')) {
-          return match
-        }
-
-        // 对于锚点链接（以#开头），保持原样
-        if (attr === 'href' && path.startsWith('#')) {
-          return match
-        }
-
-        // 对于 .md 文件的链接，保持相对路径
-        if (attr === 'href' && path.endsWith('.md')) {
-          return match
-        }
-
-        try {
-          const documentDir = vscode.Uri.joinPath(currentDocument.uri, '..')
-          const resolvedUri = vscode.Uri.joinPath(documentDir, path)
-          const webviewUri = webview.asWebviewUri(resolvedUri).toString()
-          return `${attr}="${webviewUri}"`
-        }
-        catch {
-          ErrorHandler.logWarning(`路径转换失败: ${path}`, 'PathResolver')
-          return match
-        }
-      },
-    )
-  }
-
-  /**
    * 检查文件是否存在
    * @param fileUri 文件 URI
    * @returns Promise<boolean>

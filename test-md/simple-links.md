@@ -3,6 +3,7 @@
 ## 网络链接
 
 - [GitHub](https://github.com)
+- [GitHub](github.com)
 - [VS Code](https://code.visualstudio.com)
 
 ## Markdown 文件链接

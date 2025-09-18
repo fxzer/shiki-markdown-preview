@@ -253,9 +253,6 @@ export class MarkdownPreviewPanel {
       case 'cancelThemeSelection':
         this.handleThemeSelectionCancel()
         return
-      case 'openExternal':
-        vscode.env.openExternal(vscode.Uri.parse(message.url))
-        return
 
       case 'openRelativeFile':
         this.handleRelativeFileClick(message.filePath)
@@ -331,8 +328,6 @@ export class MarkdownPreviewPanel {
       const frontMatterData = this._markdownRenderer.getFrontMatterData(content)
       const renderedContent = await this._markdownRenderer.render(content, document)
 
-      // 为 webview 解析相对路径
-      const processedContent = PathResolver.processContentForWebview(renderedContent, document, this._panel.webview)
 
       // 等待主题 CSS 变量
       const themeCSSVariables = await this._themeService.getThemeCSSVariables()
@@ -349,7 +344,7 @@ export class MarkdownPreviewPanel {
       this._panel.webview.html = HTMLTemplateService.generateHTML({
         webview: this._panel.webview,
         extensionUri: this._extensionUri,
-        content: processedContent,
+        content: renderedContent,
         themeCSSVariables,
         frontMatterData, // 传递 front matter 数据
         markdownThemeType: currentThemeType, // 传递主题类型
