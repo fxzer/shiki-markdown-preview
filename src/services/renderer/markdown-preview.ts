@@ -7,7 +7,6 @@ import {
 } from '..'
 import { ErrorHandler } from '../../utils/error-handler'
 import { PathResolver } from '../../utils/path-resolver'
-import { ScrollSyncManager } from '../../utils/scroll-sync-manager'
 import { MarkdownRenderer } from './markdown-renderer'
 
 /**
@@ -28,7 +27,6 @@ export class MarkdownPreviewPanel {
   // 服务
   private _themeService: ThemeService
   private _markdownRenderer: MarkdownRenderer
-  private _scrollSyncManager: ScrollSyncManager
   private _stateManager: StateManager
 
   // 状态
@@ -81,7 +79,6 @@ export class MarkdownPreviewPanel {
     // 初始化服务
     this._themeService = new ThemeService()
     this._markdownRenderer = new MarkdownRenderer(this._themeService)
-    this._scrollSyncManager = new ScrollSyncManager()
     this._stateManager = new StateManager(panel)
 
     this.setupPanel()
@@ -96,11 +93,7 @@ export class MarkdownPreviewPanel {
     // 设置面板图标
     this._panel.iconPath = vscode.Uri.joinPath(this._extensionUri, 'res/preview-icon.svg')
 
-    // 设置滚动同步管理器
-    this._scrollSyncManager.setPanel(this._panel)
-    if (this._currentDocument) {
-      this._scrollSyncManager.setupScrollSync(this._currentDocument)
-    }
+    // 滚动同步管理器已移除
   }
 
   /**
@@ -241,11 +234,6 @@ export class MarkdownPreviewPanel {
         ErrorHandler.showError(message.text)
         return
 
-      case 'scroll':
-      case 'scrollToPercentage':
-        this.handleScrollMessage(message)
-        return
-
       case 'selectTheme':
         this.handleThemeSelection(message.theme)
         return
@@ -260,22 +248,6 @@ export class MarkdownPreviewPanel {
     }
   }
 
-  /**
-   * Handle scroll messages from webview
-   */
-  private handleScrollMessage(message: any): void {
-    const scrollPercentage = message.scrollPercentage || message.percentage
-
-    this._scrollSyncManager.handlePreviewScroll(
-      scrollPercentage,
-      message.source,
-      message.timestamp,
-    )
-  }
-
-  /**
-   * Handle theme selection
-   */
   private async handleThemeSelection(theme: string): Promise<void> {
     const success = await this._themeService.changeTheme(theme)
     if (success && this._currentDocument) {
@@ -307,8 +279,7 @@ export class MarkdownPreviewPanel {
 
     this._currentDocument = document
 
-    // 更新滚动同步管理器
-    this._scrollSyncManager.setupScrollSync(document)
+    // 滚动同步管理器已移除
 
     try {
       const content = document.getText()
@@ -327,7 +298,6 @@ export class MarkdownPreviewPanel {
       // 获取 front matter 数据
       const frontMatterData = this._markdownRenderer.getFrontMatterData(content)
       const renderedContent = await this._markdownRenderer.render(content, document)
-
 
       // 等待主题 CSS 变量
       const themeCSSVariables = await this._themeService.getThemeCSSVariables()
@@ -481,8 +451,7 @@ export class MarkdownPreviewPanel {
     // 停止定期状态保存
     this._stateManager.dispose()
 
-    // 清理滚动同步管理器
-    this._scrollSyncManager.dispose()
+    // 滚动同步管理器已移除
 
     // 清理服务
     this._themeService.dispose()

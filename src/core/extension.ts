@@ -126,7 +126,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   )
 
-  // 滚动同步现在由 ScrollSyncManager 处理，不需要在这里重复实现
+  // 滚动同步逻辑已移除
 
   // 注册 webview 序列化器
   if (vscode.window.registerWebviewPanelSerializer) {

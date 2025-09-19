@@ -4,6 +4,7 @@
 /* 布局相关样式 - 不依赖主题变量 */
 html {
   font-size: var(--font-size, 0.875rem);
+    scroll-behavior: smooth;
 }
 
 body {
@@ -820,6 +821,16 @@ pre:hover .lang {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+a.toc-item,
+a.toc-item:link,
+a.toc-item:visited,
+a.toc-item:hover,
+a.toc-item:active,
+a.toc-item:focus {
+  text-decoration: none;
+  outline: none;
 }
 
 .toc-item:hover {

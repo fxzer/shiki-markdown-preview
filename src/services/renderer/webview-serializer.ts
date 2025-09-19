@@ -45,6 +45,8 @@ export class MarkdownPreviewSerializer implements vscode.WebviewPanelSerializer 
           }
         }
 
+        // 滚动同步逻辑已移除
+
         // 聚焦到文档
         await vscode.window.showTextDocument(documentToRestore, vscode.ViewColumn.One)
       }

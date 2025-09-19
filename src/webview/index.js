@@ -1,3 +1,16 @@
+// 节流函数：确保函数在指定时间内只执行一次
+// function throttle(func, limit) {
+//   let inThrottle
+//   return function (...args) {
+//     const context = this
+//     if (!inThrottle) {
+//       func.apply(context, args)
+//       inThrottle = true
+//       setTimeout(() => inThrottle = false, limit)
+//     }
+//   }
+// }
+
 // 判断是否为相对路径的 Markdown 文件
 function isRelativeMarkdownFile(href) {
   const isMarkdownFile = href.toLowerCase().endsWith('.md')
@@ -10,39 +23,19 @@ function isRelativeMarkdownFile(href) {
   return false
 }
 
-// Notion风格的文档结构导航菜单
+// Notion风格的文档结构导航菜单 (重构版)
 class NotionToc {
-  // 自定义节流函数
-  throttle(delay, func) {
-    let timeoutId
-    let lastExecTime = 0
-    return function (...args) {
-      const currentTime = Date.now()
-
-      if (currentTime - lastExecTime > delay) {
-        func.apply(this, args)
-        lastExecTime = currentTime
-      }
-      else {
-        clearTimeout(timeoutId)
-        timeoutId = setTimeout(() => {
-          func.apply(this, args)
-          lastExecTime = Date.now()
-        }, delay - (currentTime - lastExecTime))
-      }
-    }
-  }
-
   constructor() {
     this.headers = []
     this.tocContainer = null
-    this.detailedMenu = null
-    this.isHovering = false
     this.currentActiveIndex = -1
-    this.isScrollingToTarget = false
 
-    // 使用自定义节流函数
-    this.throttledScrollHandler = this.throttle(100, this.handleScroll.bind(this))
+    // 缓存DOM节点，避免重复查询
+    this.lineBars = []
+    this.tocItems = []
+
+    this.observer = null
+    this.isManualScrolling = false // 标志位：是否正在手动滚动
 
     this.init()
   }
@@ -50,15 +43,9 @@ class NotionToc {
   init() {
     try {
       this.createTocContainer()
-      this.parseHeaders()
-      this.renderToc()
+      this.refresh() // 使用 refresh 作为统一的解析和渲染入口
       this.bindEvents()
       this.observeContentChanges()
-
-      // 初始化时立即检测当前滚动位置并设置活跃项
-      setTimeout(() => {
-        this.handleScroll()
-      }, 100)
     }
     catch (error) {
       console.error('Error in NotionToc init():', error)
@@ -86,16 +73,15 @@ class NotionToc {
     this.itemsContainer = this.tocContainer.querySelector('.toc-items')
   }
 
-  // 解析文章标题结构
   parseHeaders() {
     const content = document.getElementById('markdown-content')
     if (!content)
       return
 
     this.headers = []
-    const headers = content.querySelectorAll('h1, h2, h3')
+    const headerElements = content.querySelectorAll('h1, h2, h3')
 
-    headers.forEach((header, index) => {
+    headerElements.forEach((header, index) => {
       const id = header.id || `header-${index}`
       if (!header.id) {
         header.id = id
@@ -106,89 +92,55 @@ class NotionToc {
         id,
         level: Number.parseInt(header.tagName.charAt(1)),
         text: header.textContent.trim(),
-        offsetTop: header.offsetTop,
+        index, // 添加索引方便查找
       })
     })
   }
 
-  // 渲染目录
+  // 渲染并缓存DOM节点
   renderToc() {
-    this.renderMinimalView()
-    this.renderDetailedView()
-  }
-
-  // 渲染简约视图（短横线）
-  renderMinimalView() {
-    if (!this.linesContainer)
+    if (!this.linesContainer || !this.itemsContainer)
       return
 
+    // 清空内容和缓存
     this.linesContainer.innerHTML = ''
+    this.itemsContainer.innerHTML = ''
+    this.lineBars = []
+    this.tocItems = []
 
     this.headers.forEach((header, index) => {
+      // 渲染简约视图
       const line = document.createElement('div')
       line.className = 'toc-line'
       line.setAttribute('data-index', index)
-
       const lineBar = document.createElement('div')
       lineBar.className = 'toc-line-bar'
-
-      // 根据标题级别设置线条长度和右对齐缩进
       const widthMap = { 1: 16, 2: 12, 3: 8 }
-
       lineBar.style.width = `${widthMap[header.level] || 8}px`
-
-      if (index === this.currentActiveIndex) {
-        lineBar.classList.add('active')
-      }
-
       line.appendChild(lineBar)
       this.linesContainer.appendChild(line)
-    })
-  }
+      this.lineBars.push(lineBar) // 缓存节点
 
-  // 渲染详细视图
-  renderDetailedView() {
-    if (!this.itemsContainer)
-      return
-
-    this.itemsContainer.innerHTML = ''
-
-    this.headers.forEach((header, index) => {
-      const item = document.createElement('div')
+      // 渲染详细视图
+      const item = document.createElement('a')
       item.className = 'toc-item'
+      item.href = `#${header.id}`
       item.setAttribute('data-index', index)
-
-      // 根据级别添加左缩进（详细视图保持左对齐）
       const indentMap = { 1: 0, 2: 16, 3: 32 }
       item.style.marginLeft = `${indentMap[header.level] || 0}px`
-
-      if (index === this.currentActiveIndex) {
-        item.classList.add('active')
-      }
-
-      item.innerHTML = `
-        <span class="toc-item-text">${this.escapeHtml(header.text)}</span>
-      `
-
-      item.addEventListener('click', () => this.scrollToHeader(index))
+      item.innerHTML = `<span class="toc-item-text">${this.escapeHtml(header.text)}</span>`
       this.itemsContainer.appendChild(item)
+      this.tocItems.push(item) // 缓存节点
     })
+
+    this.updateActiveItem(this.currentActiveIndex)
   }
 
-  // 绑定事件
   bindEvents() {
-    // 鼠标悬停事件
-    this.tocContainer.addEventListener('mouseenter', () => {
-      this.isHovering = true
-      this.showDetailedView()
-    })
+    this.tocContainer.addEventListener('mouseenter', () => this.showDetailedView())
+    this.tocContainer.addEventListener('mouseleave', () => this.hideDetailedView())
 
-    this.tocContainer.addEventListener('mouseleave', () => {
-      this.isHovering = false
-      this.hideDetailedView()
-    })
-
-    // 简约视图点击事件
+    // 使用事件委托处理点击
     this.linesContainer.addEventListener('click', (e) => {
       const line = e.target.closest('.toc-line')
       if (line) {
@@ -197,196 +149,118 @@ class NotionToc {
       }
     })
 
-    // 滚动事件（节流）
-    window.addEventListener('scroll', this.throttledScrollHandler)
-
-    // 窗口大小改变事件
-    window.addEventListener('resize', () => {
-      this.updateHeaderPositions()
+    // 详细视图的a标签会处理跳转，但为了平滑滚动，我们也需要处理
+    this.itemsContainer.addEventListener('click', (e) => {
+      const item = e.target.closest('.toc-item')
+      if (item) {
+        e.preventDefault() // 阻止默认的瞬间跳转
+        const index = Number.parseInt(item.getAttribute('data-index'))
+        this.scrollToHeader(index)
+      }
     })
   }
 
-  // 显示详细视图
   showDetailedView() {
     this.minimalView.style.display = 'none'
     this.detailedView.style.display = 'block'
-
-    // 确保详细视图显示时同步当前的活跃状态
-    this.syncDetailedViewActiveState()
   }
 
-  // 隐藏详细视图
   hideDetailedView() {
     this.minimalView.style.display = 'block'
     this.detailedView.style.display = 'none'
   }
 
-  // 滚动到指定标题
+  // 优化：独立的滚动到标题函数
   scrollToHeader(index) {
-    if (index < 0 || index >= this.headers.length)
-      return
+    if (index >= 0 && index < this.headers.length) {
+      const header = this.headers[index]
 
-    const header = this.headers[index]
-    this.isScrollingToTarget = true
+      // 设置手动滚动标志
+      this.isManualScrolling = true
 
-    header.element.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    })
+      // 现代浏览器支持平滑滚动
+      header.element.scrollIntoView()
+      this.updateActiveItem(index)
 
-    // 更新当前活跃项
-    this.updateActiveItem(index)
-
-    // 滚动完成后重置标志
-    setTimeout(() => {
-      this.isScrollingToTarget = false
-    }, 1000)
+      // 滚动完成后重置标志
+      setTimeout(() => {
+        this.isManualScrolling = false
+      }, 800)
+    }
   }
 
-  // 处理滚动事件
-  handleScroll() {
-    // 确保初始化完成后再处理滚动事件
-    if (!this.linesContainer || !this.itemsContainer || !this.headers.length) {
-      return
+  // 优化：使用IntersectionObserver来更新高亮
+  setupIntersectionObserver() {
+    if (this.observer) {
+      this.observer.disconnect()
     }
 
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-    const viewportHeight = window.innerHeight
-    const documentHeight = document.documentElement.scrollHeight
-
-    // 计算滚动百分比并发送给扩展
-    const scrollPercentage = documentHeight > viewportHeight
-      ? Math.max(0, Math.min(1, scrollTop / (documentHeight - viewportHeight)))
-      : 0
-
-    // 发送滚动事件给扩展
-    if (window.vscode && window.vscode.postMessage) {
-      console.warn('Sending scroll event to extension:', {
-        scrollPercentage,
-        scrollTop,
-        documentHeight,
-        viewportHeight,
-        timestamp: Date.now(),
-      })
-      window.vscode.postMessage({
-        command: 'scroll',
-        scrollPercentage,
-        source: 'preview',
-        timestamp: Date.now(),
-      })
-    }
-    else {
-      console.warn('vscode.postMessage not available')
+    const options = {
+      rootMargin: '0px 0px -80% 0px', // 视口顶部 0-20% 区域触发
+      threshold: 0,
     }
 
-    let activeIndex = -1
-
-    // 如果页面滚动到顶部，激活第一个标题
-    if (scrollTop <= 100) {
-      activeIndex = 0
-    }
-    // 如果在页面底部，激活最后一个标题
-    else if (scrollTop + viewportHeight >= documentHeight - 100) {
-      activeIndex = this.headers.length - 1
-    }
-    // 否则找到当前视口中的标题
-    else {
-      // 从后往前遍历，找到第一个在视口上方或视口中的标题
-      for (let i = this.headers.length - 1; i >= 0; i--) {
-        const header = this.headers[i]
-        const elementTop = header.element.offsetTop
-        const elementBottom = elementTop + header.element.offsetHeight
-
-        // 更精确的检测逻辑：
-        // 1. 如果标题在视口上方但距离视口顶部不超过200px，则激活
-        // 2. 如果标题在视口中，则激活
-        // 3. 优先选择距离视口顶部最近的标题
-        if (scrollTop + 200 >= elementTop) {
-          // 如果标题在视口中，或者距离视口顶部很近，则激活
-          if (scrollTop < elementBottom || scrollTop + 100 >= elementTop) {
-            activeIndex = i
-            break
-          }
-        }
+    this.observer = new IntersectionObserver((entries) => {
+      // 如果正在手动滚动，不更新高亮
+      if (this.isManualScrolling) {
+        return
       }
-    }
 
-    this.updateActiveItem(activeIndex)
+      // 找到所有当前在触发区域内的标题
+      const visibleHeaders = entries
+        .filter(entry => entry.isIntersecting)
+        .map(entry => this.headers.find(h => h.element === entry.target))
+
+      if (visibleHeaders.length > 0) {
+        // 在所有可见的标题中，选择最靠前的一个
+        const firstVisibleHeader = visibleHeaders.sort((a, b) => a.index - b.index)[0]
+        this.updateActiveItem(firstVisibleHeader.index)
+      }
+    }, options)
+
+    this.headers.forEach(header => this.observer.observe(header.element))
   }
 
-  // 更新活跃项
+  // 优化：更新活跃项，直接使用缓存的节点
   updateActiveItem(index) {
     if (this.currentActiveIndex === index)
       return
 
+    // 移除旧的 active class
+    if (this.currentActiveIndex !== -1) {
+      if (this.lineBars[this.currentActiveIndex])
+        this.lineBars[this.currentActiveIndex].classList.remove('active')
+      if (this.tocItems[this.currentActiveIndex])
+        this.tocItems[this.currentActiveIndex].classList.remove('active')
+    }
+
     this.currentActiveIndex = index
 
-    // 更新简约视图
-    if (this.linesContainer) {
-      const lines = this.linesContainer.querySelectorAll('.toc-line-bar')
-      lines.forEach((line, i) => {
-        line.classList.toggle('active', i === index)
-      })
-    }
-
-    // 更新详细视图
-    this.syncDetailedViewActiveState()
-  }
-
-  // 同步详细视图的活跃状态
-  syncDetailedViewActiveState() {
-    if (this.itemsContainer) {
-      const items = this.itemsContainer.querySelectorAll('.toc-item')
-      items.forEach((item, i) => {
-        item.classList.toggle('active', i === this.currentActiveIndex)
-      })
+    // 添加新的 active class
+    if (index !== -1) {
+      if (this.lineBars[index])
+        this.lineBars[index].classList.add('active')
+      if (this.tocItems[index])
+        this.tocItems[index].classList.add('active')
     }
   }
 
-  // 更新标题位置
-  updateHeaderPositions() {
-    this.headers.forEach((header) => {
-      header.offsetTop = header.element.offsetTop
-    })
-  }
-
-  // 监听内容变化
   observeContentChanges() {
-    // 使用 MutationObserver 监听内容变化
-    const observer = new MutationObserver((mutations) => {
-      let shouldUpdate = false
+    const content = document.getElementById('markdown-content')
+    if (!content)
+      return
 
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeName && node.nodeName.match(/^H[1-6]$/)) {
-              shouldUpdate = true
-            }
-          })
-        }
-      })
-
-      if (shouldUpdate) {
-        setTimeout(() => {
-          this.refresh()
-        }, 100)
-      }
+    const observer = new MutationObserver(() => {
+      this.refresh()
     })
 
-    const content = document.getElementById('markdown-content')
-    if (content) {
-      observer.observe(content, {
-        childList: true,
-        subtree: true,
-      })
-    }
+    observer.observe(content, { childList: true, subtree: true })
   }
 
-  // 刷新目录
   refresh() {
     this.parseHeaders()
     this.renderToc()
-    this.handleScroll()
+    this.setupIntersectionObserver() // 重新设置观察器
   }
 
   // HTML转义
@@ -396,52 +270,69 @@ class NotionToc {
     return div.innerHTML
   }
 
-  // 销毁
   destroy() {
+    if (this.observer) {
+      this.observer.disconnect()
+    }
     if (this.tocContainer) {
       this.tocContainer.remove()
     }
-    // 取消防抖函数
-    if (this.throttledScrollHandler) {
-      this.throttledScrollHandler.cancel()
-    }
   }
 }
 
-// 初始化Notion TOC
-function initializeNotionToc() {
-  // 检查必要的DOM元素是否存在
-  const content = document.getElementById('markdown-content')
-
-  if (!content) {
-    console.warn('Markdown content not found, retrying in 500ms...')
-    setTimeout(initializeNotionToc, 500)
-    return
-  }
-
-  // 检查是否有标题元素
-  const headers = content.querySelectorAll('h1, h2, h3')
-
-  if (headers.length === 0) {
-    console.warn('No headers found, retrying in 1000ms...')
-    setTimeout(initializeNotionToc, 1000)
-    return
-  }
-
-  window.notionToc = new NotionToc()
+// 优化：使用轮询代替 setTimeout 来初始化
+function robustInitialize(checkFn, initFn, failureMsg, maxRetries = 10, interval = 200) {
+  let retries = 0
+  const intervalId = setInterval(() => {
+    if (checkFn()) {
+      clearInterval(intervalId)
+      initFn()
+    }
+    else {
+      retries++
+      if (retries >= maxRetries) {
+        clearInterval(intervalId)
+        console.warn(failureMsg)
+      }
+    }
+  }, interval)
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(initializeNotionToc, 100)
-  // 确保在页面加载完成后应用语法高亮
-  setTimeout(applySyntaxHighlighting, 200)
-  // 初始化链接点击处理
-  setTimeout(initializeLinkHandling, 300)
+  // 检查TOC初始化条件
+  const canInitToc = () => {
+    const content = document.getElementById('markdown-content')
+    return content && content.querySelector('h1, h2, h3')
+  }
+  robustInitialize(canInitToc, () => {
+    window.notionToc = new NotionToc()
+    console.warn('NotionToc initialized successfully')
+  }, 'NotionToc initialization failed: Content or headers not found.')
+
+  // 检查语法高亮初始化条件
+  robustInitialize(
+    () => document.querySelector('pre code'),
+    applySyntaxHighlighting,
+    'Syntax highlighting failed: Code blocks not found.',
+  )
+
+  // 检查链接处理初始化条件
+  robustInitialize(
+    () => document.getElementById('markdown-content'),
+    initializeLinkHandling,
+    'Link handling initialization failed: Markdown content not found.',
+  )
 })
 
 // 页面加载完成后也调用一次，确保语法高亮被应用
 window.addEventListener('load', () => {
-  setTimeout(applySyntaxHighlighting, 100)
+  robustInitialize(
+    () => document.querySelector('pre code'),
+    applySyntaxHighlighting,
+    'Syntax highlighting on load failed: Code blocks not found.',
+    5, // 减少重试次数，因为页面已经加载完成
+    100,
+  )
 })
 
 function applySyntaxHighlighting() {
@@ -552,76 +443,34 @@ window.addEventListener('message', (event) => {
         window.notionToc.refresh()
       }
       break
-    case 'scrollToPercentage': {
-      // 如果消息来源是预览区自己，忽略避免循环
-      if (message.source === 'preview') {
-        break
-      }
-
-      // 定义缺失的函数
-      const getDocumentHeight = () => {
-        return Math.max(
-          document.body.scrollHeight,
-          document.body.offsetHeight,
-          document.documentElement.clientHeight,
-          document.documentElement.scrollHeight,
-          document.documentElement.offsetHeight,
-        )
-      }
-
-      const getViewportHeight = () => {
-        return window.innerHeight || document.documentElement.clientHeight
-      }
-
-      const documentHeight = getDocumentHeight()
-      const viewportHeight = getViewportHeight()
-      const maxScrollTop = Math.max(0, documentHeight - viewportHeight)
-      const targetScrollTop = Math.max(0, Math.min(maxScrollTop, maxScrollTop * message.percentage))
-
-      // 确保 targetScrollTop 是数字类型并四舍五入到整数
-      const scrollTopNumber = Math.round(Number(targetScrollTop))
-      if (Number.isNaN(scrollTopNumber)) {
-        console.error('Invalid scroll position:', targetScrollTop)
-        return
-      }
-
-      // 添加更多调试信息
-
-      // 尝试多种滚动方法
-      try {
-        window.scrollTo({
-          top: scrollTopNumber,
-          behavior: 'auto',
-        })
-
-        // 如果 window.scrollTo 不工作，尝试直接设置 scrollTop
-        setTimeout(() => {
-          if (window.scrollY === 0 && scrollTopNumber > 0) {
-            document.documentElement.scrollTop = scrollTopNumber
-            document.body.scrollTop = scrollTopNumber
-          }
-        }, 10)
-      }
-      catch (error) {
-        console.error('Error during scroll:', error)
-        // 备用滚动方法
-        document.documentElement.scrollTop = scrollTopNumber
-        document.body.scrollTop = scrollTopNumber
-      }
-
-      // 滚动完成后的清理工作
-      setTimeout(() => {
-        // 可以在这里添加滚动完成后的逻辑
-      }, 100) // 与扩展端保持一致
-      break
-    }
     case 'updateContent': {
       const markdownContent = document.getElementById('markdown-content')
       if (markdownContent) {
         markdownContent.innerHTML = message.content
         applySyntaxHighlighting()
-        // 重新初始化链接处理
-        setTimeout(initializeLinkHandling, 100)
+        robustInitialize(
+          () => document.getElementById('markdown-content'),
+          initializeLinkHandling,
+          'Link handling reinitialization failed after content update.',
+          3,
+          50,
+        )
+        // 重新初始化NotionToc以确保滚动事件监听器正确绑定
+        robustInitialize(
+          () => {
+            const content = document.getElementById('markdown-content')
+            return content && content.querySelector('h1, h2, h3')
+          },
+          () => {
+            if (window.notionToc) {
+              window.notionToc.destroy()
+            }
+            window.notionToc = new NotionToc()
+          },
+          'NotionToc reinitialization failed after content update.',
+          5,
+          100,
+        )
       }
       break
     }
@@ -637,8 +486,7 @@ window.addEventListener('message', (event) => {
 function initializeLinkHandling() {
   const markdownContent = document.getElementById('markdown-content')
   if (!markdownContent) {
-    console.warn('Markdown content not found for link handling, retrying in 500ms...')
-    setTimeout(initializeLinkHandling, 500)
+    console.warn('Markdown content not found for link handling')
     return
   }
 
@@ -688,7 +536,7 @@ function initializeLinkHandling() {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // 检查是否添加了新的链接
-            if (node.tagName === 'A' || node.querySelector && node.querySelector('a')) {
+            if (node.tagName === 'A' || (node.querySelector && node.querySelector('a'))) {
               shouldReinitialize = true
             }
           }
@@ -698,7 +546,8 @@ function initializeLinkHandling() {
 
     if (shouldReinitialize) {
       console.warn('Content changed, reinitializing link handling...')
-      setTimeout(initializeLinkHandling, 100)
+      // 直接调用，因为内容已经存在
+      initializeLinkHandling()
     }
   })
 
