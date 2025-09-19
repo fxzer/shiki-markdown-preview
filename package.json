@@ -13,7 +13,7 @@
   "categories": [
     "Other"
   ],
-  "main": "./out/core/extension.js",
+  "main": "./out/index.js",
   "icon": "res/icon.png",
   "engines": {
     "vscode": "^1.100.0"
