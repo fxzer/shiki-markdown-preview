@@ -36,25 +36,29 @@ export class MarkdownPreviewPanel {
   private _lastRenderedDocumentVersion: number | undefined
   private _lastRenderedTheme: string | undefined
 
-  public static createOrShowSlide(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
-    MarkdownPreviewPanel._createOrShow(extensionUri, vscode.ViewColumn.Two, document)
+  // 初始化 Promise 相关
+  private _initializationPromise: Promise<void> | undefined
+  private _initializationResolve: (() => void) | undefined
+
+  public static async createOrShowSlide(extensionUri: vscode.Uri, document?: vscode.TextDocument): Promise<MarkdownPreviewPanel> {
+    return MarkdownPreviewPanel._createOrShow(extensionUri, vscode.ViewColumn.Two, document)
   }
 
-  public static createOrShowFull(extensionUri: vscode.Uri, document?: vscode.TextDocument) {
-    MarkdownPreviewPanel._createOrShow(extensionUri, vscode.ViewColumn.One, document)
+  public static async createOrShowFull(extensionUri: vscode.Uri, document?: vscode.TextDocument): Promise<MarkdownPreviewPanel> {
+    return MarkdownPreviewPanel._createOrShow(extensionUri, vscode.ViewColumn.One, document)
   }
 
-  private static _createOrShow(extensionUri: vscode.Uri, viewColumn: vscode.ViewColumn, document?: vscode.TextDocument) {
+  private static async _createOrShow(extensionUri: vscode.Uri, viewColumn: vscode.ViewColumn, document?: vscode.TextDocument): Promise<MarkdownPreviewPanel> {
     if (MarkdownPreviewPanel.currentPanel) {
       MarkdownPreviewPanel.currentPanel._panel.reveal(viewColumn)
       if (document) {
-        ErrorHandler.safeExecute(
+        await ErrorHandler.safeExecute(
           () => MarkdownPreviewPanel.currentPanel!.updateContent(document),
           '创建或显示时内容更新失败',
           'MarkdownPreviewPanel',
         )
       }
-      return
+      return MarkdownPreviewPanel.currentPanel
     }
 
     const panel = vscode.window.createWebviewPanel(
@@ -64,7 +68,13 @@ export class MarkdownPreviewPanel {
       HTMLTemplateService.getWebviewOptions(extensionUri),
     )
 
-    MarkdownPreviewPanel.currentPanel = new MarkdownPreviewPanel(panel, extensionUri, document)
+    const previewPanel = new MarkdownPreviewPanel(panel, extensionUri, document)
+    MarkdownPreviewPanel.currentPanel = previewPanel
+
+    // 等待面板完全初始化完成
+    await previewPanel.waitForInitialization()
+
+    return previewPanel
   }
 
   public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, document?: vscode.TextDocument) {
@@ -75,6 +85,11 @@ export class MarkdownPreviewPanel {
     this._panel = panel
     this._extensionUri = extensionUri
     this._currentDocument = document
+
+    // 初始化 Promise
+    this._initializationPromise = new Promise<void>((resolve) => {
+      this._initializationResolve = resolve
+    })
 
     // 初始化服务
     this._themeService = new ThemeService()
@@ -175,6 +190,12 @@ export class MarkdownPreviewPanel {
 
       // 开始定期状态保存
       this._stateManager.startPeriodicStateSave()
+
+      // 初始化完成，resolve Promise
+      if (this._initializationResolve) {
+        this._initializationResolve()
+        this._initializationResolve = undefined
+      }
     }
     catch (error) {
       ErrorHandler.logError('服务初始化失败', error, 'MarkdownPreviewPanel')
@@ -183,6 +204,12 @@ export class MarkdownPreviewPanel {
         '显示初始化错误失败',
         'MarkdownPreviewPanel',
       )
+
+      // 即使初始化失败，也要 resolve Promise 以避免永久等待
+      if (this._initializationResolve) {
+        this._initializationResolve()
+        this._initializationResolve = undefined
+      }
     }
   }
 
@@ -488,5 +515,14 @@ export class MarkdownPreviewPanel {
    */
   get themeService(): ThemeService {
     return this._themeService
+  }
+
+  /**
+   * Wait for the panel to be fully initialized
+   */
+  private async waitForInitialization(): Promise<void> {
+    if (this._initializationPromise) {
+      await this._initializationPromise
+    }
   }
 }

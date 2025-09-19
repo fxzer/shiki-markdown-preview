@@ -37,11 +37,9 @@ export function activate(context: vscode.ExtensionContext) {
       if (!markdownDocument)
         return
 
-      // 确保预览窗口已打开
+      // 确保预览窗口已打开并等待其完全初始化
       if (!MarkdownPreviewPanel.currentPanel) {
-        MarkdownPreviewPanel.createOrShowSlide(context.extensionUri, markdownDocument)
-        // 等待预览窗口创建完成
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await MarkdownPreviewPanel.createOrShowSlide(context.extensionUri, markdownDocument)
       }
 
       if (MarkdownPreviewPanel.currentPanel) {
@@ -125,8 +123,6 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
   )
-
-  // 滚动同步逻辑已移除
 
   // 注册 webview 序列化器
   if (vscode.window.registerWebviewPanelSerializer) {
