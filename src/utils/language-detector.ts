@@ -39,8 +39,14 @@ export function detectLanguages(content: string): string[] {
 
     tokens.forEach((token) => {
       if (token.type === 'fence' && token.info) {
-        // info 可能带参数，比如 "js {lineNumbers}"
-        const lang = token.info.split(/\s+/)[0].trim()
+        // info 可能带参数，比如 "js {lineNumbers}" 或带行号范围如 "javascript{1,5,8-10}"
+        let lang = token.info.split(/\s+/)[0].trim()
+
+        // 处理带有行号范围的语言标识符，如 javascript{1,5,8-10}
+        const lineNumberMatch = lang.match(/^([^{]+)(?:\{.+\})?$/)
+        if (lineNumberMatch && lineNumberMatch[1]) {
+          lang = lineNumberMatch[1].trim()
+        }
         if (lang) {
           languages.add(lang)
         }

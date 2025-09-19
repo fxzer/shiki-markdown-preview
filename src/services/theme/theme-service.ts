@@ -1,5 +1,6 @@
 import type { Highlighter } from 'shiki'
 import type { GroupedThemes, ThemeCache, ThemeMetadata } from '../../types/theme'
+import { transformerNotationHighlight } from '@shikijs/transformers'
 import { bundledThemes, createHighlighter } from 'shiki'
 import * as vscode from 'vscode'
 import { toCssVarsStr } from '../../utils/color-handler'
@@ -344,7 +345,7 @@ export class ThemeService {
    * 使用当前主题高亮代码（同步版本）
    * 同步高亮代码，要求主题和语言已经预加载
    */
-  highlightCode(code: string, language: string): string {
+  highlightCode(code: string, language: string, highlightLines: number[] = []): string {
     if (!this._highlighter || !language) {
       return escapeHtml(code)
     }
@@ -362,13 +363,26 @@ export class ThemeService {
         return escapeHtml(code)
       }
 
+      // 准备转换器配置
+      const transformers = []
+
+      // 如果有行号高亮需求，添加行高亮转换器
+      if (highlightLines.length > 0) {
+        transformers.push(transformerNotationHighlight())
+      }
+
       const highlighted = this._highlighter.codeToHtml(code, {
         lang: language,
         theme: this._currentTheme,
+        transformers: transformers.length > 0 ? transformers : undefined,
       })
 
       // 确保返回的是字符串类型
       if (typeof highlighted === 'string') {
+        // 如果有行号高亮需求，需要手动添加高亮标记
+        if (highlightLines.length > 0) {
+          return this.addLineHighlighting(highlighted, highlightLines)
+        }
         return highlighted
       }
       else {
@@ -380,6 +394,42 @@ export class ThemeService {
       ErrorHandler.logWarning(`代码高亮失败: ${language}`, 'ThemeService')
       // 如果失败，返回简单的HTML转义代码
       return escapeHtml(code)
+    }
+  }
+
+  /**
+   * 手动添加行高亮标记到已高亮的HTML代码中
+   * @param highlightedHtml 已高亮的HTML代码
+   * @param highlightLines 需要高亮的行号数组
+   * @returns 添加了行高亮标记的HTML
+   */
+  private addLineHighlighting(highlightedHtml: string, highlightLines: number[]): string {
+    try {
+      // 将HTML按行分割
+      const lines = highlightedHtml.split('\n')
+      const highlightedLines = new Set(highlightLines)
+
+      // 为指定行添加高亮类
+      const processedLines = lines.map((line, index) => {
+        const lineNumber = index + 1
+        if (highlightedLines.has(lineNumber)) {
+          // 查找 <span class="line"> 并添加 highlighted 类
+          if (line.includes('<span class="line"')) {
+            return line.replace(/<span class="line"([^>]*)>/i, '<span class="line highlighted"$1>')
+          }
+          // 如果行不包含 line 类，包装整个行
+          else {
+            return `<span class="line highlighted">${line}</span>`
+          }
+        }
+        return line
+      })
+
+      return processedLines.join('\n')
+    }
+    catch {
+      ErrorHandler.logWarning('行高亮标记添加失败', 'ThemeService')
+      return highlightedHtml
     }
   }
 

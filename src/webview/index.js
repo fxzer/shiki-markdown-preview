@@ -179,7 +179,7 @@ class NotionToc {
       this.isManualScrolling = true
 
       // 现代浏览器支持平滑滚动
-      header.element.scrollIntoView()
+      header.element.scrollIntoView({ behavior: 'smooth' })
       this.updateActiveItem(index)
 
       // 滚动完成后重置标志

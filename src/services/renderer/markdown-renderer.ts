@@ -240,17 +240,20 @@ export class MarkdownRenderer {
     }
 
     try {
-      // 使用同步版本的 highlightCode 方法
-      const highlighted = this._themeService.highlightCode(code, lang)
+      // 解析语言标识符中的行号信息
+      const { language, highlightLines } = this.parseLanguageWithHighlight(lang)
+
+      // 使用同步版本的 highlightCode 方法，传递行号信息
+      const highlighted = this._themeService.highlightCode(code, language, highlightLines)
 
       // 如果结果是空的，返回基本的 HTML
       if (!highlighted) {
-        return `<pre><code class="language-${lang}" data-lang="${lang}">${escapeHtml(code)}</code></pre>`
+        return `<pre><code class="language-${escapeHtml(language)}" data-lang="${escapeHtml(language)}">${escapeHtml(code)}</code></pre>`
       }
 
       // 确保高亮后的 HTML 包含语言信息
       // 检查是否已经包含 language- 类
-      if (highlighted.includes(`class="language-${lang}"`) || highlighted.includes(`class='language-${lang}'`)) {
+      if (highlighted.includes(`class="language-${language}"`) || highlighted.includes(`class='language-${language}'`)) {
         return highlighted
       }
 
@@ -262,10 +265,10 @@ export class MarkdownRenderer {
       if (match) {
         const existingAttrs = match[1] || ''
         const newAttrs = existingAttrs.includes('class=')
-          ? existingAttrs.replace(/class="([^"]*)"/, `class="$1 language-${escapeHtml(lang)}"`)
-          : `${existingAttrs} class="language-${escapeHtml(lang)}"`
+          ? existingAttrs.replace(/class="([^"]*)"/, `class="$1 language-${escapeHtml(language)}"`)
+          : `${existingAttrs} class="language-${escapeHtml(language)}"`
 
-        return highlighted.replace(codeTagRegex, `<code${newAttrs} data-lang="${escapeHtml(lang)}">`)
+        return highlighted.replace(codeTagRegex, `<code${newAttrs} data-lang="${escapeHtml(language)}">`)
       }
 
       // 如果无法找到 code 标签，返回原始高亮结果
@@ -275,6 +278,55 @@ export class MarkdownRenderer {
       ErrorHandler.logWarning(`代码高亮失败: ${lang}`, 'MarkdownRenderer')
       return `<pre><code class="language-${escapeHtml(lang)}" data-lang="${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`
     }
+  }
+
+  /**
+   * 解析语言标识符，提取语言和行号高亮信息
+   * 支持格式：javascript{1,3-5} 或 javascript{1,3,4,5}
+   * @param lang 语言标识符
+   * @returns 解析后的语言和行号数组
+   */
+  private parseLanguageWithHighlight(lang: string): { language: string, highlightLines: number[] } {
+    // 匹配格式：language{1,3-5} 或 language{1,3,4,5}
+    const match = lang.match(/^([^{]+)(?:\{([^}]+)\})?$/)
+
+    if (!match) {
+      return { language: lang, highlightLines: [] }
+    }
+
+    const language = match[1].trim()
+    const highlightSpec = match[2]
+
+    if (!highlightSpec) {
+      return { language, highlightLines: [] }
+    }
+
+    // 解析行号范围，支持：1,3-5,7,9-12
+    const highlightLines: number[] = []
+    const parts = highlightSpec.split(',')
+
+    for (const part of parts) {
+      const trimmedPart = part.trim()
+
+      if (trimmedPart.includes('-')) {
+        // 处理范围，如 3-5
+        const [start, end] = trimmedPart.split('-').map(n => Number.parseInt(n.trim(), 10))
+        if (!Number.isNaN(start) && !Number.isNaN(end) && start <= end) {
+          for (let i = start; i <= end; i++) {
+            highlightLines.push(i)
+          }
+        }
+      }
+      else {
+        // 处理单个行号，如 1 或 7
+        const lineNum = Number.parseInt(trimmedPart, 10)
+        if (!Number.isNaN(lineNum)) {
+          highlightLines.push(lineNum)
+        }
+      }
+    }
+
+    return { language, highlightLines }
   }
 
   /**

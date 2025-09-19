@@ -35,6 +35,49 @@ const LIGHT_FALLBACKS = {
   blockQuoteBackgrounds: ALPHA.LIGHT.map(alpha => `rgba(74, 85, 104, ${alpha})`),
   blockQuoteBorder: 'rgba(0, 0, 0, 0.3)',
 }
+/**
+ * 生成引用块边框颜色
+ * 根据背景色自动计算合适的边框颜色，确保足够的对比度
+ *
+ * @param backgroundColor - 背景颜色
+ * @param borderColor - 可选的原始边框颜色，如果对比度足够则直接使用
+ * @param minContrast - 最小对比度要求，默认为 3.0
+ * @returns 生成的边框颜色字符串
+ */
+/**
+ * 验证边框颜色是否有效且满足对比度要求
+ *
+ * @param backgroundColor - 背景颜色
+ * @param borderColor - 边框颜色
+ * @param minContrast - 最小对比度要求
+ * @returns 如果边框颜色有效且满足对比度要求则返回true，否则返回false
+ */
+export function isValidBorderColor(
+  backgroundColor: string,
+  borderColor: string,
+  minContrast: number = 3.0,
+): boolean {
+  if (!borderColor)
+    return false
+
+  try {
+    const bgColor = chroma(backgroundColor)
+    const currentBorder = chroma(borderColor)
+
+    // 检查透明度，如果完全透明则视为无效
+    const alpha = currentBorder.alpha()
+    if (alpha <= 0.6)
+      return false
+
+    // 检查对比度是否满足要求
+    const contrast = getContrastRatio(bgColor, currentBorder)
+    return contrast >= minContrast
+  }
+  catch {
+    console.warn('无效的边框颜色:', borderColor)
+    return false
+  }
+}
 
 /**
  * 生成引用块边框颜色
@@ -54,17 +97,9 @@ export function generateBlockquoteBorderColor(
     const bgColor = chroma(backgroundColor)
     const isDark = isDarkColor(backgroundColor)
 
-    if (borderColor) {
-      try {
-        const currentBorder = chroma(borderColor)
-        const contrast = getContrastRatio(bgColor, currentBorder)
-        if (contrast >= minContrast) {
-          return borderColor
-        }
-      }
-      catch {
-        console.warn('无效的边框颜色:', borderColor)
-      }
+    // 首先验证提供的边框颜色是否有效
+    if (borderColor && isValidBorderColor(backgroundColor, borderColor, minContrast)) {
+      return borderColor
     }
 
     if (isDark) {

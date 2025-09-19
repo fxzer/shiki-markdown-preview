@@ -4,7 +4,6 @@
 /* 布局相关样式 - 不依赖主题变量 */
 html {
   font-size: var(--font-size, 0.875rem);
-    scroll-behavior: smooth;
 }
 
 body {
@@ -72,7 +71,7 @@ th {
   font-weight: 600;
 }
 
-/* 代码样式 */
+/* 单行代码样式 */
 code {
   background-color: var(--markdown-code-background);
   color: var(--textLink-foreground);
@@ -82,13 +81,7 @@ code {
   font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', monospace;
 }
 
-pre {
-  background-color: var(--markdown-codeBlock-background, var(--vscode-textCodeBlock-background));
-  border-radius: 0.375rem;
-  padding: 1rem;
-  overflow-x: auto;
-}
-
+/* 代码块 */
 pre code {
   background-color: transparent;
   padding: 0;
@@ -97,12 +90,27 @@ pre code {
   border-radius: 0;
 }
 
-.shiki {
-  background-color: var(--markdown-codeBlock-background, var(--vscode-textCodeBlock-background)) !important;
-  border-radius: 0.375rem;
-  padding: 1rem;
+pre {
+  padding: 16px;
+  border-radius: 8px;
   overflow-x: auto;
   margin-bottom: 1rem;
+  background-color: var(--markdown-codeBlock-background, var(--vscode-textCodeBlock-background)) !important;
+}
+
+pre.shiki {
+  padding: 16px 0;
+}
+
+pre.shiki .line {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+/* 行高亮样式 */
+pre.shiki .line.highlighted {
+  width: 100% !important;
+  display: inline-block !important;
+  background-color: var(--markdown-blockQuote-background-level2) !important;
 }
 
 /* 链接样式 */
@@ -676,15 +684,11 @@ blockquote p:last-child {
   margin-bottom: 0;
 }
 
-pre:hover .copy-button {
-  display: flex !important;
-}
-
 /* 代码块语言显示样式 */
 .lang {
   position: absolute;
-  top: 6px;
-  right: 6px; /* 为复制按钮留出空间 */
+  top: 4px;
+  right: 4px;
   color: var(--editor-foreground);
   font-size: 10px;
   font-weight: 500;
@@ -699,8 +703,8 @@ pre:hover .copy-button {
 /* 复制按钮样式 */
 .copy-button {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 4px;
+  right: 4px;
   padding: 4px;
   color: var(--editor-foreground);
   background: rgba(0, 0, 0, 0.15);
@@ -731,7 +735,8 @@ pre:hover .lang {
 /* 复制按钮状态样式 */
 .copy-button.copied {
   color: #4caf50 !important;
-  background: rgba(76, 175, 80, 0.1) !important;
+  opacity: 1;
+  background: rgba(76, 175, 80, 0.2) !important;
 }
 
 .copy-button.failed {
