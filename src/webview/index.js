@@ -122,13 +122,15 @@ class NotionToc {
       this.lineBars.push(lineBar) // 缓存节点
 
       // 渲染详细视图
-      const item = document.createElement('a')
+      const item = document.createElement('div')
+      const text = this.escapeHtml(header.text)
       item.className = 'toc-item'
       item.href = `#${header.id}`
       item.setAttribute('data-index', index)
+      item.setAttribute('title', text)
       const indentMap = { 1: 0, 2: 16, 3: 32 }
       item.style.marginLeft = `${indentMap[header.level] || 0}px`
-      item.innerHTML = `<span class="toc-item-text">${this.escapeHtml(header.text)}</span>`
+      item.innerHTML = `${text}`
       this.itemsContainer.appendChild(item)
       this.tocItems.push(item) // 缓存节点
     })
@@ -140,20 +142,10 @@ class NotionToc {
     this.tocContainer.addEventListener('mouseenter', () => this.showDetailedView())
     this.tocContainer.addEventListener('mouseleave', () => this.hideDetailedView())
 
-    // 使用事件委托处理点击
-    this.linesContainer.addEventListener('click', (e) => {
-      const line = e.target.closest('.toc-line')
-      if (line) {
-        const index = Number.parseInt(line.getAttribute('data-index'))
-        this.scrollToHeader(index)
-      }
-    })
-
     // 详细视图的a标签会处理跳转，但为了平滑滚动，我们也需要处理
     this.itemsContainer.addEventListener('click', (e) => {
       const item = e.target.closest('.toc-item')
       if (item) {
-        e.preventDefault() // 阻止默认的瞬间跳转
         const index = Number.parseInt(item.getAttribute('data-index'))
         this.scrollToHeader(index)
       }
@@ -179,7 +171,7 @@ class NotionToc {
       this.isManualScrolling = true
 
       // 现代浏览器支持平滑滚动
-      header.element.scrollIntoView({ behavior: 'smooth' })
+      header.element.scrollIntoView({ behavior: 'smooth', block: 'center' })
       this.updateActiveItem(index)
 
       // 滚动完成后重置标志

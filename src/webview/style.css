@@ -797,6 +797,10 @@ pre:hover .lang {
 
 /* 详细菜单样式 */
 .notion-toc-detailed {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
   background-color: var(--editor-background, var(--vscode-editor-background));
   border: 1px solid var(--markdown-blockQuote-background-level3);
   border-radius: 8px;
@@ -828,16 +832,6 @@ pre:hover .lang {
   text-overflow: ellipsis;
 }
 
-a.toc-item,
-a.toc-item:link,
-a.toc-item:visited,
-a.toc-item:hover,
-a.toc-item:active,
-a.toc-item:focus {
-  text-decoration: none;
-  outline: none;
-}
-
 .toc-item:hover {
   background-color: var(--markdown-blockQuote-background-level1);
 }
@@ -845,12 +839,6 @@ a.toc-item:focus {
 .toc-item.active {
   background-color: var(--markdown-blockQuote-background-level3);
   color: var(--textLink-foreground);
-}
-
-.toc-item-text {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* 响应式设计 */

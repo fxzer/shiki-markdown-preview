@@ -17,6 +17,15 @@ function add(a, b) {
 }
 ```
 
+## 基础代码块123dfdsfdfdsf基础代码块123dfdsfdfdsf基础代码块123dfdsfdfdsf基础代码块123dfdsfdfdsf
+
+```
+// 基础围栏代码块
+function add(a, b) {
+    return a + b;
+}
+```
+
 ## 语法高亮
 
 ### JavaScript
