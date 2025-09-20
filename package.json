@@ -173,6 +173,11 @@
           "description": "文档宽度，支持所有CSS宽度值（如 800px, 100%, 60rem, 1200px 等）",
           "pattern": "^[0-9]+(px|em|rem|%|vw|ch|ex|cm|mm|in|pt|pc)$",
           "patternErrorMessage": "请输入有效的CSS宽度值，如：800px, 100%, 60rem, 1200px 等"
+        },
+        "shikiMarkdownPreview.fontFamily": {
+          "type": "string",
+          "default": "inherit",
+          "description": "预览字体设置，留空或输入 inherit 将继承 VSCode 编辑器字体，也可以指定具体电脑已安装字体如：'Microsoft YaHei', 'Courier New', Consolas"
         }
       }
     }

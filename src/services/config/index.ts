@@ -23,6 +23,15 @@ export class ConfigService {
   }
 
   /**
+   * 获取字体设置
+   */
+  public getFontFamily(): string {
+    const config = vscode.workspace.getConfiguration(ConfigService.SECTION)
+    const fontFamily = config.get<string>('fontFamily', 'inherit')
+    return !fontFamily || fontFamily.trim() === '' ? 'inherit' : fontFamily
+  }
+
+  /**
    * 更新配置
    */
   public async updateConfig(key: string, value: any, target: vscode.ConfigurationTarget): Promise<void> {

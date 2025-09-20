@@ -11,6 +11,7 @@ export interface HTMLTemplateOptions {
   nonce?: string
   markdownThemeType?: 'light' | 'dark'
   documentWidth?: string
+  fontFamily?: string
 }
 
 export class HTMLTemplateService {
@@ -27,6 +28,7 @@ export class HTMLTemplateService {
       nonce = nanoid(),
       markdownThemeType = 'dark',
       documentWidth = '800px',
+      fontFamily = 'inherit',
     } = options
 
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/index.js'))
@@ -43,6 +45,7 @@ export class HTMLTemplateService {
                     :root {
                         ${themeCSSVariables}
                         --document-width: ${documentWidth};
+                        --font-family: ${fontFamily};
                     }
                 </style>
                 <title>${frontMatterData?.title ? escapeHtml(frontMatterData.title) : 'Markdown Preview'}</title>

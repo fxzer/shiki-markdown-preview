@@ -471,6 +471,11 @@ window.addEventListener('message', (event) => {
       document.documentElement.style.setProperty('--document-width', message.width)
       break
     }
+    case 'updateFontFamily': {
+      // 更新字体CSS变量
+      document.documentElement.style.setProperty('--font-family', message.fontFamily)
+      break
+    }
   }
 })
 

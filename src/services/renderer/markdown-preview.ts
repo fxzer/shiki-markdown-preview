@@ -161,6 +161,13 @@ export class MarkdownPreviewPanel {
             'MarkdownPreviewPanel',
           )
         }
+        if (event.affectsConfiguration('shikiMarkdownPreview.fontFamily')) {
+          ErrorHandler.safeExecute(
+            () => this.handleFontFamilyChange(),
+            '字体变化处理失败',
+            'MarkdownPreviewPanel',
+          )
+        }
       },
       null,
       this._disposables,
@@ -350,6 +357,7 @@ export class MarkdownPreviewPanel {
       const { ConfigService } = await import('../config')
       const configService = new ConfigService()
       const documentWidth = configService.getDocumentWidth()
+      const fontFamily = configService.getFontFamily()
 
       // 确保在渲染前获取最新的主题类型
       const currentThemeType = await this._themeService.refreshCurrentThemeType()
@@ -363,6 +371,7 @@ export class MarkdownPreviewPanel {
         frontMatterData, // 传递 front matter 数据
         markdownThemeType: currentThemeType, // 传递主题类型
         documentWidth, // 传递文档宽度
+        fontFamily, // 传递字体设置
       })
 
       // 更新面板标题 - 优先使用 front matter 中的 title
@@ -483,6 +492,33 @@ export class MarkdownPreviewPanel {
     }
     catch (error) {
       ErrorHandler.logError('文档宽度变化处理失败', error, 'MarkdownPreviewPanel')
+    }
+  }
+
+  /**
+   * Handle font family change
+   */
+  private async handleFontFamilyChange(): Promise<void> {
+    if (!this._isInitialized) {
+      return
+    }
+
+    try {
+      // 获取新的字体设置
+      const { ConfigService } = await import('../config')
+      const configService = new ConfigService()
+      const fontFamily = configService.getFontFamily()
+
+      // 向webview发送字体更新消息
+      this._panel.webview.postMessage({
+        command: 'updateFontFamily',
+        fontFamily,
+      })
+
+      ErrorHandler.logInfo(`字体变化已应用到预览: ${fontFamily}`, 'MarkdownPreviewPanel')
+    }
+    catch (error) {
+      ErrorHandler.logError('字体变化处理失败', error, 'MarkdownPreviewPanel')
     }
   }
 
