@@ -1,10 +1,6 @@
 import * as vscode from 'vscode'
-import { ConfigService } from './services'
-import { MarkdownPreviewSerializer } from './services/renderer'
-import { MarkdownPreviewPanel } from './services/renderer/markdown-preview'
-import { showThemePicker } from './services/theme'
-import { DocumentValidator } from './utils/document-validator'
-import { ErrorHandler } from './utils/error-handler'
+import { ConfigService, MarkdownPreviewPanel, MarkdownPreviewSerializer, showThemePicker } from './services'
+import { DocumentValidator, ErrorHandler } from './utils'
 
 export function activate(context: vscode.ExtensionContext) {
   const configService = new ConfigService()
@@ -57,8 +53,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (MarkdownPreviewPanel.currentPanel
         && event.document === MarkdownPreviewPanel.currentPanel.currentDocument) {
-        ErrorHandler.safeExecute(
-          () => MarkdownPreviewPanel.currentPanel!.updateContent(event.document),
+        ErrorHandler.safeExecuteSync(
+          () => MarkdownPreviewPanel.currentPanel!.updateContentDebounced(event.document),
           '文档内容更新失败',
           'Extension',
         )
@@ -73,8 +69,8 @@ export function activate(context: vscode.ExtensionContext) {
         // 只有在切换到不同的 markdown 文件时才更新预览
         const currentDocument = MarkdownPreviewPanel.currentPanel.currentDocument
         if (!currentDocument || editor!.document !== currentDocument) {
-          ErrorHandler.safeExecute(
-            () => MarkdownPreviewPanel.currentPanel!.updateContent(editor!.document),
+          ErrorHandler.safeExecuteSync(
+            () => MarkdownPreviewPanel.currentPanel!.updateContentDebounced(editor!.document),
             '活动编辑器内容更新失败',
             'Extension',
           )
@@ -109,8 +105,8 @@ export function activate(context: vscode.ExtensionContext) {
           if (success) {
             const currentDocument = MarkdownPreviewPanel.currentPanel.currentDocument
             if (currentDocument) {
-              await ErrorHandler.safeExecute(
-                () => MarkdownPreviewPanel.currentPanel!.updateContent(currentDocument),
+              ErrorHandler.safeExecuteSync(
+                () => MarkdownPreviewPanel.currentPanel!.updateContentDebounced(currentDocument),
                 '主题更新后内容刷新失败',
                 'Extension',
               )

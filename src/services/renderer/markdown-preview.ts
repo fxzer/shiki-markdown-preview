@@ -1,3 +1,4 @@
+import { debounce } from 'throttle-debounce'
 import * as vscode from 'vscode'
 
 import {
@@ -39,6 +40,9 @@ export class MarkdownPreviewPanel {
   // 初始化 Promise 相关
   private _initializationPromise: Promise<void> | undefined
   private _initializationResolve: (() => void) | undefined
+
+  // 防抖更新内容方法
+  private _debouncedUpdateContent: ((_document: vscode.TextDocument) => void) | undefined
 
   public static async createOrShowSlide(extensionUri: vscode.Uri, document?: vscode.TextDocument): Promise<MarkdownPreviewPanel> {
     return MarkdownPreviewPanel._createOrShow(extensionUri, vscode.ViewColumn.Two, document)
@@ -91,6 +95,11 @@ export class MarkdownPreviewPanel {
       this._initializationResolve = resolve
     })
 
+    // 初始化防抖更新方法（300ms 延迟）
+    this._debouncedUpdateContent = debounce(300, (document: vscode.TextDocument) => {
+      this.updateContent(document)
+    })
+
     // 初始化服务
     this._themeService = new ThemeService()
     this._markdownRenderer = new MarkdownRenderer(this._themeService)
@@ -107,8 +116,6 @@ export class MarkdownPreviewPanel {
   private setupPanel(): void {
     // 设置面板图标
     this._panel.iconPath = vscode.Uri.joinPath(this._extensionUri, 'res/preview-icon.svg')
-
-    // 滚动同步管理器已移除
   }
 
   /**
@@ -125,8 +132,8 @@ export class MarkdownPreviewPanel {
           // 只有在文档版本发生变化时才重新渲染，避免不必要的闪烁
           const currentVersion = this._currentDocument.version
           if (this._lastRenderedDocumentVersion !== currentVersion) {
-            ErrorHandler.safeExecute(
-              () => this.updateContent(this._currentDocument!),
+            ErrorHandler.safeExecuteSync(
+              () => this.updateContentDebounced(this._currentDocument!),
               '视图状态变化时内容更新失败',
               'MarkdownPreviewPanel',
             )
@@ -185,7 +192,7 @@ export class MarkdownPreviewPanel {
         await this.updateContent(this._currentDocument)
       }
       else {
-        await this.updatePanelContent()
+        await this.renderEmptyPanel()
       }
 
       // 开始定期状态保存
@@ -278,7 +285,7 @@ export class MarkdownPreviewPanel {
   private async handleThemeSelection(theme: string): Promise<void> {
     const success = await this._themeService.changeTheme(theme)
     if (success && this._currentDocument) {
-      await this.updateContent(this._currentDocument)
+      this.updateContentDebounced(this._currentDocument)
     }
   }
 
@@ -287,12 +294,24 @@ export class MarkdownPreviewPanel {
    */
   private handleThemeSelectionCancel(): void {
     if (this._currentDocument) {
-      ErrorHandler.safeExecute(
-        () => this.updateContent(this._currentDocument!),
+      ErrorHandler.safeExecuteSync(
+        () => this.updateContentDebounced(this._currentDocument!),
         '主题选择取消后内容更新失败',
         'MarkdownPreviewPanel',
       )
     }
+  }
+
+  /**
+   * Update content with debouncing
+   */
+  public updateContentDebounced(document: vscode.TextDocument): void {
+    if (!this._debouncedUpdateContent) {
+      ErrorHandler.logWarning('防抖更新方法未初始化', 'MarkdownPreviewPanel')
+      this.updateContent(document)
+      return
+    }
+    this._debouncedUpdateContent(document)
   }
 
   /**
@@ -305,8 +324,6 @@ export class MarkdownPreviewPanel {
     }
 
     this._currentDocument = document
-
-    // 滚动同步管理器已移除
 
     try {
       const content = document.getText()
@@ -372,9 +389,9 @@ export class MarkdownPreviewPanel {
   }
 
   /**
-   * Update panel content when no document is available
+   * Render empty state content when no document is available
    */
-  private async updatePanelContent(): Promise<void> {
+  private async renderEmptyPanel(): Promise<void> {
     const content = HTMLTemplateService.generateNoDocumentContent()
     const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
@@ -429,10 +446,10 @@ export class MarkdownPreviewPanel {
 
       // 更新内容以应用新主题
       if (this._currentDocument) {
-        await this.updateContent(this._currentDocument)
+        this.updateContentDebounced(this._currentDocument)
       }
       else {
-        await this.updatePanelContent()
+        await this.renderEmptyPanel()
       }
 
       ErrorHandler.logInfo('主题变化已应用到预览', 'MarkdownPreviewPanel')
