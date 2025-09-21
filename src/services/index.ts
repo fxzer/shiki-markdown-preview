@@ -1,4 +1,5 @@
 export * from './config'
 export * from './renderer'
+export * from './scroll-sync'
 export * from './state'
 export * from './theme'

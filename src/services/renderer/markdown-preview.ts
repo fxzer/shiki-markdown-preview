@@ -8,6 +8,7 @@ import {
 } from '..'
 import { ErrorHandler } from '../../utils/error-handler'
 import { PathResolver } from '../../utils/path-resolver'
+import { ScrollSyncManager } from '../scroll-sync'
 import { MarkdownRenderer } from './markdown-renderer'
 
 /**
@@ -29,6 +30,7 @@ export class MarkdownPreviewPanel {
   private _themeService: ThemeService
   private _markdownRenderer: MarkdownRenderer
   private _stateManager: StateManager
+  private _scrollSyncManager: ScrollSyncManager | undefined
 
   // 状态
   private _currentDocument: vscode.TextDocument | undefined
@@ -104,6 +106,7 @@ export class MarkdownPreviewPanel {
     this._themeService = new ThemeService()
     this._markdownRenderer = new MarkdownRenderer(this._themeService)
     this._stateManager = new StateManager(panel)
+    this._scrollSyncManager = new ScrollSyncManager(this)
 
     this.setupPanel()
     this.setupEventListeners()
@@ -209,6 +212,11 @@ export class MarkdownPreviewPanel {
       if (this._initializationResolve) {
         this._initializationResolve()
         this._initializationResolve = undefined
+      }
+
+      // 启动滚动同步
+      if (this._scrollSyncManager) {
+        this._scrollSyncManager.start()
       }
     }
     catch (error) {
@@ -531,7 +539,10 @@ export class MarkdownPreviewPanel {
     // 停止定期状态保存
     this._stateManager.dispose()
 
-    // 滚动同步管理器已移除
+    // 清理滚动同步管理器
+    if (this._scrollSyncManager) {
+      this._scrollSyncManager.dispose()
+    }
 
     // 清理服务
     this._themeService.dispose()
