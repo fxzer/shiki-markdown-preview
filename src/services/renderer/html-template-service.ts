@@ -31,7 +31,20 @@ export class HTMLTemplateService {
       fontFamily = 'inherit',
     } = options
 
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/index.js'))
+    // 模块化脚本加载
+    const scriptModules = [
+      'utils.js',
+      'syntax-highlight.js', 
+      'link-handler.js',
+      'scroll-sync.js',
+      'notion-toc.js',
+      'main.js'
+    ]
+    
+    const scriptUris = scriptModules.map(module => 
+      webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/modules', module))
+    )
+
     const webviewCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/style.css'))
 
     return `<!DOCTYPE html>
@@ -54,7 +67,10 @@ export class HTMLTemplateService {
                 <div class="container" id="markdown-content">
                     ${content}
                 </div>
-                <script nonce="${nonce}" src="${scriptUri}"></script>
+                
+                <!-- 模块化脚本加载 - 按依赖顺序加载 -->
+                ${scriptUris.map(uri => `<script nonce="${nonce}" src="${uri}"></script>`).join('\n                ')}
+                
                 <script nonce="${nonce}">
                     // 将 front matter 数据存储到全局变量中
                     window.frontMatterData = ${JSON.stringify(frontMatterData)};
@@ -87,8 +103,19 @@ export class HTMLTemplateService {
                                     documentUri: message.documentUri
                                 });
                                 break;
+                            default:
+                                // 将其他消息转发给主模块处理
+                                if (window.handleExtensionMessage) {
+                                    window.handleExtensionMessage(event);
+                                }
+                                break;
                         }
                     });
+                    
+                    // 初始化所有模块
+                    if (window.initializeWebviewModules) {
+                        window.initializeWebviewModules();
+                    }
                     
                     // Send ready message when page loads
                     window.addEventListener('load', () => {
@@ -124,6 +151,7 @@ export class HTMLTemplateService {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.joinPath(extensionUri, 'src/webview'),
+        vscode.Uri.joinPath(extensionUri, 'src/webview/modules'),
       ],
     }
   }
