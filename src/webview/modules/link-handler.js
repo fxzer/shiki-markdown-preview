@@ -26,7 +26,7 @@ function initializeLinkHandling() {
   // 为所有链接添加点击事件监听器
   const links = markdownContent.querySelectorAll('a[href]')
 
-  links.forEach((link, index) => {
+  links.forEach((link) => {
     const href = link.getAttribute('href')
     if (!href)
       return

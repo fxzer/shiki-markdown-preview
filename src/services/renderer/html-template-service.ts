@@ -34,15 +34,15 @@ export class HTMLTemplateService {
     // 模块化脚本加载
     const scriptModules = [
       'utils.js',
-      'syntax-highlight.js', 
+      'syntax-highlight.js',
       'link-handler.js',
       'scroll-sync.js',
       'notion-toc.js',
-      'main.js'
+      'main.js',
     ]
-    
-    const scriptUris = scriptModules.map(module => 
-      webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/modules', module))
+
+    const scriptUris = scriptModules.map(module =>
+      webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/modules', module)),
     )
 
     const webviewCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/style.css'))

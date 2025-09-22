@@ -117,7 +117,7 @@ class ScrollSyncManager {
 
     // 智能防抖：根据滚动速度调整延迟
     const debounceMs = this.calculateSmartDebounce(event.percent)
-    
+
     // 使用 requestAnimationFrame 获得更流畅的滚动
     this.syncTimeout = setTimeout(() => {
       requestAnimationFrame(() => {
@@ -138,12 +138,12 @@ class ScrollSyncManager {
 
     const timeDiff = Date.now() - this.lastEvent.timestamp
     const percentDiff = Math.abs(percent - this.lastEvent.percent)
-    
+
     // 快速滚动时减少防抖时间
     if (percentDiff > this.FAST_SCROLL_THRESHOLD && timeDiff < 50) {
       return Math.max(4, this.DEBOUNCE_MS / 2) // 快速滚动时使用更短的防抖
     }
-    
+
     // 慢速滚动时使用正常防抖
     return this.DEBOUNCE_MS
   }

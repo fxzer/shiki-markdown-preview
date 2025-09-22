@@ -5,10 +5,10 @@ import * as vscode from 'vscode'
  * 滚动同步状态枚举
  */
 enum SyncState {
-  IDLE = 'idle',
-  EDITOR_SYNCING = 'editor_syncing',
-  PREVIEW_SYNCING = 'preview_syncing',
-  BLOCKED = 'blocked',
+  _IDLE = 'idle',
+  _EDITOR_SYNCING = 'editor_syncing',
+  _PREVIEW_SYNCING = 'preview_syncing',
+  _BLOCKED = 'blocked',
 }
 
 /**
@@ -30,7 +30,7 @@ export class ScrollSyncManager {
   private _disposables: vscode.Disposable[] = []
 
   // 状态管理
-  private _syncState: SyncState = SyncState.IDLE
+  private _syncState: SyncState = SyncState._IDLE
   private _lastEvent: ScrollEvent | null = null
   private _syncTimeout: NodeJS.Timeout | null = null
   private _scrollEndTimeout: NodeJS.Timeout | null = null
@@ -73,7 +73,7 @@ export class ScrollSyncManager {
   private handleEditorScroll(editor: vscode.TextEditor): void {
     if (editor.document !== this._panel.currentDocument)
       return
-    if (this._syncState === SyncState.PREVIEW_SYNCING)
+    if (this._syncState === SyncState._PREVIEW_SYNCING)
       return // 防止循环
 
     const lineCount = editor.document.lineCount
@@ -133,11 +133,11 @@ export class ScrollSyncManager {
    */
   private processScrollEvent(event: ScrollEvent): void {
     // 状态检查
-    if (this._syncState === SyncState.BLOCKED)
+    if (this._syncState === SyncState._BLOCKED)
       return
-    if (this._syncState === SyncState.EDITOR_SYNCING && event.source === 'editor')
+    if (this._syncState === SyncState._EDITOR_SYNCING && event.source === 'editor')
       return
-    if (this._syncState === SyncState.PREVIEW_SYNCING && event.source === 'preview')
+    if (this._syncState === SyncState._PREVIEW_SYNCING && event.source === 'preview')
       return
 
     // 去重检查
@@ -197,7 +197,7 @@ export class ScrollSyncManager {
 
     this._scrollEndTimeout = setTimeout(() => {
       // 滚动结束，重置状态
-      this._syncState = SyncState.IDLE
+      this._syncState = SyncState._IDLE
     }, this._SCROLL_END_MS)
   }
 
@@ -217,7 +217,7 @@ export class ScrollSyncManager {
    * 同步到预览区 - 优化版本
    */
   private syncToPreview(percent: number): void {
-    this._syncState = SyncState.EDITOR_SYNCING
+    this._syncState = SyncState._EDITOR_SYNCING
 
     // 使用更轻量的消息格式，减少序列化开销
     this._panel.panel.webview.postMessage({
@@ -230,7 +230,7 @@ export class ScrollSyncManager {
 
     // 设置状态恢复定时器
     setTimeout(() => {
-      this._syncState = SyncState.IDLE
+      this._syncState = SyncState._IDLE
     }, this._SYNC_BLOCK_MS)
   }
 
@@ -238,19 +238,19 @@ export class ScrollSyncManager {
    * 同步到编辑器 - 优化版本
    */
   private async syncToEditor(percent: number): Promise<void> {
-    this._syncState = SyncState.PREVIEW_SYNCING
+    this._syncState = SyncState._PREVIEW_SYNCING
 
     const editor = vscode.window.visibleTextEditors.find(
       e => e.document === this._panel.currentDocument,
     )
     if (!editor) {
-      this._syncState = SyncState.IDLE
+      this._syncState = SyncState._IDLE
       return
     }
 
     const lineCount = editor.document.lineCount
     if (lineCount === 0) {
-      this._syncState = SyncState.IDLE
+      this._syncState = SyncState._IDLE
       return
     }
 
@@ -267,7 +267,7 @@ export class ScrollSyncManager {
         const currentTopLine = currentVisibleRanges[0].start.line
         if (Math.abs(currentTopLine - clampedLine) < 3) {
           // 如果差异很小，跳过滚动
-          this._syncState = SyncState.IDLE
+          this._syncState = SyncState._IDLE
           return
         }
       }
@@ -282,7 +282,7 @@ export class ScrollSyncManager {
 
     // 设置状态恢复定时器
     setTimeout(() => {
-      this._syncState = SyncState.IDLE
+      this._syncState = SyncState._IDLE
     }, this._SYNC_BLOCK_MS)
   }
 
@@ -301,7 +301,7 @@ export class ScrollSyncManager {
     this._disposables = []
 
     // 重置状态
-    this._syncState = SyncState.IDLE
+    this._syncState = SyncState._IDLE
     this._lastEvent = null
   }
 }

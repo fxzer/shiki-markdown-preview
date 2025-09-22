@@ -6,7 +6,7 @@
 function applySyntaxHighlighting() {
   const codeBlocks = document.querySelectorAll('pre code')
 
-  codeBlocks.forEach((codeElement, index) => {
+  codeBlocks.forEach((codeElement) => {
     const preElement = codeElement.parentElement
     if (!codeElement || !preElement) {
       return

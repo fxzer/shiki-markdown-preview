@@ -225,8 +225,42 @@ export const SUPPORTED_LANGUAGES = [
 ]
 const md = new MarkdownIt()
 
+/**
+ * Shell 语言映射表
+ * 将常见的 shell 语言标识符映射到 shiki 支持的 shellscript
+ */
+const SHELL_LANGUAGE_MAP: Record<string, string> = {
+  bash: 'shellscript',
+  sh: 'shellscript',
+  shell: 'shellscript',
+  zsh: 'shellscript',
+  fish: 'fish', // fish 在 shiki 中有独立支持
+  powershell: 'powershell', // powershell 在 shiki 中有独立支持
+}
+
+/**
+ * 语言映射函数
+ * 将用户输入的语言标识符映射到 shiki 支持的语言
+ */
+export function mapLanguageToShiki(language: string): string {
+  // 如果已经是支持的语言，直接返回
+  if (SUPPORTED_LANGUAGES.includes(language)) {
+    return language
+  }
+
+  // 检查 shell 语言映射
+  const mappedLanguage = SHELL_LANGUAGE_MAP[language.toLowerCase()]
+  if (mappedLanguage) {
+    return mappedLanguage
+  }
+
+  // 如果都不匹配，返回原始语言（让后续处理决定是否支持）
+  return language
+}
+
 export function isSupportedLanguage(language: string): boolean {
-  return SUPPORTED_LANGUAGES.includes(language)
+  const mappedLanguage = mapLanguageToShiki(language)
+  return SUPPORTED_LANGUAGES.includes(mappedLanguage)
 }
 /**
  * 从 Markdown 内容中检测所有使用的代码块语言
@@ -249,7 +283,9 @@ export function detectLanguages(content: string): string[] {
           lang = lineNumberMatch[1].trim()
         }
         if (lang) {
-          languages.add(lang)
+          // 使用语言映射，将 shell 相关语言映射到 shellscript
+          const mappedLang = mapLanguageToShiki(lang)
+          languages.add(mappedLang)
         }
       }
     })

@@ -7,7 +7,6 @@ let scrollSyncManager = null
  * 初始化滚动同步
  */
 function initializeScrollSync() {
-
   // 确保内容已经加载
   const content = document.getElementById('markdown-content')
   if (!content) {
@@ -126,7 +125,6 @@ function handleExtensionMessage(event) {
  * 主初始化函数
  */
 function initializeWebviewModules() {
-
   // 检查TOC初始化条件
   const canInitToc = () => {
     const content = document.getElementById('markdown-content')
@@ -159,7 +157,6 @@ function initializeWebviewModules() {
 
   // 初始化滚动同步
   initializeScrollSync()
-
 }
 
 // 页面加载完成后也调用一次，确保语法高亮被应用

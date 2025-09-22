@@ -6,7 +6,7 @@ import * as vscode from 'vscode'
 import { toCssVarsStr } from '../../utils/color-handler'
 import { escapeHtml } from '../../utils/common'
 import { ErrorHandler } from '../../utils/error-handler'
-import { detectLanguages, isSupportedLanguage } from '../../utils/language-detector'
+import { detectLanguages, isSupportedLanguage, mapLanguageToShiki } from '../../utils/language-detector'
 import { generateEnhancedColors } from '../../utils/theme-enhance'
 import { ConfigService } from '../config'
 
@@ -376,6 +376,9 @@ export class ThemeService {
     }
 
     try {
+      // 使用语言映射，将 shell 相关语言映射到 shellscript
+      const mappedLanguage = mapLanguageToShiki(language)
+
       // 检查主题是否已加载
       if (!this._loadedThemes.has(this._currentTheme)) {
         ErrorHandler.logWarning(`主题未加载: ${this._currentTheme}, 回退到转义HTML`, 'ThemeService')
@@ -383,11 +386,11 @@ export class ThemeService {
       }
 
       // 检查语言是否已加载，如果未加载则尝试异步加载
-      if (!this._loadedLanguages.has(language)) {
-        ErrorHandler.logWarning(`语言未加载: ${language}, 尝试异步加载`, 'ThemeService')
+      if (!this._loadedLanguages.has(mappedLanguage)) {
+        ErrorHandler.logWarning(`语言未加载: ${mappedLanguage} (原始: ${language}), 尝试异步加载`, 'ThemeService')
         // 异步加载语言，但不等待结果，先返回转义HTML
-        this.loadLanguage(language).catch((error) => {
-          ErrorHandler.logError(`异步加载语言失败: ${language}`, error, 'ThemeService')
+        this.loadLanguage(mappedLanguage).catch((error) => {
+          ErrorHandler.logError(`异步加载语言失败: ${mappedLanguage}`, error, 'ThemeService')
         })
         return escapeHtml(code)
       }
@@ -452,6 +455,9 @@ export class ThemeService {
     }
 
     try {
+      // 使用语言映射，将 shell 相关语言映射到 shellscript
+      const mappedLanguage = mapLanguageToShiki(language)
+
       // 检查主题是否已加载
       if (!this._loadedThemes.has(this._currentTheme)) {
         ErrorHandler.logWarning(`主题未加载: ${this._currentTheme}, 回退到转义HTML`, 'ThemeService')
@@ -459,14 +465,14 @@ export class ThemeService {
       }
 
       // 检查语言是否已加载，如果未加载则尝试加载
-      if (!this._loadedLanguages.has(language)) {
-        ErrorHandler.logInfo(`语言未加载: ${language}, 尝试加载`, 'ThemeService')
+      if (!this._loadedLanguages.has(mappedLanguage)) {
+        ErrorHandler.logInfo(`语言未加载: ${mappedLanguage} (原始: ${language}), 尝试加载`, 'ThemeService')
         try {
-          await this.loadLanguage(language)
-          ErrorHandler.logInfo(`语言加载成功: ${language}`, 'ThemeService')
+          await this.loadLanguage(mappedLanguage)
+          ErrorHandler.logInfo(`语言加载成功: ${mappedLanguage}`, 'ThemeService')
         }
         catch (error) {
-          ErrorHandler.logError(`语言加载失败: ${language}`, error, 'ThemeService')
+          ErrorHandler.logError(`语言加载失败: ${mappedLanguage}`, error, 'ThemeService')
           return escapeHtml(code)
         }
       }
@@ -480,7 +486,7 @@ export class ThemeService {
       }
 
       const highlighted = this._highlighter.codeToHtml(code, {
-        lang: language,
+        lang: mappedLanguage,
         theme: this._currentTheme,
         transformers: transformers.length > 0 ? transformers : undefined,
       })
@@ -559,18 +565,21 @@ export class ThemeService {
     }
 
     try {
+      // 使用语言映射，将 shell 相关语言映射到 shellscript
+      const mappedLanguage = mapLanguageToShiki(language)
+
       // 检查主题是否已加载
       if (!this._loadedThemes.has(this._currentTheme)) {
         await this.loadTheme(this._currentTheme)
       }
 
       // 检查语言是否已加载
-      if (!this._loadedLanguages.has(language)) {
-        await this.loadLanguage(language)
+      if (!this._loadedLanguages.has(mappedLanguage)) {
+        await this.loadLanguage(mappedLanguage)
       }
 
       const highlighted = this._highlighter.codeToHtml(code, {
-        lang: language,
+        lang: mappedLanguage,
         theme: this._currentTheme,
       })
 
@@ -650,19 +659,22 @@ export class ThemeService {
     }
 
     try {
+      // 使用语言映射，将 shell 相关语言映射到 shellscript
+      const mappedLanguage = mapLanguageToShiki(language)
+
       // 检查语言是否受支持
-      if (!isSupportedLanguage(language)) {
-        throw new Error(`语言 ${language} 不受支持`)
+      if (!isSupportedLanguage(mappedLanguage)) {
+        throw new Error(`语言 ${mappedLanguage} 不受支持`)
       }
 
       // 直接尝试加载语言到当前高亮器
       try {
-        await (this._highlighter as any).loadLanguage(language)
-        this._loadedLanguages.add(language)
-        ErrorHandler.logInfo(`语言已加载: ${language}`, 'ThemeService')
+        await (this._highlighter as any).loadLanguage(mappedLanguage)
+        this._loadedLanguages.add(mappedLanguage)
+        ErrorHandler.logInfo(`语言已加载: ${mappedLanguage} (原始: ${language})`, 'ThemeService')
       }
-      catch (loadError) {
-        ErrorHandler.logWarning(`直接加载语言失败: ${language}`, 'ThemeService')
+      catch {
+        ErrorHandler.logWarning(`直接加载语言失败: ${mappedLanguage}`, 'ThemeService')
 
         // 如果直接加载失败，尝试重新创建高亮器实例
         try {
@@ -672,17 +684,17 @@ export class ThemeService {
           // 创建包含新语言的高亮器
           const newHighlighter = await createHighlighter({
             themes: currentThemes,
-            langs: [...currentLanguages, language],
+            langs: [...currentLanguages, mappedLanguage],
           })
 
           // 替换当前高亮器
           this._highlighter = newHighlighter
-          this._loadedLanguages.add(language)
-          ErrorHandler.logInfo(`通过重新创建高亮器加载语言: ${language}`, 'ThemeService')
+          this._loadedLanguages.add(mappedLanguage)
+          ErrorHandler.logInfo(`通过重新创建高亮器加载语言: ${mappedLanguage}`, 'ThemeService')
         }
         catch (recreateError) {
-          ErrorHandler.logError(`重新创建高亮器失败: ${language}`, 'ThemeService')
-          throw new Error(`无法加载语言 ${language}: ${recreateError}`)
+          ErrorHandler.logError(`重新创建高亮器失败: ${mappedLanguage}`, 'ThemeService')
+          throw new Error(`无法加载语言 ${mappedLanguage}: ${recreateError}`)
         }
       }
     }
@@ -712,7 +724,7 @@ export class ThemeService {
       const themeEntries = Object.entries(bundledThemes)
 
       // 并行加载所有主题元数据
-      const themePromises = themeEntries.map(async ([themeName, themeImporter]) => {
+      const themePromises = themeEntries.map(async ([_, themeImporter]) => {
         try {
           const themeModule = await themeImporter()
           const themeData = themeModule.default
