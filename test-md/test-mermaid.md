@@ -11,20 +11,137 @@ graph TD
     D --> E;
 ```
 
+```mermaid
+flowchart TD
+    A[Christmas] -->|Get money| B(Go shopping)
+    B --> C{Let me think}
+    C -->|One| D[Laptop]
+    C -->|Two| E[iPhone]
+    C -->|Three| F[fa:fa-car Car]
+
+```
+
+## 类图 (Class Diagram)
+
+```mermaid
+classDiagram
+  Animal <|-- Duck
+  Animal <|-- Fish
+  Animal <|-- Zebra
+  Animal : +int age
+  Animal : +String gender
+  Animal: +isMammal()
+  Animal: +mate()
+  class Duck{
+    +String beakColor
+    +swim()
+    +quack()
+  }
+  class Fish{
+    -int sizeInFeet
+    -canEat()
+  }
+  class Zebra{
+    +bool is_wild
+    +run()
+  }
+```
+
+## 实体关系图 (ER Diagram)
+
+```mermaid
+erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ ORDER_ITEM : contains
+  PRODUCT ||--o{ ORDER_ITEM : includes
+  CUSTOMER {
+      string id
+      string name
+      string email
+  }
+  ORDER {
+      string id
+      date orderDate
+      string status
+  }
+  PRODUCT {
+      string id
+      string name
+      float price
+  }
+  ORDER_ITEM {
+      int quantity
+      float price
+  }
+```
+
+## 思维导图 (Mindmap)
+
+```mermaid
+mindmap
+root((mindmap))
+  Origins
+    Long history
+    ::icon(fa fa-book)
+    Popularisation
+      British popular psychology author Tony Buzan
+  Research
+    On effectiveness<br/>and features
+    On Automatic creation
+      Uses
+          Creative techniques
+          Strategic planning
+          Argument mapping
+  Tools
+    Pen and paper
+    Mermaid
+```
+
+## quadrantChart
+
+```mermaid
+quadrantChart
+  title Reach and engagement of campaigns
+  x-axis Low Reach --> High Reach
+  y-axis Low Engagement --> High Engagement
+  quadrant-1 We should expand
+  quadrant-2 Need to promote
+  quadrant-3 Re-evaluate
+  quadrant-4 May be improved
+  Campaign A: [0.3, 0.6]
+  Campaign B: [0.45, 0.23]
+  Campaign C: [0.57, 0.69]
+  Campaign D: [0.78, 0.34]
+  Campaign E: [0.40, 0.34]
+  Campaign F: [0.35, 0.78]
+```
+
+## timeline
+
+```mermaid
+timeline
+    title History of Social Media Platform
+    2002 : LinkedIn
+    2004 : Facebook
+         : Google
+    2005 : YouTube
+    2006 : Twitter
+```
+
 ## 时序图 (Sequence Diagram)
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant Server
-    User->>Server: 请求
-    Server-->>User: 响应
+  Alice->>+John: Hello John, how are you?
+  Alice->>+John: John, can you hear me?
+  John-->>-Alice: Hi Alice, I can hear you!
+  John-->>-Alice: I feel great!
 ```
 
 ## 甘特图 (Gantt Chart)
 
 ```mermaid
-gantt
+  gantt
     title 项目计划
     dateFormat YYYY-MM-DD
     section 核心开发
@@ -41,39 +158,16 @@ pie
     "C" : 30
 ```
 
-## 类图 (Class Diagram)
-
-```mermaid
-classDiagram
-    class Animal {
-      +makeSound()
-    }
-    class Dog {
-      +bark()
-    }
-    Animal <|-- Dog
-```
-
 ## 状态图 (State Diagram)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> 待处理
-    待处理 --> 处理中
-    处理中 --> [*]
-```
-
-## 实体关系图 (ER Diagram)
-
-```mermaid
-erDiagram
-    CUSTOMER ||--o{ ORDER : places
-    CUSTOMER {
-        string name
-    }
-    ORDER {
-        int orderID
-    }
+  [*] --> Still
+  Still --> [*]
+  Still --> Moving
+  Moving --> Still
+  Moving --> Crash
+  Crash --> [*]
 ```
 
 ## Git 图 (Git Graph)
@@ -84,17 +178,16 @@ gitGraph
     branch develop
     checkout develop
     commit
+    commit
     checkout main
     merge develop
-```
-
-## 思维导图 (Mindmap)
-
-```mermaid
-mindmap
-  root((核心))
-    分支1
-    分支2
+    commit
+    branch feature
+    checkout feature
+    commit
+    commit
+    checkout main
+    merge feature
 ```
 
 ## 流程图 - 子图 (Subgraph)

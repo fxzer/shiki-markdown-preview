@@ -855,3 +855,39 @@ pre:hover .lang {
 
 }
 
+/* Mermaid 图表样式 */
+.mermaid-graph {
+  text-align: center;
+  margin: 20px 0;
+  padding: 20px;
+  background-color: var(--editor-background, var(--vscode-editor-background));
+  border: 1px solid var(--widget-border, var(--vscode-widget-border));
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.mermaid-graph svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-error {
+  margin: 16px 0;
+  padding: 12px;
+  border-radius: 6px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* 确保 mermaid 图表在不同主题下的可读性 */
+[data-markdown-theme-type="dark"] .mermaid-graph {
+  background-color: var(--editor-background, #1e1e1e);
+  filter: brightness(0.9) contrast(1.1);
+}
+
+[data-markdown-theme-type="light"] .mermaid-graph {
+  background-color: var(--editor-background, #ffffff);
+  filter: brightness(1) contrast(1);
+}
+

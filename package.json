@@ -2,7 +2,7 @@
   "publisher": "fxzer",
   "name": "shiki-markdown-preview",
   "displayName": "Shiki Markdown Preview",
-  "version": "0.0.10",
+  "version": "1.0.3",
   "private": true,
   "description": "一个功能强大的 VS Code 扩展，提供基于 Shiki 的 Markdown 预览功能，支持 60+ 种语法高亮主题。",
   "license": "MIT",
@@ -188,8 +188,9 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile && npm run copy-assets",
     "compile": "tsc -p ./",
+    "copy-assets": "cp -r src/webview/*.css src/webview/*.js out/webview/ 2>/dev/null || true",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "watch": "tsc -w -p ./",

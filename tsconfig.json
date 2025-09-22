@@ -21,6 +21,9 @@
     ".vscode-test",
     "shikiMarkdownPreview-0.0.1",
     "out",
-    "media/**/*.js"
+    "media/**/*.js",
+    "temp-vsix",
+    "test-md",
+    "*.vsix"
   ]
 }

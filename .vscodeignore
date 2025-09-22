@@ -1,0 +1,79 @@
+# 源代码和开发文件
+src/
+tsconfig.json
+eslint.config.mjs
+.gitignore
+
+# 开发依赖和构建文件
+temp-vsx/
+*.vsix
+
+# 测试文件
+test-md/
+test-md/**/*
+
+
+# 开发工具配置
+.vscode/
+.vscode/**/*
+
+# 日志和临时文件
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# 开发脚本和配置
+package-lock.json
+
+# 源代码映射文件
+*.map
+
+# 其他开发相关文件
+*.md.tmp
+*.bak
+*.swp
+*.swo
+*~
+types
+
+
+node_modules/**/.git
+node_modules/**/.github
+node_modules/**/test/
+node_modules/**/tests/
+node_modules/**/docs/
+node_modules/**/doc/
+node_modules/**/examples/
+node_modules/**/benchmarks/
+node_modules/**/*.md
+node_modules/**/README*
+node_modules/**/LICENSE*
+node_modules/**/CHANGELOG*
+node_modules/**/.npmignore
+node_modules/**/.gitignore
+node_modules/**/.travis.yml
+node_modules/**/.eslintrc*
+node_modules/**/.jshintrc
+node_modules/**/tsconfig.json
+node_modules/**/webpack.config.js
+node_modules/**/rollup.config.js
+node_modules/**/vite.config.js
+node_modules/**/*.map
+node_modules/**/*.ts
+node_modules/**/*.d.ts
+node_modules/**/src/
+node_modules/**/test.*
+
+# Mermaid 特定优化 - 已改用CDN，无需打包
+# node_modules/mermaid/ 整个依赖已移除
+
+# Shiki 特定优化
+node_modules/shiki/**/*.map
+node_modules/shiki/**/scripts/
+node_modules/shiki/**/docs/
+
+# 其他大体积依赖优化
+node_modules/**/locale/  # 本地化文件
+node_modules/**/locales/
+node_modules/**/i18n/

@@ -78,6 +78,17 @@ function handleExtensionMessage(event) {
           )
         }
 
+        // 重新渲染 Mermaid 图表
+        if (window.renderMermaidDiagrams) {
+          window.robustInitialize(
+            () => document.querySelector('pre code.language-mermaid'),
+            window.renderMermaidDiagrams,
+            'Mermaid diagram re-rendering failed after content update.',
+            3,
+            100,
+          )
+        }
+
         // 延迟重新初始化滚动同步
         setTimeout(() => {
           initializeScrollSync()
@@ -130,6 +141,25 @@ function handleExtensionMessage(event) {
       document.documentElement.style.setProperty('--font-family', message.fontFamily)
       break
     }
+    case 'updateTheme': {
+      // 更新主题类型属性
+      document.documentElement.setAttribute('data-markdown-theme-type', message.themeType)
+      
+      // 重新初始化 Mermaid 以应用新主题
+      if (window.reinitializeMermaid && window.renderMermaidDiagrams) {
+        window.robustInitialize(
+          () => document.querySelector('pre code.language-mermaid'),
+          async () => {
+            await window.reinitializeMermaid()
+            await window.renderMermaidDiagrams()
+          },
+          'Mermaid theme reinitialization failed.',
+          3,
+          100,
+        )
+      }
+      break
+    }
   }
 }
 
@@ -164,6 +194,15 @@ function initializeWebviewModules() {
       () => document.getElementById('markdown-content'),
       window.initializeLinkHandling,
       'Link handling initialization failed: Markdown content not found.',
+    )
+  }
+
+  // 初始化 Mermaid 图表渲染
+  if (window.robustInitialize && window.renderMermaidDiagrams) {
+    window.robustInitialize(
+      () => document.querySelector('pre code.language-mermaid'),
+      window.renderMermaidDiagrams,
+      'Mermaid diagram rendering failed: Mermaid code blocks not found.',
     )
   }
 

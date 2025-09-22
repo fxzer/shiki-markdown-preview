@@ -221,6 +221,13 @@ export class MarkdownPreviewPanel {
             'MarkdownPreviewPanel',
           )
         }
+        if (event.affectsConfiguration('shikiMarkdownPreview.currentTheme')) {
+          ErrorHandler.safeExecute(
+            () => this.handleThemeTypeChange(),
+            '主题类型变化处理失败',
+            'MarkdownPreviewPanel',
+          )
+        }
       },
       null,
       this._disposables,
@@ -593,6 +600,31 @@ export class MarkdownPreviewPanel {
     }
     catch (error) {
       ErrorHandler.logError('字体变化处理失败', error, 'MarkdownPreviewPanel')
+    }
+  }
+
+  /**
+   * Handle theme type change
+   */
+  private async handleThemeTypeChange(): Promise<void> {
+    if (!this._isInitialized) {
+      return
+    }
+
+    try {
+      // 获取当前主题类型
+      const currentThemeType = await this._themeService.refreshCurrentThemeType()
+
+      // 向webview发送主题类型更新消息
+      this._panel.webview.postMessage({
+        command: 'updateTheme',
+        themeType: currentThemeType,
+      })
+
+      ErrorHandler.logInfo(`主题类型变化已应用到预览: ${currentThemeType}`, 'MarkdownPreviewPanel')
+    }
+    catch (error) {
+      ErrorHandler.logError('主题类型变化处理失败', error, 'MarkdownPreviewPanel')
     }
   }
 
