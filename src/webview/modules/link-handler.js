@@ -20,28 +20,21 @@ function isRelativeMarkdownFile(href) {
 function initializeLinkHandling() {
   const markdownContent = document.getElementById('markdown-content')
   if (!markdownContent) {
-    console.warn('Markdown content not found for link handling')
     return
   }
 
   // 为所有链接添加点击事件监听器
   const links = markdownContent.querySelectorAll('a[href]')
-  console.warn(`Found ${links.length} links to process`)
 
   links.forEach((link, index) => {
     const href = link.getAttribute('href')
     if (!href)
       return
 
-    console.warn(`Processing link ${index}: ${href}`)
-
     // 只有相对路径的 .md 文件才通过扩展处理，其他所有链接都保持默认行为
     if (isRelativeMarkdownFile(href)) {
-      console.warn(`Setting up relative file link: ${href}`)
-
       link.addEventListener('click', (event) => {
         event.preventDefault()
-        console.warn(`Clicked relative file link: ${href}`)
 
         // 发送消息给扩展
         if (window.vscode && window.vscode.postMessage) {
@@ -49,9 +42,6 @@ function initializeLinkHandling() {
             command: 'openRelativeFile',
             filePath: href,
           })
-        }
-        else {
-          console.error('vscode.postMessage not available')
         }
       })
 
@@ -79,7 +69,6 @@ function initializeLinkHandling() {
     })
 
     if (shouldReinitialize) {
-      console.warn('Content changed, reinitializing link handling...')
       // 直接调用，因为内容已经存在
       initializeLinkHandling()
     }

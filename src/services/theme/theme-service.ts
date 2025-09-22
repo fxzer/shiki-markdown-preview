@@ -705,15 +705,11 @@ export class ThemeService {
    */
   async discoverAndCacheThemes(): Promise<void> {
     try {
-      console.warn('开始动态发现主题...')
-      const startTime = Date.now()
-
       // 清空现有缓存
       this._themeCache.metadata.clear()
 
       // 获取所有可用的主题模块
       const themeEntries = Object.entries(bundledThemes)
-      console.warn(`发现 ${themeEntries.length} 个主题模块`)
 
       // 并行加载所有主题元数据
       const themePromises = themeEntries.map(async ([themeName, themeImporter]) => {
@@ -732,8 +728,7 @@ export class ThemeService {
             return metadata
           }
         }
-        catch (error) {
-          console.warn(`加载主题失败: ${themeName}`, error)
+        catch {
           return null
         }
       })
@@ -748,11 +743,6 @@ export class ThemeService {
       // 分组和排序
       this._themeCache.grouped = this.groupThemesByType(validThemes)
       this._themeCache.loaded = true
-
-      const duration = Date.now() - startTime
-      console.warn(`主题发现完成: ${validThemes.length} 个主题，耗时 ${duration}ms`)
-      console.warn(`Light主题: ${this._themeCache.grouped.light.length} 个`)
-      console.warn(`Dark主题: ${this._themeCache.grouped.dark.length} 个`)
     }
     catch (error) {
       console.error('主题发现过程失败:', error)
@@ -794,7 +784,6 @@ export class ThemeService {
    * 手动刷新主题缓存（提供外部调用）
    */
   async refreshThemeCache(): Promise<void> {
-    console.warn('手动刷新主题缓存...')
     this._themeCache.loaded = false
     await this.discoverAndCacheThemes()
   }
@@ -815,8 +804,8 @@ export class ThemeService {
       try {
         await this.loadLanguage(language)
       }
-      catch (error) {
-        console.warn(`Failed to preload language: ${language}`, error)
+      catch {
+        console.warn(`Failed to preload language: ${language}`)
       }
     }
   }
@@ -836,26 +825,18 @@ export class ThemeService {
       const detectedLanguages = detectLanguages(content)
 
       if (detectedLanguages.length === 0) {
-        console.warn('No languages detected in content')
         return
       }
-
-      console.warn(`Detected languages: ${detectedLanguages.join(', ')}`)
 
       // 过滤出未加载的语言
       const unloadedLanguages = detectedLanguages.filter((lang: string) => !this._loadedLanguages.has(lang))
 
       if (unloadedLanguages.length === 0) {
-        console.warn('All detected languages are already loaded')
         return
       }
 
-      console.warn(`Preloading ${unloadedLanguages.length} languages: ${unloadedLanguages.join(', ')}`)
-
       // 并行加载所有需要的语言
       await this.preloadLanguages(unloadedLanguages)
-
-      console.warn(`Successfully preloaded ${unloadedLanguages.length} languages`)
     }
     catch (error) {
       console.error('Failed to preload languages from content:', error)

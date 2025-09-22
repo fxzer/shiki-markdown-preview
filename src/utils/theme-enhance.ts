@@ -74,7 +74,6 @@ export function isValidBorderColor(
     return contrast >= minContrast
   }
   catch {
-    console.warn('无效的边框颜色:', borderColor)
     return false
   }
 }
@@ -224,7 +223,6 @@ export function generateHighContrastBackground(
         }
       }
       catch {
-        console.warn('无效的背景色:', existingBackground)
       }
     }
 
@@ -335,7 +333,6 @@ export function generateEnhancedColors(
   const background = themeColors['editor.background']
 
   if (!background) {
-    console.warn('No background color found, using fallback')
     // 使用回退背景色
     const fallbackBackground = isDark ? '#1e1e1e' : '#ffffff'
     enhanced['markdown.tableHeader.background'] = adjustContrastColor(fallbackBackground)

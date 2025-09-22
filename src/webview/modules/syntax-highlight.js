@@ -5,21 +5,12 @@
  */
 function applySyntaxHighlighting() {
   const codeBlocks = document.querySelectorAll('pre code')
-  console.warn(`Found ${codeBlocks.length} code blocks`)
 
   codeBlocks.forEach((codeElement, index) => {
     const preElement = codeElement.parentElement
     if (!codeElement || !preElement) {
-      console.warn(`Code block ${index}: missing codeElement or preElement`)
       return
     }
-
-    console.warn(`Processing code block ${index}:`, {
-      hasDataLang: codeElement.hasAttribute('data-lang'),
-      dataLang: codeElement.getAttribute('data-lang'),
-      hasCopyButton: !!preElement.querySelector('.copy-button'),
-      hasLangDisplay: !!preElement.querySelector('.lang'),
-    })
 
     addCopyButton(preElement, codeElement)
     addLanguageDisplay(preElement, codeElement)
@@ -31,11 +22,9 @@ function applySyntaxHighlighting() {
  */
 function addCopyButton(preElement, codeElement) {
   if (preElement.querySelector('.copy-button')) {
-    console.warn('Copy button already exists, skipping')
     return
   }
 
-  console.warn('Adding copy button')
   const button = document.createElement('button')
   button.className = 'copy-button'
   button.title = 'Copy code'
@@ -81,17 +70,14 @@ function addCopyButton(preElement, codeElement) {
  */
 function addLanguageDisplay(preElement, codeElement) {
   if (preElement.querySelector('.lang')) {
-    console.warn('Language display already exists, skipping')
     return
   }
 
   if (!codeElement) {
-    console.warn('No codeElement provided')
     return
   }
 
   const language = codeElement.getAttribute('data-lang') || ''
-  console.warn(`Language attribute: "${language}"`)
 
   // 如果找到了语言信息，创建语言显示元素
   if (language && language.trim()) {
@@ -99,10 +85,6 @@ function addLanguageDisplay(preElement, codeElement) {
     langElement.className = 'lang'
     langElement.textContent = language.trim().toLowerCase()
     preElement.appendChild(langElement)
-    console.warn(`Added language display: "${language.trim().toLowerCase()}"`)
-  }
-  else {
-    console.warn('No language found or language is empty')
   }
 }
 

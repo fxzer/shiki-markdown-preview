@@ -24,10 +24,10 @@ export class ScrollSyncManager {
     // 立即设置消息监听器，减少延迟
     this.setupMessageListener()
 
-    // 监听编辑器可视范围变化 - 使用防抖避免性能问题（减少到20ms）
+    // 监听编辑器可视范围变化 - 使用合理的防抖时间
     this._disposables.push(
       vscode.window.onDidChangeTextEditorVisibleRanges(
-        debounce(20, (event) => {
+        debounce(50, (event) => {
           // 只处理当前文档对应的编辑器
           if (event.textEditor.document === this._panel.currentDocument) {
             this.handleEditorScroll(event.textEditor)
@@ -57,25 +57,25 @@ export class ScrollSyncManager {
     const topLine = editor.visibleRanges[0].start.line
     const percent = topLine / (lineCount - 1) // 减1因为行号从0开始
 
-    // 避免重复同步：如果百分比变化不大，跳过
+    // 提高精度阈值，减少不必要的同步
     if (Math.abs(percent - this._lastEditorPercent) < 0.01)
       return
     this._lastEditorPercent = percent
 
-    // 设置同步锁，避免死循环（使用更短的锁时间）
+    // 设置同步锁，避免死循环
     this._isSyncing = true
 
-    // 立即发送同步消息到预览区，移除延迟
+    // 发送同步消息到预览区
     this._panel.panel.webview.postMessage({
       command: 'syncScrollToPercent',
       percent,
-      immediate: true, // 添加立即模式标记
+      immediate: false, // 使用平滑滚动
     })
 
-    // 使用更短的延迟释放锁（减少到10ms）
+    // 使用合理的延迟释放锁
     setTimeout(() => {
       this._isSyncing = false
-    }, 10)
+    }, 100)
   }
 
   /**
@@ -96,14 +96,11 @@ export class ScrollSyncManager {
    * 处理预览区滚动事件
    */
   private async handlePreviewScroll(percent: number): Promise<void> {
-    console.warn('[ScrollSync] handlePreviewScroll called with percent:', percent)
-
     // 找到对应的编辑器
     const editor = vscode.window.visibleTextEditors.find(
       e => e.document === this._panel.currentDocument,
     )
     if (!editor) {
-      console.warn('[ScrollSync] No editor found for current document')
       return
     }
 
@@ -111,34 +108,31 @@ export class ScrollSyncManager {
     if (lineCount === 0)
       return
 
-    // 避免重复同步：如果百分比变化不大，跳过
+    // 提高精度阈值，减少不必要的同步
     if (Math.abs(percent - this._lastPreviewPercent) < 0.01)
       return
     this._lastPreviewPercent = percent
 
-    // 从百分比计算目标行号
+    // 从百分比计算目标行号，使用更精确的计算
     const targetLine = Math.round(percent * (lineCount - 1))
 
     // 确保行号在有效范围内
     const clampedLine = Math.max(0, Math.min(targetLine, lineCount - 1))
 
-    console.warn('[ScrollSync] Scrolling to line:', clampedLine, 'total lines:', lineCount)
-
-    // 设置同步锁，避免死循环（使用更短的锁时间）
+    // 设置同步锁，避免死循环
     this._isSyncing = true
 
     try {
       const position = new vscode.Position(clampedLine, 0)
       const range = new vscode.Range(position, position)
-      // 将目标行滚动到编辑器顶部，使用立即模式避免平滑动画延迟
+      // 将目标行滚动到编辑器顶部
       editor.revealRange(range, vscode.TextEditorRevealType.AtTop)
-      console.warn('[ScrollSync] Successfully scrolled to line:', clampedLine)
     }
     finally {
-      // 使用更短的延迟释放锁（减少到20ms）
+      // 使用合理的延迟释放锁
       setTimeout(() => {
         this._isSyncing = false
-      }, 20)
+      }, 100)
     }
   }
 

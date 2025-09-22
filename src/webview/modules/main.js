@@ -7,31 +7,25 @@ let scrollSyncManager = null
  * 初始化滚动同步
  */
 function initializeScrollSync() {
-  console.warn('[ScrollSync] initializeScrollSync called')
 
   // 确保内容已经加载
   const content = document.getElementById('markdown-content')
   if (!content) {
-    console.warn('[ScrollSync] Content not found, retrying...')
     setTimeout(initializeScrollSync, 200)
     return
   }
 
   // 确保页面完全加载
   if (document.readyState !== 'complete') {
-    console.warn('[ScrollSync] Document not complete, retrying...')
     setTimeout(initializeScrollSync, 100)
     return
   }
 
   if (scrollSyncManager) {
-    console.warn('[ScrollSync] Destroying existing scrollSyncManager')
     scrollSyncManager.destroy()
   }
 
-  console.warn('[ScrollSync] Creating new ScrollSyncManager')
   scrollSyncManager = new window.ScrollSyncManager()
-  console.warn('[ScrollSync] ScrollSyncManager initialized successfully')
 }
 
 /**
@@ -93,19 +87,25 @@ function handleExtensionMessage(event) {
       break
     }
     case 'syncScrollToPercent': {
-      // 即使ScrollSyncManager未初始化，也直接处理消息
-      const scrollHeight = document.documentElement.scrollHeight
-      const clientHeight = document.documentElement.clientHeight
-
-      if (scrollHeight > clientHeight) {
-        const targetY = message.percent * (scrollHeight - clientHeight)
-        const behavior = message.immediate ? 'auto' : 'smooth'
-        window.scrollTo({ top: targetY, behavior })
-      }
-
-      // 如果ScrollSyncManager已初始化，也通知它
+      // 如果ScrollSyncManager已初始化，使用它处理
       if (scrollSyncManager) {
         scrollSyncManager.syncToPercent(message.percent, message.immediate)
+      }
+      else {
+        // 如果ScrollSyncManager未初始化，直接处理消息
+        const scrollHeight = document.documentElement.scrollHeight
+        const clientHeight = document.documentElement.clientHeight
+
+        if (scrollHeight > clientHeight) {
+          const targetY = message.percent * (scrollHeight - clientHeight)
+          const currentY = window.scrollY
+
+          // 检查是否需要滚动（避免不必要的滚动操作）
+          if (Math.abs(targetY - currentY) > 5) {
+            const behavior = message.immediate ? 'auto' : 'smooth'
+            window.scrollTo({ top: targetY, behavior })
+          }
+        }
       }
       break
     }
@@ -126,7 +126,6 @@ function handleExtensionMessage(event) {
  * 主初始化函数
  */
 function initializeWebviewModules() {
-  console.warn('[Webview] Starting module initialization...')
 
   // 检查TOC初始化条件
   const canInitToc = () => {
@@ -137,7 +136,6 @@ function initializeWebviewModules() {
   if (window.robustInitialize && window.NotionToc) {
     window.robustInitialize(canInitToc, () => {
       window.notionToc = new window.NotionToc()
-      console.warn('NotionToc initialized successfully')
     }, 'NotionToc initialization failed: Content or headers not found.')
   }
 
@@ -162,7 +160,6 @@ function initializeWebviewModules() {
   // 初始化滚动同步
   initializeScrollSync()
 
-  console.warn('[Webview] All modules initialized')
 }
 
 // 页面加载完成后也调用一次，确保语法高亮被应用

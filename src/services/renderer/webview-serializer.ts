@@ -51,9 +51,6 @@ export class MarkdownPreviewSerializer implements vscode.WebviewPanelSerializer 
         await vscode.window.showTextDocument(documentToRestore, vscode.ViewColumn.One)
       }
     }
-    else {
-      console.warn('No document found to restore')
-    }
   }
 
   /**

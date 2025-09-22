@@ -4,6 +4,9 @@
 /* 布局相关样式 - 不依赖主题变量 */
 html {
   font-size: var(--font-size, 0.875rem);
+  /* 优化滚动性能 */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -13,6 +16,9 @@ body {
   font-family: var(--font-family, var(--vscode-editor-font-family));
   background-color: var(--editor-background, var(--vscode-editor-background));
   color: var(--editor-foreground, var(--vscode-foreground));
+  /* 优化滚动性能 */
+  overflow-x: hidden;
+  will-change: scroll-position;
 }
 
 .container {

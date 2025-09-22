@@ -14,7 +14,6 @@ function robustInitialize(checkFn, initFn, failureMsg, maxRetries = 10, interval
       retries++
       if (retries >= maxRetries) {
         clearInterval(intervalId)
-        console.warn(failureMsg)
       }
     }
   }, interval)

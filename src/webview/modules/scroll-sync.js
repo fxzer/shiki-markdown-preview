@@ -17,7 +17,6 @@ class ScrollSyncManager {
     // 监听内容高度变化，应对图片加载等情况
     this.setupResizeObserver()
 
-    console.warn('[ScrollSync] ScrollSyncManager initialized')
   }
 
   /**
@@ -33,10 +32,12 @@ class ScrollSyncManager {
       clearTimeout(this.scrollDebounceTimer)
     }
 
-    // 设置新的防抖定时器（减少到20ms）
+    // 使用合理的防抖时间
     this.scrollDebounceTimer = setTimeout(() => {
-      this.sendScrollPercent()
-    }, 20)
+      requestAnimationFrame(() => {
+        this.sendScrollPercent()
+      })
+    }, 50)
   }
 
   /**
@@ -53,7 +54,7 @@ class ScrollSyncManager {
     const scrollY = window.scrollY
     const percent = scrollY / (scrollHeight - clientHeight)
 
-    // 避免重复同步：如果百分比变化不大，跳过
+    // 提高精度阈值，减少不必要的同步
     if (Math.abs(percent - this.lastPercent) < 0.01)
       return
     this.lastPercent = percent
@@ -61,23 +62,12 @@ class ScrollSyncManager {
     // 确保百分比在0和1之间
     const clampedPercent = Math.max(0, Math.min(1, percent))
 
-    // 添加调试日志
-    console.warn('[ScrollSync] Sending previewScrolled message:', {
-      percent: clampedPercent,
-      scrollY,
-      scrollHeight,
-      clientHeight,
-    })
-
     // 发送消息给扩展
     if (window.vscode && window.vscode.postMessage) {
       window.vscode.postMessage({
         command: 'previewScrolled',
         percent: clampedPercent,
       })
-    }
-    else {
-      console.error('[ScrollSync] vscode.postMessage not available')
     }
   }
 
@@ -110,6 +100,13 @@ class ScrollSyncManager {
     // 计算目标滚动位置
     const targetY = percent * (scrollHeight - clientHeight)
 
+    // 检查是否需要滚动（避免不必要的滚动操作）
+    const currentY = window.scrollY
+    if (Math.abs(targetY - currentY) < 1) {
+      this.isSyncing = false
+      return
+    }
+
     // 根据immediate参数决定是否使用平滑动画
     const behavior = immediate || this.isImmediateMode ? 'auto' : 'smooth'
 
@@ -119,10 +116,10 @@ class ScrollSyncManager {
     // 更新最后的百分比记录
     this.lastPercent = percent
 
-    // 延迟释放锁，给滚动动画一点时间（减少到15ms）
+    // 延迟释放锁，给滚动动画足够的时间
     setTimeout(() => {
       this.isSyncing = false
-    }, 15)
+    }, 100)
   }
 
   /**
