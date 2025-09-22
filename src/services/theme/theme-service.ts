@@ -323,6 +323,31 @@ export class ThemeService {
   }
 
   /**
+   * 主题切换后重新加载当前文档的语言
+   * 解决主题切换后代码块高亮失效的问题
+   */
+  async reloadLanguagesAfterThemeChange(content?: string): Promise<void> {
+    try {
+      if (content) {
+        // 如果有内容，重新预加载检测到的语言
+        await this.preloadLanguagesFromContent(content)
+        ErrorHandler.logInfo('主题切换后语言重新加载完成', 'ThemeService')
+      }
+      else {
+        // 如果没有内容，重新加载常用语言
+        const commonLanguagesToReload = this._commonLanguages.filter(lang => !this._loadedLanguages.has(lang))
+        if (commonLanguagesToReload.length > 0) {
+          await this.preloadLanguages(commonLanguagesToReload)
+          ErrorHandler.logInfo(`重新加载了 ${commonLanguagesToReload.length} 种常用语言`, 'ThemeService')
+        }
+      }
+    }
+    catch (error) {
+      ErrorHandler.logError('主题切换后语言重新加载失败', error, 'ThemeService')
+    }
+  }
+
+  /**
    * 获取当前主题的CSS变量
    * 确保主题已加载
    */
@@ -357,9 +382,13 @@ export class ThemeService {
         return escapeHtml(code)
       }
 
-      // 检查语言是否已加载
+      // 检查语言是否已加载，如果未加载则尝试异步加载
       if (!this._loadedLanguages.has(language)) {
-        ErrorHandler.logWarning(`语言未加载: ${language}, 回退到转义HTML`, 'ThemeService')
+        ErrorHandler.logWarning(`语言未加载: ${language}, 尝试异步加载`, 'ThemeService')
+        // 异步加载语言，但不等待结果，先返回转义HTML
+        this.loadLanguage(language).catch((error) => {
+          ErrorHandler.logError(`异步加载语言失败: ${language}`, error, 'ThemeService')
+        })
         return escapeHtml(code)
       }
 
@@ -390,8 +419,95 @@ export class ThemeService {
         return escapeHtml(code)
       }
     }
-    catch {
+    catch (error) {
       ErrorHandler.logWarning(`代码高亮失败: ${language}`, 'ThemeService')
+      ErrorHandler.logError(`高亮错误详情: ${error}`, error, 'ThemeService')
+
+      // 对于某些特殊语言（如 Swift），提供更好的回退处理
+      if (language === 'swift' || language === 'kotlin' || language === 'rust') {
+        ErrorHandler.logInfo(`特殊语言 ${language} 高亮失败，使用基础高亮`, 'ThemeService')
+        return this.createBasicHighlightedCode(code, language)
+      }
+
+      // 如果失败，返回简单的HTML转义代码
+      return escapeHtml(code)
+    }
+  }
+
+  /**
+   * 为特殊语言创建基础高亮代码
+   */
+  private createBasicHighlightedCode(code: string, language: string): string {
+    const escapedCode = escapeHtml(code)
+    return `<pre><code class="language-${escapeHtml(language)}" data-lang="${escapeHtml(language)}">${escapedCode}</code></pre>`
+  }
+
+  /**
+   * 智能高亮代码 - 自动处理语言加载
+   * 如果语言未加载，会尝试异步加载并返回带重试机制的HTML
+   */
+  async smartHighlightCode(code: string, language: string, highlightLines: number[] = []): Promise<string> {
+    if (!this._highlighter || !language) {
+      return escapeHtml(code)
+    }
+
+    try {
+      // 检查主题是否已加载
+      if (!this._loadedThemes.has(this._currentTheme)) {
+        ErrorHandler.logWarning(`主题未加载: ${this._currentTheme}, 回退到转义HTML`, 'ThemeService')
+        return escapeHtml(code)
+      }
+
+      // 检查语言是否已加载，如果未加载则尝试加载
+      if (!this._loadedLanguages.has(language)) {
+        ErrorHandler.logInfo(`语言未加载: ${language}, 尝试加载`, 'ThemeService')
+        try {
+          await this.loadLanguage(language)
+          ErrorHandler.logInfo(`语言加载成功: ${language}`, 'ThemeService')
+        }
+        catch (error) {
+          ErrorHandler.logError(`语言加载失败: ${language}`, error, 'ThemeService')
+          return escapeHtml(code)
+        }
+      }
+
+      // 准备转换器配置
+      const transformers = []
+
+      // 如果有行号高亮需求，添加行高亮转换器
+      if (highlightLines.length > 0) {
+        transformers.push(transformerNotationHighlight())
+      }
+
+      const highlighted = this._highlighter.codeToHtml(code, {
+        lang: language,
+        theme: this._currentTheme,
+        transformers: transformers.length > 0 ? transformers : undefined,
+      })
+
+      // 确保返回的是字符串类型
+      if (typeof highlighted === 'string') {
+        // 如果有行号高亮需求，需要手动添加高亮标记
+        if (highlightLines.length > 0) {
+          return this.addLineHighlighting(highlighted, highlightLines)
+        }
+        return highlighted
+      }
+      else {
+        ErrorHandler.logWarning(`高亮结果不是字符串: ${typeof highlighted}`, 'ThemeService')
+        return escapeHtml(code)
+      }
+    }
+    catch (error) {
+      ErrorHandler.logWarning(`智能代码高亮失败: ${language}`, 'ThemeService')
+      ErrorHandler.logError(`智能高亮错误详情: ${error}`, error, 'ThemeService')
+
+      // 对于某些特殊语言（如 Swift），提供更好的回退处理
+      if (language === 'swift' || language === 'kotlin' || language === 'rust') {
+        ErrorHandler.logInfo(`特殊语言 ${language} 智能高亮失败，使用基础高亮`, 'ThemeService')
+        return this.createBasicHighlightedCode(code, language)
+      }
+
       // 如果失败，返回简单的HTML转义代码
       return escapeHtml(code)
     }
@@ -534,32 +650,39 @@ export class ThemeService {
     }
 
     try {
-      // 创建一个新的高亮器实例，加载指定语言
-      const newHighlighter = await createHighlighter({
-        themes: [],
-        langs: [language],
-      })
+      // 检查语言是否受支持
+      if (!isSupportedLanguage(language)) {
+        throw new Error(`语言 ${language} 不受支持`)
+      }
 
-      // 将新语言的数据合并到当前高亮器
-      if (newHighlighter) {
-        // 直接尝试加载语言，不再检查 getLoadedLanguages
+      // 直接尝试加载语言到当前高亮器
+      try {
+        await (this._highlighter as any).loadLanguage(language)
+        this._loadedLanguages.add(language)
+        ErrorHandler.logInfo(`语言已加载: ${language}`, 'ThemeService')
+      }
+      catch (loadError) {
+        ErrorHandler.logWarning(`直接加载语言失败: ${language}`, 'ThemeService')
+
+        // 如果直接加载失败，尝试重新创建高亮器实例
         try {
-          (this._highlighter as any).loadLanguage(language)
-          this._loadedLanguages.add(language)
-          ErrorHandler.logInfo(`语言已加载: ${language}`, 'ThemeService')
-        }
-        catch {
-          ErrorHandler.logWarning(`无法直接加载语言 ${language}, 尝试替代方法`, 'ThemeService')
+          const currentThemes = Array.from(this._loadedThemes)
+          const currentLanguages = Array.from(this._loadedLanguages)
 
-          // 如果直接加载失败，尝试从 shiki 内置语言中加载
-          if (isSupportedLanguage(language)) {
-            await (this._highlighter as any).loadLanguage(language)
-            this._loadedLanguages.add(language)
-            ErrorHandler.logInfo(`从支持的语言列表加载语言: ${language}`, 'ThemeService')
-          }
-          else {
-            throw new Error(`语言 ${language} 不受支持`)
-          }
+          // 创建包含新语言的高亮器
+          const newHighlighter = await createHighlighter({
+            themes: currentThemes,
+            langs: [...currentLanguages, language],
+          })
+
+          // 替换当前高亮器
+          this._highlighter = newHighlighter
+          this._loadedLanguages.add(language)
+          ErrorHandler.logInfo(`通过重新创建高亮器加载语言: ${language}`, 'ThemeService')
+        }
+        catch (recreateError) {
+          ErrorHandler.logError(`重新创建高亮器失败: ${language}`, 'ThemeService')
+          throw new Error(`无法加载语言 ${language}: ${recreateError}`)
         }
       }
     }

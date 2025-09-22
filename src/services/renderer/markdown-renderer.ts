@@ -281,6 +281,55 @@ export class MarkdownRenderer {
   }
 
   /**
+   * 智能高亮代码 - 异步版本，自动处理语言加载
+   */
+  private async smartHighlightCode(code: string, lang: string): Promise<string> {
+    if (!lang || !this._themeService.highlighter) {
+      return `<pre><code>${escapeHtml(code)}</code></pre>`
+    }
+
+    try {
+      // 解析语言标识符中的行号信息
+      const { language, highlightLines } = this.parseLanguageWithHighlight(lang)
+
+      // 使用智能高亮方法，自动处理语言加载
+      const highlighted = await this._themeService.smartHighlightCode(code, language, highlightLines)
+
+      // 如果结果是空的，返回基本的 HTML
+      if (!highlighted) {
+        return `<pre><code class="language-${escapeHtml(language)}" data-lang="${escapeHtml(language)}">${escapeHtml(code)}</code></pre>`
+      }
+
+      // 确保高亮后的 HTML 包含语言信息
+      // 检查是否已经包含 language- 类
+      if (highlighted.includes(`class="language-${language}"`) || highlighted.includes(`class='language-${language}'`)) {
+        return highlighted
+      }
+
+      // 如果没有语言类，添加它
+      // 查找 <code> 标签并添加语言信息
+      const codeTagRegex = /<code([^>]*)>/i
+      const match = highlighted.match(codeTagRegex)
+
+      if (match) {
+        const existingAttrs = match[1] || ''
+        const newAttrs = existingAttrs.includes('class=')
+          ? existingAttrs.replace(/class="([^"]*)"/, `class="$1 language-${escapeHtml(language)}"`)
+          : `${existingAttrs} class="language-${escapeHtml(language)}"`
+
+        return highlighted.replace(codeTagRegex, `<code${newAttrs} data-lang="${escapeHtml(language)}">`)
+      }
+
+      // 如果无法找到 code 标签，返回原始高亮结果
+      return highlighted
+    }
+    catch {
+      ErrorHandler.logWarning(`智能代码高亮失败: ${lang}`, 'MarkdownRenderer')
+      return `<pre><code class="language-${escapeHtml(lang)}" data-lang="${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`
+    }
+  }
+
+  /**
    * 解析语言标识符，提取语言和行号高亮信息
    * 支持格式：javascript{1,3-5} 或 javascript{1,3,4,5}
    * @param lang 语言标识符
@@ -474,6 +523,19 @@ export class MarkdownRenderer {
     catch {
       ErrorHandler.logWarning('语言预加载失败', 'MarkdownRenderer')
       // 不抛出错误，继续渲染
+    }
+  }
+
+  /**
+   * 主题切换后重新加载语言
+   * 解决主题切换后代码块高亮失效的问题
+   */
+  async reloadLanguagesAfterThemeChange(content: string): Promise<void> {
+    try {
+      await this._themeService.reloadLanguagesAfterThemeChange(content)
+    }
+    catch (error) {
+      ErrorHandler.logError('主题切换后语言重新加载失败', error, 'MarkdownRenderer')
     }
   }
 

@@ -134,6 +134,15 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
         if (await themeService.updateThemeForPreview(selectedTheme)) {
           const currentDocument = panel.currentDocument
           if (currentDocument) {
+            // 主题预览切换后，重新加载语言以解决代码块高亮问题
+            try {
+              await (panel as any)._markdownRenderer.reloadLanguagesAfterThemeChange(currentDocument.getText())
+              ErrorHandler.logInfo('主题预览切换后语言重新加载完成', 'ThemePicker')
+            }
+            catch (error) {
+              ErrorHandler.logError('主题预览切换后语言重新加载失败', error, 'ThemePicker')
+            }
+
             await panel.updateContent(currentDocument)
           }
         }
