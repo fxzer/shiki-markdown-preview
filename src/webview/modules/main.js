@@ -92,7 +92,7 @@ function handleExtensionMessage(event) {
         scrollSyncManager.syncToPercent(message.percent, message.immediate)
       }
       else {
-        // 如果ScrollSyncManager未初始化，直接处理消息
+        // 如果ScrollSyncManager未初始化，直接处理消息 - 优化版本
         const scrollHeight = document.documentElement.scrollHeight
         const clientHeight = document.documentElement.clientHeight
 
@@ -101,9 +101,9 @@ function handleExtensionMessage(event) {
           const currentY = window.scrollY
 
           // 检查是否需要滚动（避免不必要的滚动操作）
-          if (Math.abs(targetY - currentY) > 5) {
-            const behavior = message.immediate ? 'auto' : 'smooth'
-            window.scrollTo({ top: targetY, behavior })
+          if (Math.abs(targetY - currentY) > 2) { // 减少阈值，提高精度
+            // 使用即时滚动，避免动画延迟
+            window.scrollTo({ top: targetY, behavior: 'instant' })
           }
         }
       }
