@@ -7,6 +7,7 @@ import {
   ThemeService,
 } from '..'
 import { ErrorHandler } from '../../utils/error-handler'
+import { hasMathExpressions } from '../../utils/math-detector'
 import { PathResolver } from '../../utils/path-resolver'
 import { ScrollSyncManager } from '../scroll-sync'
 import { MarkdownRenderer } from './markdown-renderer'
@@ -416,6 +417,9 @@ export class MarkdownPreviewPanel {
       const frontMatterData = this._markdownRenderer.getFrontMatterData(content)
       const renderedContent = await this._markdownRenderer.render(content, document)
 
+      // 检测是否包含数学公式
+      const enableKatex = hasMathExpressions(content)
+
       // 等待主题 CSS 变量
       const themeCSSVariables = await this._themeService.getThemeCSSVariables()
 
@@ -439,6 +443,7 @@ export class MarkdownPreviewPanel {
         documentWidth, // 传递文档宽度
         fontFamily, // 传递字体设置
         enableScrollSync: this.getScrollSyncSetting(), // 传递滚动同步设置
+        enableKatex, // 传递 KaTeX 启用状态
       })
 
       // 更新面板标题 - 优先使用 front matter 中的 title

@@ -197,6 +197,7 @@
   },
   "dependencies": {
     "@mdit/plugin-container": "^0.22.1",
+    "@mdit/plugin-katex": "^0.23.1",
     "@shikijs/transformers": "^3.12.2",
     "@types/markdown-it": "^14.1.2",
     "chroma-js": "^3.1.2",

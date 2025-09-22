@@ -3,10 +3,7 @@
 }
 /* 布局相关样式 - 不依赖主题变量 */
 html {
-  font-size: var(--font-size, 0.875rem);
-  /* 优化滚动性能 */
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
+  font-size: var(--font-size, 14px);
 }
 
 body {
@@ -846,10 +843,15 @@ pre:hover .lang {
   background-color: var(--markdown-blockQuote-background-level3);
   color: var(--textLink-foreground);
 }
+.mord{
+  letter-spacing: 0.1em;
+}
 
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .notion-toc-container {
     right: 10px;
   }
+
 }
+

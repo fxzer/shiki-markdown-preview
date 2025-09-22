@@ -1,18 +1,21 @@
 import type * as vscode from 'vscode'
 import type { ThemeService } from '../theme/theme-service'
 import { container } from '@mdit/plugin-container'
+import { katex } from '@mdit/plugin-katex'
 import matter from 'gray-matter'
 import MarkdownIt from 'markdown-it'
 import lazy_loading from 'markdown-it-image-lazy-loading'
 import { escapeHtml } from '../../utils/common'
 import { ErrorHandler } from '../../utils/error-handler'
 import { detectLanguages } from '../../utils/language-detector'
+import { hasMathExpressions } from '../../utils/math-detector'
 import { PathResolver } from '../../utils/path-resolver'
 
 export class MarkdownRenderer {
   private _markdownIt: MarkdownIt | undefined
   private _themeService: ThemeService
   private _currentDocument: vscode.TextDocument | undefined
+  private _katexEnabled: boolean = false
 
   constructor(themeService: ThemeService) {
     this._themeService = themeService
@@ -38,6 +41,42 @@ export class MarkdownRenderer {
 
     this.setupContainerPlugins()
     this.setupCustomRules()
+  }
+
+  /**
+   * 按需启用 KaTeX 数学公式支持
+   * @param content markdown 内容
+   */
+  private enableKatexIfNeeded(content: string): void {
+    if (!this._markdownIt) {
+      return
+    }
+
+    const hasMath = hasMathExpressions(content)
+
+    if (hasMath && !this._katexEnabled) {
+      try {
+        // 启用 KaTeX 插件 - 使用官方推荐配置
+        this._markdownIt.use(katex, {
+          delimiters: 'all', // 同时支持美元符号和括号语法
+          allowInlineWithSpace: false, // 不允许两端带空格的内联数学
+          mathFence: false, // 不将 fence 块转换为数学公式
+          throwOnError: false, // 不抛出错误，而是显示错误信息
+          errorColor: '#cc0000', // 错误文本颜色
+          strict: false, // 不严格模式，允许一些 LaTeX 扩展
+          logger: (errorCode: string, errorMsg: string) => {
+            ErrorHandler.logWarning(`KaTeX 错误: ${errorCode} - ${errorMsg}`, 'MarkdownRenderer')
+            return 'warn'
+          },
+        })
+
+        this._katexEnabled = true
+        ErrorHandler.logInfo('已启用 KaTeX 数学公式支持', 'MarkdownRenderer')
+      }
+      catch (error) {
+        ErrorHandler.logError('启用 KaTeX 失败', error, 'MarkdownRenderer')
+      }
+    }
   }
 
   /**
@@ -426,6 +465,9 @@ export class MarkdownRenderer {
     try {
       // 使用 gray-matter 分离 front matter 和内容
       const { content: markdownContent } = this.parseFrontMatter(content)
+
+      // 按需启用 KaTeX 数学公式支持
+      this.enableKatexIfNeeded(markdownContent)
 
       // 在渲染前检测并预加载需要的语言
       await this._preloadLanguagesForContent(content)

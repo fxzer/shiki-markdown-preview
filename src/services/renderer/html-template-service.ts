@@ -13,6 +13,7 @@ export interface HTMLTemplateOptions {
   documentWidth?: string
   fontFamily?: string
   enableScrollSync?: boolean
+  enableKatex?: boolean
 }
 
 export class HTMLTemplateService {
@@ -31,6 +32,7 @@ export class HTMLTemplateService {
       documentWidth = '800px',
       fontFamily = 'inherit',
       enableScrollSync = true,
+      enableKatex = false,
     } = options
 
     // 模块化脚本加载 - 根据设置条件性加载滚动同步脚本
@@ -49,13 +51,19 @@ export class HTMLTemplateService {
 
     const webviewCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/style.css'))
 
+    // 按需加载 KaTeX CSS - 使用本地文件
+    const katexCSS = enableKatex
+      ? `
+                <link rel="stylesheet" href="${webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'src/webview/katex.min.css'))}">`
+      : ''
+
     return `<!DOCTYPE html>
             <html lang="en" data-markdown-theme-type="${markdownThemeType}">
             <head>
                 <meta charset="UTF-8">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}' https://unpkg.com; connect-src https:;">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}'; connect-src https:;">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <link href="${webviewCssUri}" rel="stylesheet">
+                <link href="${webviewCssUri}" rel="stylesheet">${katexCSS}
                 <style>
                     :root {
                         ${themeCSSVariables}
