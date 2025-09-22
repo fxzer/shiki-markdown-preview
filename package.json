@@ -178,6 +178,11 @@
           "type": "string",
           "default": "inherit",
           "description": "预览字体设置，留空或输入 inherit 将继承 VSCode 编辑器字体，也可以指定具体电脑已安装字体如：'Microsoft YaHei', 'Courier New', Consolas"
+        },
+        "shikiMarkdownPreview.enableScrollSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用预览区与编辑区的同步滚动功能。当启用时，滚动编辑器或预览区时，另一个区域会自动同步滚动到对应位置。"
         }
       }
     }

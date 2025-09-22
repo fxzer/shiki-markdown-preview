@@ -12,6 +12,7 @@ export interface HTMLTemplateOptions {
   markdownThemeType?: 'light' | 'dark'
   documentWidth?: string
   fontFamily?: string
+  enableScrollSync?: boolean
 }
 
 export class HTMLTemplateService {
@@ -29,14 +30,15 @@ export class HTMLTemplateService {
       markdownThemeType = 'dark',
       documentWidth = '800px',
       fontFamily = 'inherit',
+      enableScrollSync = true,
     } = options
 
-    // 模块化脚本加载
+    // 模块化脚本加载 - 根据设置条件性加载滚动同步脚本
     const scriptModules = [
       'utils.js',
       'syntax-highlight.js',
       'link-handler.js',
-      'scroll-sync.js',
+      ...(enableScrollSync ? ['scroll-sync.js'] : []),
       'notion-toc.js',
       'main.js',
     ]

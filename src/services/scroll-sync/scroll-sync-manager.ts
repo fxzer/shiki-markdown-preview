@@ -34,13 +34,14 @@ export class ScrollSyncManager {
   private _lastEvent: ScrollEvent | null = null
   private _syncTimeout: NodeJS.Timeout | null = null
   private _scrollEndTimeout: NodeJS.Timeout | null = null
+  private _isEnabled: boolean = true
 
   // 防抖和去重 - 优化参数
-  private readonly _DEBOUNCE_MS = 8 // 约120fps，提高响应速度
-  private readonly _MIN_PERCENT_DIFF = 0.003 // 0.3%的最小变化，更敏感
-  private readonly _SYNC_BLOCK_MS = 80 // 减少阻塞时间，提高响应
-  private readonly _SCROLL_END_MS = 150 // 减少滚动结束检测时间
-  private readonly _FAST_SCROLL_THRESHOLD = 0.02 // 快速滚动阈值
+  private readonly _DEBOUNCE_MS = 2 // 减少到2ms，提高响应速度
+  private readonly _MIN_PERCENT_DIFF = 0.001 // 0.1%的最小变化，更敏感
+  private readonly _SYNC_BLOCK_MS = 50 // 减少阻塞时间，提高响应
+  private readonly _SCROLL_END_MS = 100 // 减少滚动结束检测时间
+  private readonly _FAST_SCROLL_THRESHOLD = 0.01 // 快速滚动阈值
 
   constructor(panel: MarkdownPreviewPanel) {
     this._panel = panel
@@ -52,6 +53,37 @@ export class ScrollSyncManager {
   public start(): void {
     this.setupMessageListener()
     this.setupEditorListener()
+  }
+
+  /**
+   * 启用滚动同步
+   */
+  public enable(): void {
+    this._isEnabled = true
+  }
+
+  /**
+   * 禁用滚动同步
+   */
+  public disable(): void {
+    this._isEnabled = false
+    // 清理当前状态
+    this._syncState = SyncState._IDLE
+    if (this._syncTimeout) {
+      clearTimeout(this._syncTimeout)
+      this._syncTimeout = null
+    }
+    if (this._scrollEndTimeout) {
+      clearTimeout(this._scrollEndTimeout)
+      this._scrollEndTimeout = null
+    }
+  }
+
+  /**
+   * 检查是否启用
+   */
+  public isEnabled(): boolean {
+    return this._isEnabled
   }
 
   /**
@@ -71,6 +103,8 @@ export class ScrollSyncManager {
    * 处理编辑器滚动事件 - 重构版本
    */
   private handleEditorScroll(editor: vscode.TextEditor): void {
+    if (!this._isEnabled)
+      return
     if (editor.document !== this._panel.currentDocument)
       return
     if (this._syncState === SyncState._PREVIEW_SYNCING)
@@ -132,6 +166,9 @@ export class ScrollSyncManager {
    * 核心事件处理逻辑 - 智能防抖和去重
    */
   private processScrollEvent(event: ScrollEvent): void {
+    // 检查是否启用
+    if (!this._isEnabled)
+      return
     // 状态检查
     if (this._syncState === SyncState._BLOCKED)
       return
@@ -156,10 +193,15 @@ export class ScrollSyncManager {
     // 智能防抖：根据滚动速度调整延迟
     const debounceMs = this.calculateSmartDebounce(event)
 
-    // 设置防抖
-    this._syncTimeout = setTimeout(() => {
+    // 设置防抖 - 优化版本
+    if (debounceMs <= 0) {
+      // 快速滚动时立即执行
       this.executeSync(event)
-    }, debounceMs)
+    } else {
+      this._syncTimeout = setTimeout(() => {
+        this.executeSync(event)
+      }, debounceMs)
+    }
 
     // 滚动结束检测
     this.resetScrollEndTimer()
@@ -168,7 +210,7 @@ export class ScrollSyncManager {
   }
 
   /**
-   * 计算智能防抖时间
+   * 计算智能防抖时间 - 优化版本
    */
   private calculateSmartDebounce(event: ScrollEvent): number {
     if (!this._lastEvent || event.source !== this._lastEvent.source) {
@@ -179,11 +221,11 @@ export class ScrollSyncManager {
     const percentDiff = Math.abs(event.percent - this._lastEvent.percent)
 
     // 快速滚动时减少防抖时间
-    if (percentDiff > this._FAST_SCROLL_THRESHOLD && timeDiff < 50) {
-      return Math.max(4, this._DEBOUNCE_MS / 2) // 快速滚动时使用更短的防抖
+    if (percentDiff > this._FAST_SCROLL_THRESHOLD && timeDiff < 30) {
+      return 0 // 快速滚动时无延迟
     }
 
-    // 慢速滚动时使用正常防抖
+    // 慢速滚动时使用最小防抖
     return this._DEBOUNCE_MS
   }
 
@@ -265,7 +307,7 @@ export class ScrollSyncManager {
       const currentVisibleRanges = editor.visibleRanges
       if (currentVisibleRanges.length > 0) {
         const currentTopLine = currentVisibleRanges[0].start.line
-        if (Math.abs(currentTopLine - clampedLine) < 3) {
+        if (Math.abs(currentTopLine - clampedLine) < 1) {
           // 如果差异很小，跳过滚动
           this._syncState = SyncState._IDLE
           return

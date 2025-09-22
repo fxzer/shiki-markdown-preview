@@ -117,6 +117,28 @@ export function activate(context: vscode.ExtensionContext) {
           ErrorHandler.showInfo(`主题已更改为: ${newTheme}`)
         }
       }
+      
+      // 检查滚动同步设置是否发生变化
+      if (event.affectsConfiguration('shikiMarkdownPreview.enableScrollSync')) {
+        if (MarkdownPreviewPanel.currentPanel) {
+          const config = vscode.workspace.getConfiguration('shikiMarkdownPreview')
+          const enableScrollSync = config.get<boolean>('enableScrollSync', true)
+          
+          if (MarkdownPreviewPanel.currentPanel.scrollSyncManager) {
+            if (enableScrollSync) {
+              MarkdownPreviewPanel.currentPanel.scrollSyncManager.enable()
+            } else {
+              MarkdownPreviewPanel.currentPanel.scrollSyncManager.disable()
+            }
+          }
+          
+          // 通知webview更新滚动同步状态
+          MarkdownPreviewPanel.currentPanel.panel.webview.postMessage({
+            command: 'updateScrollSyncState',
+            enabled: enableScrollSync,
+          })
+        }
+      }
     }),
   )
 

@@ -32,6 +32,13 @@ export class MarkdownPreviewPanel {
   private _stateManager: StateManager
   private _scrollSyncManager: ScrollSyncManager | undefined
 
+  /**
+   * 获取滚动同步管理器
+   */
+  public get scrollSyncManager(): ScrollSyncManager | undefined {
+    return this._scrollSyncManager
+  }
+
   // 状态
   private _currentDocument: vscode.TextDocument | undefined
   private _isInitialized: boolean = false
@@ -108,9 +115,51 @@ export class MarkdownPreviewPanel {
     this._stateManager = new StateManager(panel)
     this._scrollSyncManager = new ScrollSyncManager(this)
 
+    // 根据配置初始化滚动同步状态
+    this.initializeScrollSyncState()
+
+    // 发送初始滚动同步状态到webview
+    this.sendScrollSyncStateToWebview()
+
     this.setupPanel()
     this.setupEventListeners()
     this.initializeServices()
+  }
+
+  /**
+   * 初始化滚动同步状态
+   */
+  private initializeScrollSyncState(): void {
+    const config = vscode.workspace.getConfiguration('shikiMarkdownPreview')
+    const enableScrollSync = config.get<boolean>('enableScrollSync', true)
+
+    if (enableScrollSync) {
+      this._scrollSyncManager?.enable()
+    }
+    else {
+      this._scrollSyncManager?.disable()
+    }
+  }
+
+  /**
+   * 发送滚动同步状态到webview
+   */
+  private sendScrollSyncStateToWebview(): void {
+    const config = vscode.workspace.getConfiguration('shikiMarkdownPreview')
+    const enableScrollSync = config.get<boolean>('enableScrollSync', true)
+
+    this._panel.webview.postMessage({
+      command: 'updateScrollSyncState',
+      enabled: enableScrollSync,
+    })
+  }
+
+  /**
+   * 获取滚动同步设置
+   */
+  private getScrollSyncSetting(): boolean {
+    const config = vscode.workspace.getConfiguration('shikiMarkdownPreview')
+    return config.get<boolean>('enableScrollSync', true)
   }
 
   /**
@@ -389,6 +438,7 @@ export class MarkdownPreviewPanel {
         markdownThemeType: currentThemeType, // 传递主题类型
         documentWidth, // 传递文档宽度
         fontFamily, // 传递字体设置
+        enableScrollSync: this.getScrollSyncSetting(), // 传递滚动同步设置
       })
 
       // 更新面板标题 - 优先使用 front matter 中的 title
@@ -433,6 +483,7 @@ export class MarkdownPreviewPanel {
       themeCSSVariables,
       markdownThemeType: this._themeService.getCurrentThemeType(), // 传递主题类型
       documentWidth, // 传递文档宽度
+      enableScrollSync: this.getScrollSyncSetting(), // 传递滚动同步设置
     })
   }
 
@@ -455,6 +506,7 @@ export class MarkdownPreviewPanel {
       themeCSSVariables,
       markdownThemeType: this._themeService.getCurrentThemeType(), // 传递主题类型
       documentWidth, // 传递文档宽度
+      enableScrollSync: this.getScrollSyncSetting(), // 传递滚动同步设置
     })
   }
 

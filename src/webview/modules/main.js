@@ -108,6 +108,18 @@ function handleExtensionMessage(event) {
       }
       break
     }
+    case 'updateScrollSyncState': {
+      // 更新滚动同步状态
+      if (scrollSyncManager) {
+        if (message.enabled) {
+          scrollSyncManager.enable()
+        }
+        else {
+          scrollSyncManager.disable()
+        }
+      }
+      break
+    }
     case 'updateDocumentWidth': {
       // 更新文档宽度CSS变量
       document.documentElement.style.setProperty('--document-width', message.width)

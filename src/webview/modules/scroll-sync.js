@@ -19,13 +19,14 @@ class ScrollSyncManager {
     this.lastEvent = null
     this.syncTimeout = null
     this.scrollEndTimeout = null
+    this.isEnabled = true
 
-    // 防抖和去重
-    this.DEBOUNCE_MS = 8 // 约120fps，提高响应速度
-    this.MIN_PERCENT_DIFF = 0.003 // 0.3%的最小变化，更敏感
-    this.SYNC_BLOCK_MS = 80 // 减少阻塞时间，提高响应
-    this.SCROLL_END_MS = 150 // 减少滚动结束检测时间
-    this.FAST_SCROLL_THRESHOLD = 0.02 // 快速滚动阈值
+    // 防抖和去重 - 优化性能
+    this.DEBOUNCE_MS = 2 // 减少到2ms，提高响应速度
+    this.MIN_PERCENT_DIFF = 0.001 // 0.1%的最小变化，更敏感
+    this.SYNC_BLOCK_MS = 50 // 减少阻塞时间，提高响应
+    this.SCROLL_END_MS = 100 // 减少滚动结束检测时间
+    this.FAST_SCROLL_THRESHOLD = 0.01 // 快速滚动阈值
 
     // 其他属性
     this.lastPercent = 0
@@ -43,17 +44,46 @@ class ScrollSyncManager {
   }
 
   /**
-   * 处理滚动事件 - 重构版本
+   * 启用滚动同步
+   */
+  enable() {
+    this.isEnabled = true
+  }
+
+  /**
+   * 禁用滚动同步
+   */
+  disable() {
+    this.isEnabled = false
+    // 清理当前状态
+    this.syncState = SyncState.IDLE
+    if (this.syncTimeout) {
+      clearTimeout(this.syncTimeout)
+      this.syncTimeout = null
+    }
+    if (this.scrollEndTimeout) {
+      clearTimeout(this.scrollEndTimeout)
+      this.scrollEndTimeout = null
+    }
+  }
+
+  /**
+   * 处理滚动事件 - 优化版本
    */
   handleScroll() {
+    // 快速检查是否启用
+    if (!this.isEnabled)
+      return
     // 状态检查：如果正在同步或阻塞，跳过
     if (this.syncState === SyncState.EDITOR_SYNCING
       || this.syncState === SyncState.BLOCKED) {
       return
     }
 
-    // 立即处理滚动事件，减少延迟
-    this.processScrollEvent()
+    // 使用 requestAnimationFrame 立即处理，减少延迟
+    requestAnimationFrame(() => {
+      this.processScrollEvent()
+    })
 
     // 重置滚动结束定时器
     this.resetScrollEndTimer()
@@ -99,9 +129,12 @@ class ScrollSyncManager {
   }
 
   /**
-   * 处理滚动事件 - 防循环和去重
+   * 处理滚动事件 - 优化版本，减少延迟
    */
   handleScrollEvent(event) {
+    // 快速检查是否启用
+    if (!this.isEnabled)
+      return
     // 去重检查
     if (this.lastEvent
       && event.source === this.lastEvent.source
@@ -118,18 +151,25 @@ class ScrollSyncManager {
     // 智能防抖：根据滚动速度调整延迟
     const debounceMs = this.calculateSmartDebounce(event.percent)
 
-    // 使用 requestAnimationFrame 获得更流畅的滚动
-    this.syncTimeout = setTimeout(() => {
+    // 直接使用 requestAnimationFrame，减少 setTimeout 延迟
+    if (debounceMs <= 0) {
       requestAnimationFrame(() => {
         this.sendScrollPercent(event.percent)
       })
-    }, debounceMs)
+    }
+    else {
+      this.syncTimeout = setTimeout(() => {
+        requestAnimationFrame(() => {
+          this.sendScrollPercent(event.percent)
+        })
+      }, debounceMs)
+    }
 
     this.lastEvent = event
   }
 
   /**
-   * 计算智能防抖时间
+   * 计算智能防抖时间 - 优化版本
    */
   calculateSmartDebounce(percent) {
     if (!this.lastEvent) {
@@ -139,12 +179,12 @@ class ScrollSyncManager {
     const timeDiff = Date.now() - this.lastEvent.timestamp
     const percentDiff = Math.abs(percent - this.lastEvent.percent)
 
-    // 快速滚动时减少防抖时间
-    if (percentDiff > this.FAST_SCROLL_THRESHOLD && timeDiff < 50) {
-      return Math.max(4, this.DEBOUNCE_MS / 2) // 快速滚动时使用更短的防抖
+    // 快速滚动时直接使用 requestAnimationFrame，无延迟
+    if (percentDiff > this.FAST_SCROLL_THRESHOLD && timeDiff < 30) {
+      return 0 // 快速滚动时无延迟
     }
 
-    // 慢速滚动时使用正常防抖
+    // 慢速滚动时使用最小防抖
     return this.DEBOUNCE_MS
   }
 
