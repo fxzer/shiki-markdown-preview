@@ -32,6 +32,11 @@ class ScrollSyncManager {
     this.lastPercent = 0
     this.resizeObserver = null
 
+    // 性能优化相关属性
+    this._cachedHeight = null
+    this._lastHeightCheck = null
+    this._scrollRAF = null
+
     this.init()
   }
 
@@ -80,8 +85,13 @@ class ScrollSyncManager {
       return
     }
 
-    // 使用 requestAnimationFrame 立即处理，减少延迟
-    requestAnimationFrame(() => {
+    // 使用防抖机制减少处理频率
+    if (this._scrollRAF) {
+      cancelAnimationFrame(this._scrollRAF)
+    }
+
+    this._scrollRAF = requestAnimationFrame(() => {
+      this._scrollRAF = null
       this.processScrollEvent()
     })
 
@@ -90,17 +100,101 @@ class ScrollSyncManager {
   }
 
   /**
+   * 计算有效的内容高度（排除末尾空白区域）- 优化版本
+   */
+  getEffectiveContentHeight() {
+    // 1. 使用缓存避免重复计算
+    const now = Date.now()
+    if (this._cachedHeight && this._lastHeightCheck && 
+        (now - this._lastHeightCheck) < 1000) { // 1秒缓存
+      return this._cachedHeight
+    }
+
+    // 2. 基础高度检查
+    const scrollHeight = document.documentElement.scrollHeight
+    const clientHeight = document.documentElement.clientHeight
+
+    // 如果内容高度小于等于视口高度，直接返回并缓存
+    if (scrollHeight <= clientHeight) {
+      this._cachedHeight = scrollHeight
+      this._lastHeightCheck = now
+      return scrollHeight
+    }
+
+    // 3. 使用更高效的DOM查询
+    const body = document.body
+    if (!body) {
+      this._cachedHeight = scrollHeight
+      this._lastHeightCheck = now
+      return scrollHeight
+    }
+
+    // 4. 使用querySelectorAll优化元素查找
+    const contentElements = body.querySelectorAll('*')
+    if (contentElements.length === 0) {
+      this._cachedHeight = scrollHeight
+      this._lastHeightCheck = now
+      return scrollHeight
+    }
+
+    // 5. 找到最后一个有实际内容的元素（优化版本）
+    let lastContentElement = null
+    let maxBottom = 0
+
+    // 使用更高效的遍历方式
+    for (let i = contentElements.length - 1; i >= 0; i--) {
+      const element = contentElements[i]
+      
+      // 快速跳过不可见元素
+      const rect = element.getBoundingClientRect()
+      if (rect.height <= 0) continue
+
+      const computedStyle = window.getComputedStyle(element)
+      if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') continue
+
+      // 检查元素是否有实际内容
+      const textContent = element.textContent || element.innerText || ''
+      if (textContent.trim().length > 0) {
+        const elementBottom = rect.bottom + window.scrollY
+        if (elementBottom > maxBottom) {
+          maxBottom = elementBottom
+          lastContentElement = element
+        }
+      }
+    }
+
+    // 6. 计算有效高度
+    let effectiveHeight
+    if (lastContentElement) {
+      const rect = lastContentElement.getBoundingClientRect()
+      effectiveHeight = rect.bottom + window.scrollY
+    } else {
+      effectiveHeight = scrollHeight
+    }
+
+    // 7. 确保有效高度不小于原始高度的90%，避免过度裁剪
+    effectiveHeight = Math.max(effectiveHeight, scrollHeight * 0.9)
+
+    // 8. 缓存结果
+    this._cachedHeight = effectiveHeight
+    this._lastHeightCheck = now
+
+    return effectiveHeight
+  }
+
+  /**
    * 处理滚动事件
    */
   processScrollEvent() {
     const scrollHeight = document.documentElement.scrollHeight
     const clientHeight = document.documentElement.clientHeight
+    const effectiveHeight = this.getEffectiveContentHeight()
 
-    if (scrollHeight <= clientHeight)
+    if (effectiveHeight <= clientHeight)
       return
 
     const scrollY = window.scrollY
-    const percent = Math.max(0, Math.min(1, scrollY / (scrollHeight - clientHeight)))
+    const percent = Math.max(0, Math.min(1, scrollY / (effectiveHeight - clientHeight)))
 
     // 创建滚动事件
     const event = {
@@ -233,15 +327,15 @@ class ScrollSyncManager {
       return
     }
 
-    const scrollHeight = document.documentElement.scrollHeight
+    const effectiveHeight = this.getEffectiveContentHeight()
     const clientHeight = document.documentElement.clientHeight
 
-    if (scrollHeight <= clientHeight) {
+    if (effectiveHeight <= clientHeight) {
       return
     }
 
     // 计算目标滚动位置
-    const targetY = percent * (scrollHeight - clientHeight)
+    const targetY = percent * (effectiveHeight - clientHeight)
     const currentY = window.scrollY
 
     // 防止微小变化：只在真正需要滚动时才执行
@@ -284,13 +378,24 @@ class ScrollSyncManager {
   }
 
   /**
-   * 设置ResizeObserver监听内容高度变化
+   * 设置ResizeObserver监听内容高度变化 - 优化版本
    */
   setupResizeObserver() {
     // 监听内容高度变化，应对图片加载等情况
-    this.resizeObserver = new ResizeObserver(() => {
-      // 当内容高度变化时，重新计算并同步当前位置
-      this.sendScrollPercent()
+    this.resizeObserver = new ResizeObserver((entries) => {
+      // 当内容高度变化时，清除缓存并重新计算
+      this._cachedHeight = null
+      this._lastHeightCheck = null
+      
+      // 使用防抖机制避免频繁处理
+      if (this._resizeTimeout) {
+        clearTimeout(this._resizeTimeout)
+      }
+      
+      this._resizeTimeout = setTimeout(() => {
+        this._resizeTimeout = null
+        this.sendScrollPercent()
+      }, 100) // 100ms防抖
     })
 
     // 观察body元素的变化
@@ -298,23 +403,47 @@ class ScrollSyncManager {
   }
 
   /**
-   * 清理资源 - 重构版本
+   * 清理资源 - 优化版本
    */
   destroy() {
-    // 清理定时器
+    // 1. 清理所有定时器
     if (this.syncTimeout) {
       clearTimeout(this.syncTimeout)
       this.syncTimeout = null
     }
 
-    // 清理ResizeObserver
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect()
+    if (this.scrollEndTimeout) {
+      clearTimeout(this.scrollEndTimeout)
+      this.scrollEndTimeout = null
     }
 
-    // 重置状态
+    if (this._resizeTimeout) {
+      clearTimeout(this._resizeTimeout)
+      this._resizeTimeout = null
+    }
+
+    // 2. 清理requestAnimationFrame
+    if (this._scrollRAF) {
+      cancelAnimationFrame(this._scrollRAF)
+      this._scrollRAF = null
+    }
+
+    // 3. 清理ResizeObserver
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+      this.resizeObserver = null
+    }
+
+    // 4. 清理缓存
+    this._cachedHeight = null
+    this._lastHeightCheck = null
+
+    // 5. 重置状态
     this.syncState = SyncState.IDLE
     this.lastEvent = null
+    this.isEnabled = false
+
+    console.log('[ScrollSyncManager] Webview资源清理完成')
   }
 }
 

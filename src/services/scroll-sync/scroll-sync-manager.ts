@@ -69,14 +69,8 @@ export class ScrollSyncManager {
     this._isEnabled = false
     // 清理当前状态
     this._syncState = SyncState._IDLE
-    if (this._syncTimeout) {
-      clearTimeout(this._syncTimeout)
-      this._syncTimeout = null
-    }
-    if (this._scrollEndTimeout) {
-      clearTimeout(this._scrollEndTimeout)
-      this._scrollEndTimeout = null
-    }
+    // 使用统一的清理方法
+    this.clearAllTimeouts()
   }
 
   /**
@@ -100,6 +94,25 @@ export class ScrollSyncManager {
   }
 
   /**
+   * 计算文档的有效内容行数（排除末尾空白行）
+   */
+  private getEffectiveLineCount(document: vscode.TextDocument): number {
+    const lineCount = document.lineCount
+    if (lineCount === 0)
+      return 0
+
+    // 从末尾开始查找第一个非空白行
+    for (let i = lineCount - 1; i >= 0; i--) {
+      const line = document.lineAt(i)
+      if (line.text.trim().length > 0) {
+        return i + 1 // 返回实际内容行数（从0开始，所以+1）
+      }
+    }
+
+    return lineCount // 如果所有行都是空白，返回原始行数
+  }
+
+  /**
    * 处理编辑器滚动事件 - 重构版本
    */
   private handleEditorScroll(editor: vscode.TextEditor): void {
@@ -110,12 +123,12 @@ export class ScrollSyncManager {
     if (this._syncState === SyncState._PREVIEW_SYNCING)
       return // 防止循环
 
-    const lineCount = editor.document.lineCount
-    if (lineCount === 0)
+    const effectiveLineCount = this.getEffectiveLineCount(editor.document)
+    if (effectiveLineCount === 0)
       return
 
     const topLine = editor.visibleRanges[0].start.line
-    const percent = Math.max(0, Math.min(1, topLine / (lineCount - 1)))
+    const percent = Math.max(0, Math.min(1, topLine / (effectiveLineCount - 1)))
 
     // 创建滚动事件
     const event: ScrollEvent = {
@@ -186,9 +199,7 @@ export class ScrollSyncManager {
     }
 
     // 清除之前的防抖定时器
-    if (this._syncTimeout) {
-      clearTimeout(this._syncTimeout)
-    }
+    this.clearSyncTimeout()
 
     // 智能防抖：根据滚动速度调整延迟
     const debounceMs = this.calculateSmartDebounce(event)
@@ -197,8 +208,10 @@ export class ScrollSyncManager {
     if (debounceMs <= 0) {
       // 快速滚动时立即执行
       this.executeSync(event)
-    } else {
+    }
+    else {
       this._syncTimeout = setTimeout(() => {
+        this._syncTimeout = null // 清理引用
         this.executeSync(event)
       }, debounceMs)
     }
@@ -233,11 +246,11 @@ export class ScrollSyncManager {
    * 重置滚动结束定时器
    */
   private resetScrollEndTimer(): void {
-    if (this._scrollEndTimeout) {
-      clearTimeout(this._scrollEndTimeout)
-    }
+    // 清理之前的定时器
+    this.clearScrollEndTimeout()
 
     this._scrollEndTimeout = setTimeout(() => {
+      this._scrollEndTimeout = null // 清理引用
       // 滚动结束，重置状态
       this._syncState = SyncState._IDLE
     }, this._SCROLL_END_MS)
@@ -290,14 +303,14 @@ export class ScrollSyncManager {
       return
     }
 
-    const lineCount = editor.document.lineCount
-    if (lineCount === 0) {
+    const effectiveLineCount = this.getEffectiveLineCount(editor.document)
+    if (effectiveLineCount === 0) {
       this._syncState = SyncState._IDLE
       return
     }
 
-    const targetLine = Math.round(percent * (lineCount - 1))
-    const clampedLine = Math.max(0, Math.min(targetLine, lineCount - 1))
+    const targetLine = Math.round(percent * (effectiveLineCount - 1))
+    const clampedLine = Math.max(0, Math.min(targetLine, effectiveLineCount - 1))
 
     try {
       // 使用更高效的滚动方式
@@ -329,21 +342,59 @@ export class ScrollSyncManager {
   }
 
   /**
-   * 停止滚动同步并清理资源
+   * 停止滚动同步并清理资源 - 完善版本
    */
   public dispose(): void {
-    // 清理定时器
+    // 1. 清理所有定时器
+    this.clearAllTimeouts()
+
+    // 2. 清理所有监听器
+    this._disposables.forEach(d => {
+      try {
+        d.dispose()
+      } catch (error) {
+        console.warn('清理监听器时出错:', error)
+      }
+    })
+    this._disposables = []
+
+    // 3. 重置所有状态
+    this._syncState = SyncState._IDLE
+    this._lastEvent = null
+    this._isEnabled = false
+
+    // 4. 清理引用（注意：_panel是只读属性，不能直接赋值）
+    // this._panel = null as any // 注释掉，因为_panel是只读属性
+
+    // 5. 添加清理验证日志
+    console.log('[ScrollSyncManager] 资源清理完成')
+  }
+
+  /**
+   * 清理所有定时器
+   */
+  private clearAllTimeouts(): void {
+    this.clearSyncTimeout()
+    this.clearScrollEndTimeout()
+  }
+
+  /**
+   * 清理同步定时器
+   */
+  private clearSyncTimeout(): void {
     if (this._syncTimeout) {
       clearTimeout(this._syncTimeout)
       this._syncTimeout = null
     }
+  }
 
-    // 清理监听器
-    this._disposables.forEach(d => d.dispose())
-    this._disposables = []
-
-    // 重置状态
-    this._syncState = SyncState._IDLE
-    this._lastEvent = null
+  /**
+   * 清理滚动结束定时器
+   */
+  private clearScrollEndTimeout(): void {
+    if (this._scrollEndTimeout) {
+      clearTimeout(this._scrollEndTimeout)
+      this._scrollEndTimeout = null
+    }
   }
 }

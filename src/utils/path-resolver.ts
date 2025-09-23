@@ -43,45 +43,93 @@ export class PathResolver {
   }
 
   /**
-   * 内部路径验证和解析逻辑
+   * 内部路径验证和解析逻辑 - 加强安全性
    */
   private static _validateAndResolvePathInternal(basePath: vscode.Uri, relativePath: string): vscode.Uri | null {
-    // 解码 URL 编码的字符
-    const decodedPath = decodeURIComponent(relativePath)
-
-    // 检查路径是否包含可疑字符
-    if (decodedPath.includes('..') || decodedPath.includes('~') || decodedPath.startsWith('/')) {
-      ErrorHandler.logWarning(`检测到潜在的路径遍历攻击: ${relativePath}`, 'PathResolver')
+    // 1. 基础输入验证
+    if (!relativePath || typeof relativePath !== 'string') {
+      ErrorHandler.logWarning('路径为空或类型错误', 'PathResolver')
       return null
     }
 
-    // 检查路径是否包含非法字符
+    // 2. 长度限制检查
+    if (relativePath.length > 4096) {
+      ErrorHandler.logWarning(`路径过长: ${relativePath.length} 字符`, 'PathResolver')
+      return null
+    }
+
+    // 3. 解码 URL 编码的字符（安全解码）
+    let decodedPath: string
+    try {
+      decodedPath = decodeURIComponent(relativePath)
+    } catch (error) {
+      ErrorHandler.logWarning(`URL解码失败: ${relativePath}`, 'PathResolver')
+      return null
+    }
+
+    // 4. 全面的路径遍历检查
+    const dangerousPatterns = [
+      /\.\./,                    // 上级目录
+      /~/,                       // 用户目录
+      /^\/+/,                    // 绝对路径
+      /\\/,                      // Windows 路径分隔符
+      /%2e%2e/i,                 // URL 编码的 ..
+      /%2f/i,                    // URL 编码的 /
+      /%5c/i,                    // URL 编码的 \
+      /%7e/i,                    // URL 编码的 ~
+      /\.\.%2f/i,                // 混合编码的路径遍历
+      /%2f\.\./i,                // 反向路径遍历
+      /\.\.\\/,                  // Windows 路径遍历
+      /\\\.\./,                  // Windows 反向路径遍历
+      /\.\.%5c/i,                // Windows URL 编码路径遍历
+      /%5c\.\./i,                // Windows 反向 URL 编码路径遍历
+    ]
+
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(decodedPath)) {
+        ErrorHandler.logWarning(`检测到危险路径模式: ${relativePath} (模式: ${pattern})`, 'PathResolver')
+        return null
+      }
+    }
+
+    // 5. 检查路径是否包含非法字符
     if (this.ILLEGAL_CHARS.test(decodedPath)) {
       ErrorHandler.logWarning(`路径包含非法字符: ${relativePath}`, 'PathResolver')
       return null
     }
 
-    // 检查文件扩展名
+    // 6. 检查文件扩展名
     const fileExtension = this.getFileExtension(decodedPath)
     if (fileExtension && !this.ALLOWED_EXTENSIONS.includes(fileExtension)) {
       ErrorHandler.logWarning(`不允许的文件扩展名: ${fileExtension}`, 'PathResolver')
       return null
     }
 
-    // 解析相对路径
-    const resolvedPath = vscode.Uri.joinPath(basePath, decodedPath)
+    // 7. 使用 Node.js path 模块进行更安全的路径解析
+    try {
+      const path = require('path')
+      const basePathStr = basePath.fsPath
+      const resolvedPathStr = path.resolve(basePathStr, decodedPath)
+      const normalizedBasePath = path.resolve(basePathStr)
+      const normalizedResolvedPath = path.resolve(resolvedPathStr)
 
-    // 规范化路径并检查是否仍在基础路径下
-    const normalizedBasePath = basePath.fsPath.replace(/[/\\]+$/, '')
-    const normalizedResolvedPath = resolvedPath.fsPath.replace(/[/\\]+$/, '')
+      // 8. 确保解析后的路径仍然在基础路径下
+      if (!normalizedResolvedPath.startsWith(normalizedBasePath)) {
+        ErrorHandler.logWarning(`路径遍历尝试检测: ${relativePath} 解析为 ${normalizedResolvedPath}`, 'PathResolver')
+        return null
+      }
 
-    // 确保解析后的路径仍然在基础路径下
-    if (!normalizedResolvedPath.startsWith(normalizedBasePath)) {
-      ErrorHandler.logWarning(`路径遍历尝试检测: ${relativePath} 解析为 ${normalizedResolvedPath}`, 'PathResolver')
+      // 9. 检查路径长度限制
+      if (normalizedResolvedPath.length > 4096) {
+        ErrorHandler.logWarning(`解析后路径过长: ${normalizedResolvedPath.length} 字符`, 'PathResolver')
+        return null
+      }
+
+      return vscode.Uri.file(normalizedResolvedPath)
+    } catch (error) {
+      ErrorHandler.logError(`路径解析失败: ${relativePath}`, error, 'PathResolver')
       return null
     }
-
-    return resolvedPath
   }
 
   /**
@@ -146,5 +194,41 @@ export class PathResolver {
       `无法打开文件: ${fileUri.fsPath}`,
       'PathResolver',
     ) !== null
+  }
+
+  /**
+   * 额外的安全检查 - 验证文件是否在允许的目录内
+   * @param fileUri 文件 URI
+   * @param allowedDirectories 允许的目录列表
+   * @returns boolean 是否安全
+   */
+  static isFileInAllowedDirectories(fileUri: vscode.Uri, allowedDirectories: string[]): boolean {
+    try {
+      const filePath = fileUri.fsPath
+      return allowedDirectories.some(allowedDir => {
+        const normalizedAllowedDir = require('path').resolve(allowedDir)
+        const normalizedFilePath = require('path').resolve(filePath)
+        return normalizedFilePath.startsWith(normalizedAllowedDir)
+      })
+    } catch (error) {
+      ErrorHandler.logError('安全检查失败', error, 'PathResolver')
+      return false
+    }
+  }
+
+  /**
+   * 验证文件大小是否在安全范围内
+   * @param fileUri 文件 URI
+   * @param maxSizeBytes 最大文件大小（字节）
+   * @returns Promise<boolean> 是否安全
+   */
+  static async isFileSizeSafe(fileUri: vscode.Uri, maxSizeBytes: number = 10 * 1024 * 1024): Promise<boolean> {
+    try {
+      const stat = await vscode.workspace.fs.stat(fileUri)
+      return stat.size <= maxSizeBytes
+    } catch (error) {
+      ErrorHandler.logError('文件大小检查失败', error, 'PathResolver')
+      return false
+    }
   }
 }
