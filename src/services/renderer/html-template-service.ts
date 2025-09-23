@@ -40,6 +40,7 @@ export class HTMLTemplateService {
       'utils.js',
       'syntax-highlight.js',
       'link-handler.js',
+      'mermaid.min.js',
       'mermaid-renderer.js',
       ...(enableScrollSync ? ['scroll-sync.js'] : []),
       'notion-toc.js',
@@ -82,8 +83,6 @@ export class HTMLTemplateService {
                 <!-- 模块化脚本加载 - 按依赖顺序加载 -->
                 ${scriptUris.map(uri => `<script nonce="${nonce}" src="${uri}"></script>`).join('\n                ')}
                 
-                <!-- 从CDN加载Mermaid -->
-                <script nonce="${nonce}" src="https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js"></script>
                 <script nonce="${nonce}">
                     // 将 front matter 数据存储到全局变量中
                     window.frontMatterData = ${JSON.stringify(frontMatterData)};

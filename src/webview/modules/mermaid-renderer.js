@@ -103,13 +103,6 @@ async function renderSingleMermaidDiagram(codeBlock, mermaid) {
     // 渲染失败时显示错误信息
     const errorDiv = document.createElement('div')
     errorDiv.className = 'mermaid-error'
-    errorDiv.style.color = 'var(--vscode-errorForeground, #f14c4c)'
-    errorDiv.style.backgroundColor = 'var(--vscode-inputValidationErrorBackground, rgba(255, 0, 0, 0.05))'
-    errorDiv.style.border = '1px solid var(--vscode-inputValidationErrorBorder, #f14c4c)'
-    errorDiv.style.borderRadius = '4px'
-    errorDiv.style.padding = '8px'
-    errorDiv.style.margin = '8px 0'
-    errorDiv.style.fontSize = '14px'
     errorDiv.innerHTML = `
       <strong>Mermaid 图表渲染失败</strong><br>
       ${escapeHtml(error.message)}

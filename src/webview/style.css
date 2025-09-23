@@ -506,73 +506,7 @@ blockquote p:last-child {
   margin-bottom: 0;
 }
 
-/* Mermaid 图表样式 */
-.mermaid-container {
-  margin: 1.5rem 0;
-  text-align: center;
-  background-color: var(--markdown-codeBlock-background);
-  border-radius: 6px;
-  padding: 1rem;
-  overflow-x: auto;
-}
 
-.mermaid-container svg {
-  max-width: 100%;
-  height: auto;
-}
-
-/* Mermaid 错误样式 */
-.mermaid-error {
-  margin: 1.5rem 0;
-  padding: 1rem;
-  background-color: var(--markdown-blockQuote-background-level1);
-  border-left: 2px solid #dc3545;
-  border-radius: 6px;
-}
-
-.mermaid-error h4 {
-  margin: 0 0 0.5rem 0;
-  color: #dc3545;
-  font-size: 1rem;
-}
-
-.mermaid-error p {
-  margin: 0 0 0.5rem 0;
-  color: var(--editor-foreground);
-}
-
-.mermaid-error details {
-  margin: 0.5rem 0 0 0;
-  border: 1px solid var(--markdown-table-border);
-  border-radius: 4px;
-  background-color: var(--markdown-codeBlock-background);
-}
-
-.mermaid-error summary {
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  font-weight: 600;
-  background-color: var(--markdown-tableHeader-background);
-  border-radius: 4px 4px 0 0;
-  user-select: none;
-}
-
-.mermaid-error details > *:not(summary) {
-  padding: 0 1rem 1rem 1rem;
-}
-
-.mermaid-error pre {
-  margin: 0;
-  background-color: transparent;
-  padding: 0;
-  border-radius: 0;
-}
-
-.mermaid-error code {
-  background-color: transparent;
-  padding: 0;
-  border-radius: 0;
-}
 
 /* 自定义容器样式 */
 .custom-container {
@@ -860,10 +794,10 @@ pre:hover .lang {
   text-align: center;
   margin: 20px 0;
   padding: 20px;
-  background-color: var(--editor-background, var(--vscode-editor-background));
-  border: 1px solid var(--widget-border, var(--vscode-widget-border));
+  background-color: var(--markdown-codeBlock-background, var(--vscode-textCodeBlock-background)) !important;
   border-radius: 6px;
   overflow-x: auto;
+  filter: brightness(1) contrast(1);
 }
 
 .mermaid-graph svg {
@@ -871,23 +805,13 @@ pre:hover .lang {
   height: auto;
 }
 
-.mermaid-error {
-  margin: 16px 0;
-  padding: 12px;
-  border-radius: 6px;
-  font-family: var(--vscode-editor-font-family);
+.mermaid-error{
+  color:var(--vscode-errorForeground, #f14c4c);
+  background-color: var(--vscode-inputValidationErrorBackground, rgba(255, 0, 0, 0.05));
+  border: 1px solid var(--vscode-inputValidationErrorBorder, #f14c4c);
+  border-radius: 4px;
+  padding: 8px;
+  margin: 8px 0;
   font-size: 14px;
   line-height: 1.5;
 }
-
-/* 确保 mermaid 图表在不同主题下的可读性 */
-[data-markdown-theme-type="dark"] .mermaid-graph {
-  background-color: var(--editor-background, #1e1e1e);
-  filter: brightness(0.9) contrast(1.1);
-}
-
-[data-markdown-theme-type="light"] .mermaid-graph {
-  background-color: var(--editor-background, #ffffff);
-  filter: brightness(1) contrast(1);
-}
-

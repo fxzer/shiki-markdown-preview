@@ -1,5 +1,6 @@
 # 源代码和开发文件
-src/
+!src/webview/katex.min.css
+!src/webview/style.css
 tsconfig.json
 eslint.config.mjs
 .gitignore
@@ -62,7 +63,6 @@ node_modules/**/vite.config.js
 node_modules/**/*.map
 node_modules/**/*.ts
 node_modules/**/*.d.ts
-node_modules/**/src/
 node_modules/**/test.*
 
 # Mermaid 特定优化 - 已改用CDN，无需打包
