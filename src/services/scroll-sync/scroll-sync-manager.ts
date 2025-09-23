@@ -2,13 +2,13 @@ import type { MarkdownPreviewPanel } from '../renderer/markdown-preview'
 import * as vscode from 'vscode'
 
 /**
- * 滚动同步状态枚举
+ * 滚动事件类型
  */
-enum SyncState {
-  _IDLE = 'idle',
-  _EDITOR_SYNCING = 'editor_syncing',
-  _PREVIEW_SYNCING = 'preview_syncing',
-  _BLOCKED = 'blocked',
+interface ScrollEvent {
+  percent: number
+  timestamp: number
+  source: 'editor' | 'preview'
+  direction: 'up' | 'down' | 'none'
 }
 
 /**
@@ -22,26 +22,27 @@ interface ScrollEvent {
 }
 
 /**
- * 滚动同步管理器 - 重构版本
- * 核心思想：事件驱动 + 状态管理，避免双向同步冲突
+ * 滚动同步管理器 - 基于状态锁的严谨实现
+ * 核心思想：单一状态锁 + 事件源驱动 + 防抖处理
  */
 export class ScrollSyncManager {
   private readonly _panel: MarkdownPreviewPanel
   private _disposables: vscode.Disposable[] = []
 
-  // 状态管理
-  private _syncState: SyncState = SyncState._IDLE
+  // 单一状态锁 - 核心机制
+  private _isSyncing: boolean = false
+  private _syncSource: 'editor' | 'preview' | null = null
   private _lastEvent: ScrollEvent | null = null
   private _syncTimeout: NodeJS.Timeout | null = null
   private _scrollEndTimeout: NodeJS.Timeout | null = null
   private _isEnabled: boolean = true
 
-  // 防抖和去重 - 优化参数
-  private readonly _DEBOUNCE_MS = 2 // 减少到2ms，提高响应速度
-  private readonly _MIN_PERCENT_DIFF = 0.001 // 0.1%的最小变化，更敏感
-  private readonly _SYNC_BLOCK_MS = 50 // 减少阻塞时间，提高响应
-  private readonly _SCROLL_END_MS = 100 // 减少滚动结束检测时间
-  private readonly _FAST_SCROLL_THRESHOLD = 0.01 // 快速滚动阈值
+  // 防抖和性能优化参数
+  private readonly _DEBOUNCE_MS = 16 // 约60fps，平衡响应性和性能
+  private readonly _MIN_PERCENT_DIFF = 0.005 // 0.5%的最小变化，避免微动
+  private readonly _SYNC_BLOCK_MS = 50 // 同步阻塞时间，防止循环
+  private readonly _SCROLL_END_MS = 150 // 滚动结束检测时间
+  private readonly _FAST_SCROLL_THRESHOLD = 0.02 // 快速滚动阈值
 
   constructor(panel: MarkdownPreviewPanel) {
     this._panel = panel
@@ -68,7 +69,8 @@ export class ScrollSyncManager {
   public disable(): void {
     this._isEnabled = false
     // 清理当前状态
-    this._syncState = SyncState._IDLE
+    this._isSyncing = false
+    this._syncSource = null
     // 使用统一的清理方法
     this.clearAllTimeouts()
   }
@@ -113,15 +115,15 @@ export class ScrollSyncManager {
   }
 
   /**
-   * 处理编辑器滚动事件 - 重构版本
+   * 处理编辑器滚动事件 - 基于状态锁的实现
    */
   private handleEditorScroll(editor: vscode.TextEditor): void {
     if (!this._isEnabled)
       return
     if (editor.document !== this._panel.currentDocument)
       return
-    if (this._syncState === SyncState._PREVIEW_SYNCING)
-      return // 防止循环
+    if (this._isSyncing && this._syncSource === 'preview')
+      return // 状态锁：如果是预览触发的同步，忽略编辑器滚动
 
     const effectiveLineCount = this.getEffectiveLineCount(editor.document)
     if (effectiveLineCount === 0)
@@ -176,21 +178,18 @@ export class ScrollSyncManager {
   }
 
   /**
-   * 核心事件处理逻辑 - 智能防抖和去重
+   * 核心事件处理逻辑 - 基于状态锁和事件源驱动
    */
   private processScrollEvent(event: ScrollEvent): void {
     // 检查是否启用
     if (!this._isEnabled)
       return
-    // 状态检查
-    if (this._syncState === SyncState._BLOCKED)
-      return
-    if (this._syncState === SyncState._EDITOR_SYNCING && event.source === 'editor')
-      return
-    if (this._syncState === SyncState._PREVIEW_SYNCING && event.source === 'preview')
+
+    // 状态锁检查：如果正在同步且来源不匹配，忽略事件
+    if (this._isSyncing && this._syncSource !== event.source)
       return
 
-    // 去重检查
+    // 去重检查：避免重复处理相同的事件
     if (this._lastEvent
       && event.source === this._lastEvent.source
       && Math.abs(event.percent - this._lastEvent.percent) < this._MIN_PERCENT_DIFF
@@ -204,14 +203,14 @@ export class ScrollSyncManager {
     // 智能防抖：根据滚动速度调整延迟
     const debounceMs = this.calculateSmartDebounce(event)
 
-    // 设置防抖 - 优化版本
+    // 设置防抖处理
     if (debounceMs <= 0) {
       // 快速滚动时立即执行
       this.executeSync(event)
     }
     else {
       this._syncTimeout = setTimeout(() => {
-        this._syncTimeout = null // 清理引用
+        this._syncTimeout = null
         this.executeSync(event)
       }, debounceMs)
     }
@@ -250,9 +249,10 @@ export class ScrollSyncManager {
     this.clearScrollEndTimeout()
 
     this._scrollEndTimeout = setTimeout(() => {
-      this._scrollEndTimeout = null // 清理引用
-      // 滚动结束，重置状态
-      this._syncState = SyncState._IDLE
+      this._scrollEndTimeout = null
+      // 滚动结束，释放状态锁
+      this._isSyncing = false
+      this._syncSource = null
     }, this._SCROLL_END_MS)
   }
 
@@ -269,43 +269,50 @@ export class ScrollSyncManager {
   }
 
   /**
-   * 同步到预览区 - 优化版本
+   * 同步到预览区 - 基于状态锁的实现
    */
   private syncToPreview(percent: number): void {
-    this._syncState = SyncState._EDITOR_SYNCING
+    // 激活状态锁：标记为编辑器触发的同步
+    this._isSyncing = true
+    this._syncSource = 'editor'
 
-    // 使用更轻量的消息格式，减少序列化开销
+    // 发送同步消息到预览区
     this._panel.panel.webview.postMessage({
       command: 'syncScrollToPercent',
       percent: Math.round(percent * 10000) / 10000, // 限制精度，减少数据量
       immediate: false,
       source: 'editor',
-      timestamp: Date.now(), // 添加时间戳用于去重
+      timestamp: Date.now(),
     })
 
-    // 设置状态恢复定时器
+    // 设置状态释放定时器
     setTimeout(() => {
-      this._syncState = SyncState._IDLE
+      this._isSyncing = false
+      this._syncSource = null
     }, this._SYNC_BLOCK_MS)
   }
 
   /**
-   * 同步到编辑器 - 优化版本
+   * 同步到编辑器 - 基于状态锁的实现
    */
   private async syncToEditor(percent: number): Promise<void> {
-    this._syncState = SyncState._PREVIEW_SYNCING
+    // 激活状态锁：标记为预览触发的同步
+    this._isSyncing = true
+    this._syncSource = 'preview'
 
     const editor = vscode.window.visibleTextEditors.find(
       e => e.document === this._panel.currentDocument,
     )
     if (!editor) {
-      this._syncState = SyncState._IDLE
+      this._isSyncing = false
+      this._syncSource = null
       return
     }
 
     const effectiveLineCount = this.getEffectiveLineCount(editor.document)
     if (effectiveLineCount === 0) {
-      this._syncState = SyncState._IDLE
+      this._isSyncing = false
+      this._syncSource = null
       return
     }
 
@@ -322,7 +329,8 @@ export class ScrollSyncManager {
         const currentTopLine = currentVisibleRanges[0].start.line
         if (Math.abs(currentTopLine - clampedLine) < 1) {
           // 如果差异很小，跳过滚动
-          this._syncState = SyncState._IDLE
+          this._isSyncing = false
+          this._syncSource = null
           return
         }
       }
@@ -335,9 +343,10 @@ export class ScrollSyncManager {
       console.error('Error scrolling editor:', error)
     }
 
-    // 设置状态恢复定时器
+    // 设置状态释放定时器
     setTimeout(() => {
-      this._syncState = SyncState._IDLE
+      this._isSyncing = false
+      this._syncSource = null
     }, this._SYNC_BLOCK_MS)
   }
 
@@ -349,25 +358,23 @@ export class ScrollSyncManager {
     this.clearAllTimeouts()
 
     // 2. 清理所有监听器
-    this._disposables.forEach(d => {
+    this._disposables.forEach((d) => {
       try {
         d.dispose()
-      } catch (error) {
+      }
+      catch (error) {
         console.warn('清理监听器时出错:', error)
       }
     })
     this._disposables = []
 
     // 3. 重置所有状态
-    this._syncState = SyncState._IDLE
+    this._isSyncing = false
+    this._syncSource = null
     this._lastEvent = null
     this._isEnabled = false
 
-    // 4. 清理引用（注意：_panel是只读属性，不能直接赋值）
-    // this._panel = null as any // 注释掉，因为_panel是只读属性
-
-    // 5. 添加清理验证日志
-    console.log('[ScrollSyncManager] 资源清理完成')
+    // 5. 资源清理完成
   }
 
   /**

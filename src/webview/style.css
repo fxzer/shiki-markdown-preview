@@ -506,8 +506,6 @@ blockquote p:last-child {
   margin-bottom: 0;
 }
 
-
-
 /* 自定义容器样式 */
 .custom-container {
   margin: 1.5rem 0;
@@ -777,7 +775,7 @@ pre:hover .lang {
   background-color: var(--markdown-blockQuote-background-level3);
   color: var(--textLink-foreground);
 }
-.mord{
+.mord {
   letter-spacing: 0.1em;
 }
 
@@ -786,7 +784,6 @@ pre:hover .lang {
   .notion-toc-container {
     right: 10px;
   }
-
 }
 
 /* Mermaid 图表样式 */
@@ -805,8 +802,8 @@ pre:hover .lang {
   height: auto;
 }
 
-.mermaid-error{
-  color:var(--vscode-errorForeground, #f14c4c);
+.mermaid-error {
+  color: var(--vscode-errorForeground, #f14c4c);
   background-color: var(--vscode-inputValidationErrorBackground, rgba(255, 0, 0, 0.05));
   border: 1px solid var(--vscode-inputValidationErrorBorder, #f14c4c);
   border-radius: 4px;

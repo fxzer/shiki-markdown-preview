@@ -62,27 +62,28 @@ export class PathResolver {
     let decodedPath: string
     try {
       decodedPath = decodeURIComponent(relativePath)
-    } catch (error) {
+    }
+    catch (error) {
       ErrorHandler.logWarning(`URL解码失败: ${relativePath}`, 'PathResolver')
       return null
     }
 
     // 4. 全面的路径遍历检查
     const dangerousPatterns = [
-      /\.\./,                    // 上级目录
-      /~/,                       // 用户目录
-      /^\/+/,                    // 绝对路径
-      /\\/,                      // Windows 路径分隔符
-      /%2e%2e/i,                 // URL 编码的 ..
-      /%2f/i,                    // URL 编码的 /
-      /%5c/i,                    // URL 编码的 \
-      /%7e/i,                    // URL 编码的 ~
-      /\.\.%2f/i,                // 混合编码的路径遍历
-      /%2f\.\./i,                // 反向路径遍历
-      /\.\.\\/,                  // Windows 路径遍历
-      /\\\.\./,                  // Windows 反向路径遍历
-      /\.\.%5c/i,                // Windows URL 编码路径遍历
-      /%5c\.\./i,                // Windows 反向 URL 编码路径遍历
+      /\.\./, // 上级目录
+      /~/, // 用户目录
+      /^\/+/, // 绝对路径
+      /\\/, // Windows 路径分隔符
+      /%2e%2e/i, // URL 编码的 ..
+      /%2f/i, // URL 编码的 /
+      /%5c/i, // URL 编码的 \
+      /%7e/i, // URL 编码的 ~
+      /\.\.%2f/i, // 混合编码的路径遍历
+      /%2f\.\./i, // 反向路径遍历
+      /\.\.\\/, // Windows 路径遍历
+      /\\\.\./, // Windows 反向路径遍历
+      /\.\.%5c/i, // Windows URL 编码路径遍历
+      /%5c\.\./i, // Windows 反向 URL 编码路径遍历
     ]
 
     for (const pattern of dangerousPatterns) {
@@ -107,7 +108,7 @@ export class PathResolver {
 
     // 7. 使用 Node.js path 模块进行更安全的路径解析
     try {
-      const path = require('path')
+      const path = require('node:path')
       const basePathStr = basePath.fsPath
       const resolvedPathStr = path.resolve(basePathStr, decodedPath)
       const normalizedBasePath = path.resolve(basePathStr)
@@ -126,7 +127,8 @@ export class PathResolver {
       }
 
       return vscode.Uri.file(normalizedResolvedPath)
-    } catch (error) {
+    }
+    catch (error) {
       ErrorHandler.logError(`路径解析失败: ${relativePath}`, error, 'PathResolver')
       return null
     }
@@ -205,12 +207,13 @@ export class PathResolver {
   static isFileInAllowedDirectories(fileUri: vscode.Uri, allowedDirectories: string[]): boolean {
     try {
       const filePath = fileUri.fsPath
-      return allowedDirectories.some(allowedDir => {
-        const normalizedAllowedDir = require('path').resolve(allowedDir)
-        const normalizedFilePath = require('path').resolve(filePath)
+      return allowedDirectories.some((allowedDir) => {
+        const normalizedAllowedDir = require('node:path').resolve(allowedDir)
+        const normalizedFilePath = require('node:path').resolve(filePath)
         return normalizedFilePath.startsWith(normalizedAllowedDir)
       })
-    } catch (error) {
+    }
+    catch (error) {
       ErrorHandler.logError('安全检查失败', error, 'PathResolver')
       return false
     }
@@ -226,7 +229,8 @@ export class PathResolver {
     try {
       const stat = await vscode.workspace.fs.stat(fileUri)
       return stat.size <= maxSizeBytes
-    } catch (error) {
+    }
+    catch (error) {
       ErrorHandler.logError('文件大小检查失败', error, 'PathResolver')
       return false
     }

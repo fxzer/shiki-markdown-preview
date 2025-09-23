@@ -144,7 +144,7 @@ function handleExtensionMessage(event) {
     case 'updateTheme': {
       // 更新主题类型属性
       document.documentElement.setAttribute('data-markdown-theme-type', message.themeType)
-      
+
       // 重新初始化 Mermaid 以应用新主题
       if (window.reinitializeMermaid && window.renderMermaidDiagrams) {
         window.robustInitialize(

@@ -1,32 +1,23 @@
 /**
- * 滚动同步状态枚举
- */
-const SyncState = {
-  IDLE: 'idle',
-  EDITOR_SYNCING: 'editor_syncing',
-  PREVIEW_SYNCING: 'preview_syncing',
-  BLOCKED: 'blocked',
-}
-
-/**
- * 滚动同步管理器 - 重构版本
- * 核心思想：事件驱动 + 状态管理，避免双向同步冲突
+ * 滚动同步管理器 - 基于状态锁的实现
+ * 核心思想：单一状态锁 + 事件源驱动 + 防抖处理
  */
 class ScrollSyncManager {
   constructor() {
-    // 状态管理
-    this.syncState = SyncState.IDLE
+    // 单一状态锁 - 核心机制
+    this.isSyncing = false
+    this.syncSource = null
     this.lastEvent = null
     this.syncTimeout = null
     this.scrollEndTimeout = null
     this.isEnabled = true
 
-    // 防抖和去重 - 优化性能
-    this.DEBOUNCE_MS = 2 // 减少到2ms，提高响应速度
-    this.MIN_PERCENT_DIFF = 0.001 // 0.1%的最小变化，更敏感
-    this.SYNC_BLOCK_MS = 50 // 减少阻塞时间，提高响应
-    this.SCROLL_END_MS = 100 // 减少滚动结束检测时间
-    this.FAST_SCROLL_THRESHOLD = 0.01 // 快速滚动阈值
+    // 防抖和性能优化参数
+    this.DEBOUNCE_MS = 16 // 约60fps，平衡响应性和性能
+    this.MIN_PERCENT_DIFF = 0.005 // 0.5%的最小变化，避免微动
+    this.SYNC_BLOCK_MS = 50 // 同步阻塞时间，防止循环
+    this.SCROLL_END_MS = 150 // 滚动结束检测时间
+    this.FAST_SCROLL_THRESHOLD = 0.02 // 快速滚动阈值
 
     // 其他属性
     this.lastPercent = 0
@@ -61,7 +52,8 @@ class ScrollSyncManager {
   disable() {
     this.isEnabled = false
     // 清理当前状态
-    this.syncState = SyncState.IDLE
+    this.isSyncing = false
+    this.syncSource = null
     if (this.syncTimeout) {
       clearTimeout(this.syncTimeout)
       this.syncTimeout = null
@@ -73,15 +65,14 @@ class ScrollSyncManager {
   }
 
   /**
-   * 处理滚动事件 - 优化版本
+   * 处理滚动事件 - 基于状态锁的实现
    */
   handleScroll() {
     // 快速检查是否启用
     if (!this.isEnabled)
       return
-    // 状态检查：如果正在同步或阻塞，跳过
-    if (this.syncState === SyncState.EDITOR_SYNCING
-      || this.syncState === SyncState.BLOCKED) {
+    // 状态锁检查：如果正在同步且来源是编辑器，忽略事件
+    if (this.isSyncing && this.syncSource === 'editor') {
       return
     }
 
@@ -105,8 +96,8 @@ class ScrollSyncManager {
   getEffectiveContentHeight() {
     // 1. 使用缓存避免重复计算
     const now = Date.now()
-    if (this._cachedHeight && this._lastHeightCheck && 
-        (now - this._lastHeightCheck) < 1000) { // 1秒缓存
+    if (this._cachedHeight && this._lastHeightCheck
+      && (now - this._lastHeightCheck) < 1000) { // 1秒缓存
       return this._cachedHeight
     }
 
@@ -144,16 +135,18 @@ class ScrollSyncManager {
     // 使用更高效的遍历方式
     for (let i = contentElements.length - 1; i >= 0; i--) {
       const element = contentElements[i]
-      
+
       // 快速跳过不可见元素
       const rect = element.getBoundingClientRect()
-      if (rect.height <= 0) continue
+      if (rect.height <= 0)
+        continue
 
       const computedStyle = window.getComputedStyle(element)
-      if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') continue
+      if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden')
+        continue
 
       // 检查元素是否有实际内容
-      const textContent = element.textContent || element.innerText || ''
+      const textContent = element.textContent || ''
       if (textContent.trim().length > 0) {
         const elementBottom = rect.bottom + window.scrollY
         if (elementBottom > maxBottom) {
@@ -168,7 +161,8 @@ class ScrollSyncManager {
     if (lastContentElement) {
       const rect = lastContentElement.getBoundingClientRect()
       effectiveHeight = rect.bottom + window.scrollY
-    } else {
+    }
+    else {
       effectiveHeight = scrollHeight
     }
 
@@ -183,10 +177,9 @@ class ScrollSyncManager {
   }
 
   /**
-   * 处理滚动事件
+   * 处理滚动事件 - 优化版本，减少延迟
    */
   processScrollEvent() {
-    const scrollHeight = document.documentElement.scrollHeight
     const clientHeight = document.documentElement.clientHeight
     const effectiveHeight = this.getEffectiveContentHeight()
 
@@ -223,13 +216,18 @@ class ScrollSyncManager {
   }
 
   /**
-   * 处理滚动事件 - 优化版本，减少延迟
+   * 处理滚动事件 - 基于状态锁和事件源驱动
    */
   handleScrollEvent(event) {
     // 快速检查是否启用
     if (!this.isEnabled)
       return
-    // 去重检查
+
+    // 状态锁检查：如果正在同步且来源不匹配，忽略事件
+    if (this.isSyncing && this.syncSource !== event.source)
+      return
+
+    // 去重检查：避免重复处理相同的事件
     if (this.lastEvent
       && event.source === this.lastEvent.source
       && Math.abs(event.percent - this.lastEvent.percent) < this.MIN_PERCENT_DIFF
@@ -245,7 +243,7 @@ class ScrollSyncManager {
     // 智能防抖：根据滚动速度调整延迟
     const debounceMs = this.calculateSmartDebounce(event.percent)
 
-    // 直接使用 requestAnimationFrame，减少 setTimeout 延迟
+    // 使用 requestAnimationFrame 优化性能
     if (debounceMs <= 0) {
       requestAnimationFrame(() => {
         this.sendScrollPercent(event.percent)
@@ -286,8 +284,9 @@ class ScrollSyncManager {
    * 发送滚动百分比
    */
   sendScrollPercent(percent) {
-    // 更新状态
-    this.syncState = SyncState.PREVIEW_SYNCING
+    // 激活状态锁：标记为预览触发的同步
+    this.isSyncing = true
+    this.syncSource = 'preview'
     this.lastPercent = percent
 
     // 发送消息给扩展
@@ -298,9 +297,10 @@ class ScrollSyncManager {
       })
     }
 
-    // 设置状态恢复定时器
+    // 设置状态释放定时器
     setTimeout(() => {
-      this.syncState = SyncState.IDLE
+      this.isSyncing = false
+      this.syncSource = null
     }, this.SYNC_BLOCK_MS)
   }
 
@@ -316,14 +316,14 @@ class ScrollSyncManager {
   }
 
   /**
-   * 同步滚动到指定百分比 - 重构版本
+   * 同步滚动到指定百分比 - 基于状态锁的实现
    * @param {number} percent - 滚动百分比 (0-1)
    * @param {boolean} _immediate - 是否立即滚动（未使用）
-   * @param {string} _source - 滚动来源（未使用）
+   * @param {string} source - 滚动来源
    */
-  syncToPercent(percent, _immediate = false, _source = 'editor') {
-    // 状态检查：如果正在同步预览，跳过
-    if (this.syncState === SyncState.PREVIEW_SYNCING) {
+  syncToPercent(percent, _immediate = false, source = 'editor') {
+    // 状态锁检查：如果正在同步且来源不匹配，跳过
+    if (this.isSyncing && this.syncSource !== source) {
       return
     }
 
@@ -343,8 +343,9 @@ class ScrollSyncManager {
       return
     }
 
-    // 设置同步状态
-    this.syncState = SyncState.EDITOR_SYNCING
+    // 激活状态锁：标记为编辑器触发的同步
+    this.isSyncing = true
+    this.syncSource = 'editor'
 
     // 使用即时滚动，避免动画延迟
     window.scrollTo({ top: targetY, behavior: 'instant' })
@@ -352,9 +353,10 @@ class ScrollSyncManager {
     // 更新最后的百分比记录
     this.lastPercent = percent
 
-    // 设置状态恢复定时器
+    // 设置状态释放定时器
     setTimeout(() => {
-      this.syncState = SyncState.IDLE
+      this.isSyncing = false
+      this.syncSource = null
     }, this.SYNC_BLOCK_MS)
 
     // 滚动结束检测
@@ -370,8 +372,9 @@ class ScrollSyncManager {
     }
 
     this.scrollEndTimeout = setTimeout(() => {
-      // 滚动结束，重置状态
-      this.syncState = SyncState.IDLE
+      // 滚动结束，释放状态锁
+      this.isSyncing = false
+      this.syncSource = null
       // 滚动结束后发送一次同步，确保位置准确
       this.sendScrollPercent()
     }, this.SCROLL_END_MS)
@@ -382,16 +385,16 @@ class ScrollSyncManager {
    */
   setupResizeObserver() {
     // 监听内容高度变化，应对图片加载等情况
-    this.resizeObserver = new ResizeObserver((entries) => {
+    this.resizeObserver = new ResizeObserver((_entries) => {
       // 当内容高度变化时，清除缓存并重新计算
       this._cachedHeight = null
       this._lastHeightCheck = null
-      
+
       // 使用防抖机制避免频繁处理
       if (this._resizeTimeout) {
         clearTimeout(this._resizeTimeout)
       }
-      
+
       this._resizeTimeout = setTimeout(() => {
         this._resizeTimeout = null
         this.sendScrollPercent()
@@ -403,7 +406,7 @@ class ScrollSyncManager {
   }
 
   /**
-   * 清理资源 - 优化版本
+   * 清理资源 - 完善版本
    */
   destroy() {
     // 1. 清理所有定时器
@@ -439,11 +442,12 @@ class ScrollSyncManager {
     this._lastHeightCheck = null
 
     // 5. 重置状态
-    this.syncState = SyncState.IDLE
+    this.isSyncing = false
+    this.syncSource = null
     this.lastEvent = null
     this.isEnabled = false
 
-    console.log('[ScrollSyncManager] Webview资源清理完成')
+    console.warn('[ScrollSyncManager] Webview资源清理完成')
   }
 }
 

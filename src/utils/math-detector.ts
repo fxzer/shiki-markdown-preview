@@ -15,16 +15,16 @@ export function hasMathExpressions(content: string): boolean {
 
   // 检测行内数学公式：$...$ 或 \(...\)
   const inlineMathPattern = /\$[^$]+\$|\\\([^)]+\\\)/
-  
+
   // 检测块级数学公式：$$...$$ 或 \[...\]
   const blockMathPattern = /\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]/
-  
+
   // 检测数学 fence 块（可选，如果支持的话）
-  const mathFencePattern = /```math\s*[\s\S]*?```|```katex\s*[\s\S]*?```/
-  
-  return inlineMathPattern.test(content) || 
-         blockMathPattern.test(content) || 
-         mathFencePattern.test(content)
+  const mathFencePattern = /```math[\s\S]*?```|```katex[\s\S]*?```/
+
+  return inlineMathPattern.test(content)
+    || blockMathPattern.test(content)
+    || mathFencePattern.test(content)
 }
 
 /**
@@ -45,7 +45,7 @@ export function getMathInfo(content: string): {
       inlineCount: 0,
       blockCount: 0,
       fenceCount: 0,
-      totalCount: 0
+      totalCount: 0,
     }
   }
 
@@ -58,7 +58,7 @@ export function getMathInfo(content: string): {
   const blockCount = blockMatches.length
 
   // 统计数学 fence 块
-  const fenceMatches = content.match(/```math\s*[\s\S]*?```|```katex\s*[\s\S]*?```/g) || []
+  const fenceMatches = content.match(/```math[\s\S]*?```|```katex[\s\S]*?```/g) || []
   const fenceCount = fenceMatches.length
 
   const totalCount = inlineCount + blockCount + fenceCount
@@ -68,7 +68,7 @@ export function getMathInfo(content: string): {
     inlineCount,
     blockCount,
     fenceCount,
-    totalCount
+    totalCount,
   }
 }
 
@@ -79,7 +79,7 @@ export function getMathInfo(content: string): {
  */
 export function getMathComplexity(content: string): 'none' | 'simple' | 'medium' | 'complex' {
   const mathInfo = getMathInfo(content)
-  
+
   if (!mathInfo.hasMath) {
     return 'none'
   }

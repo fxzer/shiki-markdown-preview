@@ -451,7 +451,8 @@ export class MarkdownRenderer {
   }
 
   /**
-   * Render markdown content with line number tracking
+   * Render markdown content with reliable line number mapping for scroll sync
+   * 为每个块级元素添加 data-line 属性，确保精确的滚动同步
    */
   async render(content: string, document?: vscode.TextDocument): Promise<string> {
     if (!this._markdownIt) {
@@ -472,9 +473,11 @@ export class MarkdownRenderer {
       // 在渲染前检测并预加载需要的语言
       await this._preloadLanguagesForContent(content)
 
+      // 获取所有行用于行号映射
       const lines = markdownContent.split('\n')
       let currentLine = 0
 
+      // 保存原始渲染规则
       const originalRules = {
         heading_open: this._markdownIt.renderer.rules.heading_open,
         paragraph_open: this._markdownIt.renderer.rules.paragraph_open,
@@ -484,26 +487,32 @@ export class MarkdownRenderer {
         fence: this._markdownIt.renderer.rules.fence,
         table_open: this._markdownIt.renderer.rules.table_open,
         hr: this._markdownIt.renderer.rules.hr,
+        dl_open: this._markdownIt.renderer.rules.dl_open,
+        dt_open: this._markdownIt.renderer.rules.dt_open,
+        dd_open: this._markdownIt.renderer.rules.dd_open,
       }
 
+      /**
+       * 为元素添加 data-line 属性的通用函数
+       * 确保每个块级元素都有准确的行号映射
+       */
       const addLineNumber = (tokens: any[], idx: number, options: any, env: any, renderer: any, ruleName: string) => {
         const token = tokens[idx]
         if (token && currentLine < lines.length) {
-          for (let i = currentLine; i < lines.length; i++) {
-            const line = lines[i].trim()
-            if (line && !line.startsWith('<!--')) {
-              token.attrSet?.('data-line', i.toString())
-              currentLine = i + 1
-              break
-            }
+          // 找到当前 token 对应的源代码行号
+          const lineNumber = this.findSourceLineNumber(tokens, idx, lines, currentLine)
+          if (lineNumber !== -1) {
+            token.attrSet?.('data-line', lineNumber.toString())
+            currentLine = lineNumber + 1
           }
         }
 
-        return originalRules[ruleName as keyof typeof originalRules]
-          ? originalRules[ruleName as keyof typeof originalRules]!(tokens, idx, options, env, renderer)
-          : renderer.renderToken(tokens, idx, options)
+        // 调用原始渲染规则
+        const originalRule = originalRules[ruleName as keyof typeof originalRules]
+        return originalRule ? originalRule(tokens, idx, options, env, renderer) : renderer.renderToken(tokens, idx, options)
       }
 
+      // 覆盖各种块级元素的渲染规则以添加 data-line 属性
       this._markdownIt.renderer.rules.heading_open = (tokens, idx, options, env, renderer) =>
         addLineNumber(tokens, idx, options, env, renderer, 'heading_open')
 
@@ -528,7 +537,22 @@ export class MarkdownRenderer {
       this._markdownIt.renderer.rules.hr = (tokens, idx, options, env, renderer) =>
         addLineNumber(tokens, idx, options, env, renderer, 'hr')
 
-      return this._markdownIt.render(markdownContent)
+      this._markdownIt.renderer.rules.dl_open = (tokens, idx, options, env, renderer) =>
+        addLineNumber(tokens, idx, options, env, renderer, 'dl_open')
+
+      this._markdownIt.renderer.rules.dt_open = (tokens, idx, options, env, renderer) =>
+        addLineNumber(tokens, idx, options, env, renderer, 'dt_open')
+
+      this._markdownIt.renderer.rules.dd_open = (tokens, idx, options, env, renderer) =>
+        addLineNumber(tokens, idx, options, env, renderer, 'dd_open')
+
+      // 渲染 HTML
+      const html = this._markdownIt.render(markdownContent)
+
+      // 验证 data-line 属性的完整性
+      this.validateLineMapping(html, lines.length)
+
+      return html
     }
     catch (error) {
       ErrorHandler.handleRenderError(error, 'Markdown 渲染')
@@ -583,6 +607,113 @@ export class MarkdownRenderer {
 
   get markdownIt(): MarkdownIt | undefined {
     return this._markdownIt
+  }
+
+  /**
+   * 查找 token 对应的源代码行号
+   * 通过分析 token 内容和位置来确定最准确的行号
+   */
+  private findSourceLineNumber(tokens: any[], tokenIdx: number, lines: string[], startLine: number): number {
+    const token = tokens[tokenIdx]
+    if (!token)
+      return -1
+
+    // 如果 token 已经有行号信息，直接使用
+    if (token.map && token.map[0] !== undefined) {
+      return token.map[0]
+    }
+
+    // 对于没有 map 信息的 token，尝试从内容匹配
+    const tokenContent = this.extractTokenContent(tokens, tokenIdx)
+    if (!tokenContent)
+      return startLine
+
+    // 在源代码中查找匹配的行
+    for (let i = startLine; i < lines.length; i++) {
+      const line = lines[i].trim()
+      if (line && tokenContent.includes(line)) {
+        return i
+      }
+    }
+
+    // 如果找不到匹配，返回当前位置
+    return startLine
+  }
+
+  /**
+   * 提取 token 的文本内容用于匹配
+   */
+  private extractTokenContent(tokens: any[], idx: number): string {
+    const token = tokens[idx]
+    if (!token)
+      return ''
+
+    let content = ''
+    const tokenType = token.type
+
+    // 根据 token 类型提取内容
+    if (tokenType === 'heading_open') {
+      // 查找对应的 heading_close 之间的内容
+      for (let i = idx + 1; i < tokens.length; i++) {
+        if (tokens[i].type === 'heading_close')
+          break
+        if (tokens[i].type === 'inline') {
+          content += tokens[i].content
+        }
+      }
+    }
+    else if (tokenType === 'paragraph_open') {
+      // 查找对应的 paragraph_close 之间的内容
+      for (let i = idx + 1; i < tokens.length; i++) {
+        if (tokens[i].type === 'paragraph_close')
+          break
+        if (tokens[i].type === 'inline') {
+          content += tokens[i].content
+        }
+      }
+    }
+    else if (tokenType === 'list_item_open') {
+      // 查找对应的 list_item_close 之间的内容
+      for (let i = idx + 1; i < tokens.length; i++) {
+        if (tokens[i].type === 'list_item_close')
+          break
+        if (tokens[i].type === 'inline') {
+          content += tokens[i].content
+        }
+      }
+    }
+    else if (tokenType === 'fence') {
+      // 代码块，使用语言信息和第一行代码
+      content = token.info || ''
+      if (token.content) {
+        const firstLine = token.content.split('\n')[0]
+        content += ` ${firstLine}`
+      }
+    }
+    else if (tokenType === 'code_block') {
+      // 简单代码块
+      content = token.content || ''
+    }
+
+    return content.trim()
+  }
+
+  /**
+   * 验证行号映射的完整性
+   * 确保生成的 HTML 包含足够的 data-line 属性
+   */
+  private validateLineMapping(html: string, totalLines: number): void {
+    // 统计 data-line 属性的数量
+    const dataLineMatches = html.match(/data-line="\d+"/g)
+    const dataLineCount = dataLineMatches ? dataLineMatches.length : 0
+
+    // 记录统计信息用于调试
+    if (dataLineCount < Math.max(1, totalLines * 0.1)) { // 至少应该有10%的行有映射
+      console.warn(`[MarkdownRenderer] 行号映射可能不完整: ${dataLineCount} 个 data-line 属性，总共 ${totalLines} 行`)
+    }
+    else {
+      // 行号映射完成
+    }
   }
 
   dispose(): void {

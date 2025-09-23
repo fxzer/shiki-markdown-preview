@@ -42,7 +42,6 @@
 - **全屏预览**: `Ctrl+K V` (Windows/Linux) 或 `Cmd+K V` (Mac)
 - **主题选择**: `Ctrl+Shift+T` (Windows/Linux) 或 `Cmd+Shift+T` (Mac)
 
-
 ## 🎨 主题选择
 
 扩展支持 60+ 种精美主题。您可以通过以下方式切换主题：
