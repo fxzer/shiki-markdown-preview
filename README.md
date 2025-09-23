@@ -42,11 +42,6 @@ A powerful VS Code extension that provides Shiki-based Markdown preview function
 - **Full Preview**: `Ctrl+K V` (Windows/Linux) or `Cmd+K V` (Mac)
 - **Theme Selection**: `Ctrl+Shift+T` (Windows/Linux) or `Cmd+Shift+T` (Mac)
 
-#### Method 3: Editor Menu
-
-- Right-click in a Markdown file
-- Select "Open Markdown Preview" from the context menu
-
 ## 🎨 Theme Selection
 
 The extension supports 60+ beautiful themes. You can switch themes in several ways:

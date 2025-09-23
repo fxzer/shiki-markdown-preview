@@ -42,10 +42,6 @@
 - **全屏预览**: `Ctrl+K V` (Windows/Linux) 或 `Cmd+K V` (Mac)
 - **主题选择**: `Ctrl+Shift+T` (Windows/Linux) 或 `Cmd+Shift+T` (Mac)
 
-#### 方法三：编辑器菜单
-
-- 在 Markdown 文件中右键
-- 从上下文菜单中选择 "Open Markdown Preview"
 
 ## 🎨 主题选择
 
