@@ -396,7 +396,7 @@ export class MarkdownPreviewPanel {
   }
 
   /**
-   * Update content with a new document
+   * Update content with a new document - 重构版本
    */
   public async updateContent(document: vscode.TextDocument): Promise<void> {
     if (!this._isInitialized) {
@@ -407,73 +407,114 @@ export class MarkdownPreviewPanel {
     this._currentDocument = document
 
     try {
-      const content = document.getText()
-      const currentTheme = this._themeService.currentTheme
-
-      // 检查是否需要重新渲染（内容或主题发生变化）
-      const shouldRerender = this._lastRenderedContent !== content
-        || this._lastRenderedDocumentVersion !== document.version
-        || this._lastRenderedTheme !== currentTheme
-
-      if (!shouldRerender) {
+      // 检查是否需要重新渲染
+      if (!this.shouldRerender(document)) {
         ErrorHandler.logInfo('内容未变化，跳过重新渲染', 'MarkdownPreviewPanel')
         return
       }
 
-      // 获取 front matter 数据
-      const frontMatterData = this._markdownRenderer.getFrontMatterData(content)
-      const renderedContent = await this._markdownRenderer.render(content, document)
+      // 渲染内容
+      await this.renderContent(document)
 
-      // 检测是否包含数学公式
-      const enableKatex = hasMathExpressions(content)
-
-      // 等待主题 CSS 变量
-      const themeCSSVariables = await this._themeService.getThemeCSSVariables()
-
-      // 获取文档宽度配置
-      const { ConfigService } = await import('../config')
-      const configService = new ConfigService()
-      const documentWidth = configService.getDocumentWidth()
-      const fontFamily = configService.getFontFamily()
-
-      // 确保在渲染前获取最新的主题类型
-      const currentThemeType = await this._themeService.refreshCurrentThemeType()
-      ErrorHandler.logInfo(`渲染时主题类型: ${currentThemeType}`, 'MarkdownPreviewPanel')
-
-      this._panel.webview.html = HTMLTemplateService.generateHTML({
-        webview: this._panel.webview,
-        extensionUri: this._extensionUri,
-        content: renderedContent,
-        themeCSSVariables,
-        frontMatterData, // 传递 front matter 数据
-        markdownThemeType: currentThemeType, // 传递主题类型
-        documentWidth, // 传递文档宽度
-        fontFamily, // 传递字体设置
-        enableScrollSync: this.getScrollSyncSetting(), // 传递滚动同步设置
-        enableKatex, // 传递 KaTeX 启用状态
-      })
-
-      // 更新面板标题 - 优先使用 front matter 中的 title
-      const fileName = document.fileName.split('/').pop() || 'Untitled'
-      const title = frontMatterData?.title || fileName
-      this._panel.title = title
-
-      // 保存状态
-      this._stateManager.saveState(document, this._themeService.currentTheme)
-
-      // 更新渲染缓存状态
-      this._lastRenderedContent = content
-      this._lastRenderedDocumentVersion = document.version
-      this._lastRenderedTheme = currentTheme
+      // 更新状态
+      this.updateRenderedState(document)
     }
     catch (error) {
-      ErrorHandler.logError('内容更新失败', error, 'MarkdownPreviewPanel')
-      ErrorHandler.safeExecute(
-        () => this.showError(`预览更新失败: ${error instanceof Error ? error.message : String(error)}`),
-        '显示错误消息失败',
-        'MarkdownPreviewPanel',
-      )
+      this.handleRenderError(error)
     }
+  }
+
+  /**
+   * 检查是否需要重新渲染
+   */
+  private shouldRerender(document: vscode.TextDocument): boolean {
+    const content = document.getText()
+    const currentTheme = this._themeService.currentTheme
+
+    return this._lastRenderedContent !== content
+      || this._lastRenderedDocumentVersion !== document.version
+      || this._lastRenderedTheme !== currentTheme
+  }
+
+  /**
+   * 渲染内容到面板
+   */
+  private async renderContent(document: vscode.TextDocument): Promise<void> {
+    const content = document.getText()
+
+    // 获取 front matter 数据
+    const frontMatterData = this._markdownRenderer.getFrontMatterData(content)
+    const renderedContent = await this._markdownRenderer.render(content, document)
+
+    // 检测是否包含数学公式
+    const enableKatex = hasMathExpressions(content)
+
+    // 等待主题 CSS 变量
+    const themeCSSVariables = await this._themeService.getThemeCSSVariables()
+
+    // 获取文档宽度配置
+    const { ConfigService } = await import('../config')
+    const configService = new ConfigService()
+    const documentWidth = configService.getDocumentWidth()
+    const fontFamily = configService.getFontFamily()
+
+    // 确保在渲染前获取最新的主题类型
+    const currentThemeType = await this._themeService.refreshCurrentThemeType()
+    ErrorHandler.logInfo(`渲染时主题类型: ${currentThemeType}`, 'MarkdownPreviewPanel')
+
+    // 生成并设置HTML内容
+    this._panel.webview.html = HTMLTemplateService.generateHTML({
+      webview: this._panel.webview,
+      extensionUri: this._extensionUri,
+      content: renderedContent,
+      themeCSSVariables,
+      frontMatterData, // 传递 front matter 数据
+      markdownThemeType: currentThemeType, // 传递主题类型
+      documentWidth, // 传递文档宽度
+      fontFamily, // 传递字体设置
+      enableScrollSync: this.getScrollSyncSetting(), // 传递滚动同步设置
+      enableKatex, // 传递 KaTeX 启用状态
+    })
+
+    // 更新面板标题 - 优先使用 front matter 中的 title
+    this.updatePanelTitle(document, frontMatterData)
+  }
+
+  /**
+   * 更新面板标题
+   */
+  private updatePanelTitle(document: vscode.TextDocument, frontMatterData: any): void {
+    const fileName = document.fileName.split('/').pop() || 'Untitled'
+    const title = frontMatterData?.title || fileName
+    this._panel.title = title
+  }
+
+  /**
+   * 更新渲染状态
+   */
+  private updateRenderedState(document: vscode.TextDocument): void {
+    const content = document.getText()
+    const currentTheme = this._themeService.currentTheme
+
+    // 保存状态
+    this._stateManager.saveState(document, currentTheme)
+
+    // 更新渲染缓存状态
+    this._lastRenderedContent = content
+    this._lastRenderedDocumentVersion = document.version
+    this._lastRenderedTheme = currentTheme
+  }
+
+  /**
+   * 处理渲染错误
+   */
+  private handleRenderError(error: any): void {
+    ErrorHandler.logError('内容更新失败', error, 'MarkdownPreviewPanel')
+    ErrorHandler.safeExecute(
+      () => this.showError(`预览更新失败: ${error instanceof Error ? error.message : String(error)}`),
+      '显示错误消息失败',
+      'MarkdownPreviewPanel',
+    )
   }
 
   /**
