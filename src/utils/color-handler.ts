@@ -22,7 +22,7 @@ export function isDarkColor(color: string): boolean {
  * @returns CSS变量字符串
  */
 export function toCssVarsStr(colorsMap: Record<string, string>): string {
-  return Object.entries(colorsMap).map(([key, value]) => {
+  return Object.entries(colorsMap).filter(([_, value]) => Boolean(value)).map(([key, value]) => {
     const cssVarName = key.replace(/\./g, '-')
     return `--${cssVarName}: ${value};`
   }).join('')

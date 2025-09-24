@@ -37,7 +37,6 @@ blockquote {
   border-left: 4px solid var(--markdown-blockQuote-border);
   padding: 0.5rem 1rem;
   margin: 0 0 1rem 0;
-  font-style: italic;
 }
 
 /* blockquote嵌套层级样式 */
@@ -118,7 +117,7 @@ pre.shiki .line.highlighted {
 
 /* 链接样式 */
 a {
-  color: var(--textLink-foreground, var(--vscode-textLink-foreground));
+  color: var(--textLink-foreground, var(--vscode-textLink-foreground)) !important;
   text-decoration: none;
 }
 
@@ -343,7 +342,6 @@ b {
   font-weight: 600;
 }
 
-em,
 i {
   font-style: italic;
   color: var(--editor-foreground);
