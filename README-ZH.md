@@ -6,15 +6,31 @@
 
 ## ✨ 功能特性
 
-- 🎨 **丰富的主题选择**: 支持 60+ 种 Shiki 主题，包括浅色和深色主题
+- 🎨 **丰富的主题选择**: 支持 [60+ 种 Shiki 主题](https://shiki.style/themes)，包括浅色和深色主题
 - ⌨️ **交互式主题选择器**: 使用键盘方向键实时预览不同主题效果
-- 📝 **代码语法高亮**: 集成 Shiki 全部编程语言的语法高亮，支持代码复制
+- 📝 **代码语法高亮**: 集成 [Shiki 全部编程语言](https://shiki.style/languages)的语法高亮，支持代码复制
 - 🔗 **双向同步滚动**: 编辑器与预览区实时滚动同步
 - 📱 **响应式设计**: 适配不同屏幕尺寸的自适应布局
 - 🎯 **目录自动生成**: 自动生成 Notion 风格的目录
 - 🖼️ **图片懒加载**: 优化的图片加载，提升性能
 - 📊 **Mermaid 支持**: 支持 Mermaid 图表渲染
 - 🧮 **数学公式**: 基于 KaTeX 的数学公式渲染
+
+## 📸 截图
+
+<div align="center">
+
+![](examples/example1.png)
+
+![](examples/example2.png)
+
+![](examples/example3.png)
+
+![](examples/example4.png)
+
+![](examples/example5.png)
+
+</div>
 
 ## 🚀 快速开始
 
@@ -54,37 +70,6 @@
 2. 使用方向键浏览不同主题
 3. 按 Enter 键选择主题
 
-### 可用主题
-
-#### 浅色主题
-
-- `catppuccin-latte`
-- `everforest-light`
-- `github-light`
-- `gruvbox-light-*`
-- `kanagawa-lotus`
-- `material-theme-lighter`
-- `rose-pine-dawn`
-- `solarized-light`
-- `vitesse-light`
-- 以及更多...
-
-#### 深色主题
-
-- `catppuccin-mocha`
-- `dracula`
-- `github-dark`
-- `gruvbox-dark-*`
-- `kanagawa-dragon`
-- `material-theme`
-- `monokai`
-- `night-owl`
-- `nord`
-- `rose-pine`
-- `tokyo-night`
-- `vitesse-dark`
-- 以及更多...
-
 ## ⚙️ 配置
 
 ### 设置
@@ -95,7 +80,8 @@
 {
   "shikiMarkdownPreview.currentTheme": "vitesse-dark",
   "shikiMarkdownPreview.documentWidth": "800px",
-  "shikiMarkdownPreview.fontFamily": "inherit"
+  "shikiMarkdownPreview.fontFamily": "inherit",
+  "shikiMarkdownPreview.enableScrollSync": true
 }
 ```
 

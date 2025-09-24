@@ -20,23 +20,33 @@ A powerful VS Code extension that provides Shiki-based Markdown preview function
 **Or install directly from the marketplace:**
 [![Install from VS Code Marketplace](https://img.shields.io/badge/Install%20from-VS%20Code%20Marketplace-blue?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
 
-### Quick Install Command
-
-```bash
-code --install-extension fxzer8888.shiki-markdown-preview
-```
-
 ## ✨ Features
 
-- 🎨 **Rich Theme Selection**: Support for 60+ Shiki themes, including light and dark themes
+- 🎨 **Rich Theme Selection**: Support for [60+ Shiki themes](https://shiki.style/themes), including light and dark themes
 - ⌨️ **Interactive Theme Picker**: Use keyboard arrow keys to preview different themes in real-time
-- 📝 **Code Syntax Highlighting**: Integrated Shiki syntax highlighting for all programming languages with code copy support
+- 📝 **Code Syntax Highlighting**: Integrated Shiki syntax highlighting for [all programming languages](https://shiki.style/languages), with code copy support
 - 🔗 **Bidirectional Scroll Sync**: Real-time scroll synchronization between editor and preview area
 - 📱 **Responsive Design**: Adaptive layout for different screen sizes
 - 🎯 **Auto-generated TOC**: Auto-generated Notion-style table of contents
 - 🖼️ **Image Lazy Loading**: Optimized image loading for better performance
 - 📊 **Mermaid Support**: Built-in support for Mermaid diagrams
 - 🧮 **Math Support**: LaTeX math rendering with KaTeX
+
+## 📸 Screenshots
+
+<div align="center">
+
+![](examples/example1.png)
+
+![](examples/example2.png)
+
+![](examples/example3.png)
+
+![](examples/example4.png)
+
+![](examples/example5.png)
+
+</div>
 
 ## 🚀 Quick Start
 
@@ -117,7 +127,8 @@ You can customize the extension behavior through VS Code settings:
 {
   "shikiMarkdownPreview.currentTheme": "vitesse-dark",
   "shikiMarkdownPreview.documentWidth": "800px",
-  "shikiMarkdownPreview.fontFamily": "inherit"
+  "shikiMarkdownPreview.fontFamily": "inherit",
+  "shikiMarkdownPreview.enableScrollSync": true
 }
 ```
 

@@ -77,3 +77,4 @@ node_modules/shiki/**/docs/
 node_modules/**/locale/  # 本地化文件
 node_modules/**/locales/
 node_modules/**/i18n/
+examples
