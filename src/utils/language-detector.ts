@@ -217,6 +217,7 @@ export const SUPPORTED_LANGUAGES = [
   'wikitext',
   'wit',
   'wolfram',
+  'text',
   'xml',
   'xsl',
   'yaml',
@@ -226,16 +227,55 @@ export const SUPPORTED_LANGUAGES = [
 const md = new MarkdownIt()
 
 /**
- * Shell 语言映射表
- * 将常见的 shell 语言标识符映射到 shiki 支持的 shellscript
+ * 语言别名映射表
+ * 将常见的语言简写映射到完整的语言名称
  */
-const SHELL_LANGUAGE_MAP: Record<string, string> = {
-  bash: 'shellscript',
-  sh: 'shellscript',
-  shell: 'shellscript',
-  zsh: 'shellscript',
-  fish: 'fish', // fish 在 shiki 中有独立支持
-  powershell: 'powershell', // powershell 在 shiki 中有独立支持
+const LANGUAGE_ALIAS_MAP: Record<string, string> = {
+  'bash': 'shellscript',
+  'sh': 'shellscript',
+  'shell': 'shellscript',
+  'zsh': 'shellscript',
+  'fish': 'fish', // fish 在 shiki 中有独立支持
+  'powershell': 'powershell', // powershell 在 shiki 中有独立支持
+  // JavaScript 相关
+  'js': 'javascript',
+  'jsx': 'jsx',
+
+  // TypeScript 相关
+  'ts': 'typescript',
+
+  // Python 相关
+  'py': 'python',
+
+  'htm': 'html',
+  // Markdown 相关
+  'md': 'markdown',
+  // YAML 相关
+  'yml': 'yaml',
+
+  // Go 相关
+  'golang': 'go',
+
+  // Rust 相关
+  'rs': 'rust',
+  'rb': 'ruby',
+
+  // C++ 相关
+  'c++': 'cpp',
+
+  // C# 相关
+  'cs': 'csharp',
+  'c#': 'csharp',
+
+  // Vim 相关
+  'vim': 'viml',
+
+  // Docker 相关
+  'dockerfile': 'docker',
+
+  // 其他常见别名
+  'txt': 'text',
+  'plaintext': 'text',
 }
 
 /**
@@ -243,15 +283,17 @@ const SHELL_LANGUAGE_MAP: Record<string, string> = {
  * 将用户输入的语言标识符映射到 shiki 支持的语言
  */
 export function mapLanguageToShiki(language: string): string {
+  const lowerLanguage = language.toLowerCase()
+
   // 如果已经是支持的语言，直接返回
-  if (SUPPORTED_LANGUAGES.includes(language)) {
-    return language
+  if (SUPPORTED_LANGUAGES.includes(lowerLanguage)) {
+    return lowerLanguage
   }
 
-  // 检查 shell 语言映射
-  const mappedLanguage = SHELL_LANGUAGE_MAP[language.toLowerCase()]
-  if (mappedLanguage) {
-    return mappedLanguage
+  // 检查语言别名映射
+  const aliasMappedLanguage = LANGUAGE_ALIAS_MAP[lowerLanguage]
+  if (aliasMappedLanguage) {
+    return aliasMappedLanguage
   }
 
   // 如果都不匹配，返回原始语言（让后续处理决定是否支持）
