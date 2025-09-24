@@ -1,5 +1,9 @@
 # Shiki Markdown Preview
 
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
+[![Version](https://img.shields.io/badge/version-1.1.4-green)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
+[![Downloads](https://img.shields.io/badge/downloads-0+-orange)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
+
 [English Documentation](README.md) | [中文文档](README-ZH.md)
 
 一个功能强大的 VS Code 扩展，提供基于 Shiki 的 Markdown 预览功能，支持 60+ 种语法高亮主题。

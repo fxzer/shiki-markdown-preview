@@ -1,7 +1,7 @@
 # Shiki Markdown Preview
 
 [![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
-[![Version](https://img.shields.io/badge/version-1.1.2-green)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
+[![Version](https://img.shields.io/badge/version-1.1.4-green)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
 [![Downloads](https://img.shields.io/badge/downloads-0+-orange)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
 
 [中文文档](README-ZH.md) | [English Documentation](README.md)
@@ -85,37 +85,6 @@ The extension supports 60+ beautiful themes. You can switch themes in several wa
 1. Open the theme picker with `Ctrl+Shift+T` (or `Cmd+Shift+T` on Mac)
 2. Use arrow keys to navigate through themes
 3. Press Enter to select a theme
-
-### Available Themes
-
-#### Light Themes
-
-- `catppuccin-latte`
-- `everforest-light`
-- `github-light`
-- `gruvbox-light-*`
-- `kanagawa-lotus`
-- `material-theme-lighter`
-- `rose-pine-dawn`
-- `solarized-light`
-- `vitesse-light`
-- And many more...
-
-#### Dark Themes
-
-- `catppuccin-mocha`
-- `dracula`
-- `github-dark`
-- `gruvbox-dark-*`
-- `kanagawa-dragon`
-- `material-theme`
-- `monokai`
-- `night-owl`
-- `nord`
-- `rose-pine`
-- `tokyo-night`
-- `vitesse-dark`
-- And many more...
 
 ## ⚙️ Configuration
 
