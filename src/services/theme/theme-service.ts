@@ -333,7 +333,7 @@ export class ThemeService {
           try {
             await this.forceReloadLanguage(lang)
           }
-          catch (error) {
+          catch {
             ErrorHandler.logWarning(`重新加载常用语言失败: ${lang}`, 'ThemeService')
           }
         }
@@ -343,7 +343,7 @@ export class ThemeService {
           try {
             await this.forceReloadLanguage(lang)
           }
-          catch (error) {
+          catch {
             ErrorHandler.logWarning(`重新加载检测语言失败: ${lang}`, 'ThemeService')
           }
         }
@@ -710,12 +710,12 @@ export class ThemeService {
           await (this._highlighter as any).loadLanguage(mappedLanguage)
           this._loadedLanguages.add(mappedLanguage)
         }
-        catch (recreateError) {
+        catch {
           ErrorHandler.logWarning(`重新创建高亮器后仍无法加载语言: ${mappedLanguage}`, 'ThemeService')
         }
       }
     }
-    catch (error) {
+    catch {
       ErrorHandler.logWarning(`强制重新加载语言失败: ${language}`, 'ThemeService')
     }
   }

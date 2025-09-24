@@ -1,3 +1,4 @@
+import * as path from 'node:path'
 import * as vscode from 'vscode'
 import { ErrorHandler } from './error-handler'
 
@@ -63,7 +64,7 @@ export class PathResolver {
     try {
       decodedPath = decodeURIComponent(relativePath)
     }
-    catch (error) {
+    catch {
       ErrorHandler.logWarning(`URL解码失败: ${relativePath}`, 'PathResolver')
       return null
     }
@@ -108,7 +109,6 @@ export class PathResolver {
 
     // 7. 使用 Node.js path 模块进行更安全的路径解析
     try {
-      const path = require('node:path')
       const basePathStr = basePath.fsPath
       const resolvedPathStr = path.resolve(basePathStr, decodedPath)
       const normalizedBasePath = path.resolve(basePathStr)
@@ -208,8 +208,8 @@ export class PathResolver {
     try {
       const filePath = fileUri.fsPath
       return allowedDirectories.some((allowedDir) => {
-        const normalizedAllowedDir = require('node:path').resolve(allowedDir)
-        const normalizedFilePath = require('node:path').resolve(filePath)
+        const normalizedAllowedDir = path.resolve(allowedDir)
+        const normalizedFilePath = path.resolve(filePath)
         return normalizedFilePath.startsWith(normalizedAllowedDir)
       })
     }

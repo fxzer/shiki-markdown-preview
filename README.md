@@ -1,24 +1,48 @@
 # Shiki Markdown Preview
 
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
+[![Version](https://img.shields.io/badge/version-1.1.2-green)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
+[![Downloads](https://img.shields.io/badge/downloads-0+-orange)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
+
 [中文文档](README-ZH.md) | [English Documentation](README.md)
 
 A powerful VS Code extension that provides Shiki-based Markdown preview functionality with support for 60+ syntax highlighting themes.
+
+## 📦 Installation
+
+### From VS Code Marketplace
+
+1. Open VS Code
+2. Go to Extensions (Ctrl+Shift+X / Cmd+Shift+X)
+3. Search for "Shiki Markdown Preview"
+4. Click Install
+
+**Or install directly from the marketplace:**
+[![Install from VS Code Marketplace](https://img.shields.io/badge/Install%20from-VS%20Code%20Marketplace-blue?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
+
+### Quick Install Command
+
+```bash
+code --install-extension fxzer8888.shiki-markdown-preview
+```
 
 ## ✨ Features
 
 - 🎨 **Rich Theme Selection**: Support for 60+ Shiki themes, including light and dark themes
 - ⌨️ **Interactive Theme Picker**: Use keyboard arrow keys to preview different themes in real-time
-- 🔄 **Real-time Theme Switching**: Switch themes with one click without restarting
-- 📝 **Syntax Highlighting**: Support for syntax highlighting in multiple programming languages
-- 🔗 **Scroll Synchronization**: Real-time scroll synchronization between editor and preview area
-- 💾 **Configuration Persistence**: Theme selection automatically saved to VS Code configuration
+- 📝 **Code Syntax Highlighting**: Integrated Shiki syntax highlighting for all programming languages with code copy support
+- 🔗 **Bidirectional Scroll Sync**: Real-time scroll synchronization between editor and preview area
 - 📱 **Responsive Design**: Adaptive layout for different screen sizes
-- 🎯 **Table of Contents**: Auto-generated TOC with anchor links
+- 🎯 **Auto-generated TOC**: Auto-generated Notion-style table of contents
 - 🖼️ **Image Lazy Loading**: Optimized image loading for better performance
 - 📊 **Mermaid Support**: Built-in support for Mermaid diagrams
 - 🧮 **Math Support**: LaTeX math rendering with KaTeX
 
 ## 🚀 Quick Start
+
+### Version Support
+
+`vscode >= 1.100.0`
 
 ### Installation
 
@@ -38,7 +62,7 @@ A powerful VS Code extension that provides Shiki-based Markdown preview function
 
 #### Method 2: Keyboard Shortcuts
 
-- **Slide Preview**: `Ctrl+Shift+V` (Windows/Linux) or `Cmd+Shift+V` (Mac)
+- **Side Preview**: `Ctrl+Shift+V` (Windows/Linux) or `Cmd+Shift+V` (Mac)
 - **Full Preview**: `Ctrl+K V` (Windows/Linux) or `Cmd+K V` (Mac)
 - **Theme Selection**: `Ctrl+Shift+T` (Windows/Linux) or `Cmd+Shift+T` (Mac)
 
@@ -99,11 +123,12 @@ You can customize the extension behavior through VS Code settings:
 
 #### Configuration Options
 
-| Setting                              | Type   | Default          | Description                         |
-| ------------------------------------ | ------ | ---------------- | ----------------------------------- |
-| `shikiMarkdownPreview.currentTheme`  | string | `"vitesse-dark"` | Current theme for markdown preview  |
-| `shikiMarkdownPreview.documentWidth` | string | `"800px"`        | Document width (supports CSS units) |
-| `shikiMarkdownPreview.fontFamily`    | string | `"inherit"`      | Font family for preview             |
+| Setting                                 | Type    | Default          | Description                         |
+| --------------------------------------- | ------- | ---------------- | ----------------------------------- |
+| `shikiMarkdownPreview.currentTheme`     | string  | `"vitesse-dark"` | Current theme for markdown preview  |
+| `shikiMarkdownPreview.documentWidth`    | string  | `"800px"`        | Document width (supports CSS units) |
+| `shikiMarkdownPreview.fontFamily`       | string  | `"inherit"`      | Font family for preview             |
+| `shikiMarkdownPreview.enableScrollSync` | boolean | `true`           | Enable scroll synchronization       |
 
 ### Supported CSS Units for Document Width
 
@@ -196,8 +221,6 @@ src/
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
 ### How to Contribute
 
 1. Fork the repository
@@ -222,6 +245,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🐛 [Report Issues](https://github.com/fxzer/shiki-markdown-preview/issues)
 - 💡 [Request Features](https://github.com/fxzer/shiki-markdown-preview/issues)
 - 📖 [Documentation](https://github.com/fxzer/shiki-markdown-preview/wiki)
+
+## 🛒 Get the Extension
+
+[![Install from VS Code Marketplace](https://img.shields.io/badge/Install%20from-VS%20Code%20Marketplace-blue?logo=visual-studio-code&style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
+
+**Available on VS Code Marketplace:** [Shiki Markdown Preview](https://marketplace.visualstudio.com/items?itemName=fxzer8888.shiki-markdown-preview)
 
 ---
 

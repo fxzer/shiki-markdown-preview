@@ -6,7 +6,7 @@
 // 这应该被正确映射为 javascript
 
 function hello() {
-  console.log("Hello, World!");
+  console.log('Hello, World!')
 }
 ```
 
@@ -15,11 +15,11 @@ function hello() {
 ```ts
 // 这应该被正确映射为 typescript
 interface User {
-  name: string;
-  age: number;
+  name: string
+  age: number
 }
 
-const user: User = { name: "Alice", age: 30 };
+const user: User = { name: 'Alice', age: 30 }
 ```
 
 ## Python 测试
@@ -78,7 +78,7 @@ class Program {
     }
 }
 ```
- 
+
 ## Ruby 测试
 
 ```rb
@@ -103,12 +103,7 @@ COPY . .
 RUN npm install
 CMD ["npm", "start"]
 ```
- 
 
- 
-
- 
- 
 ## 其他测试
 
 ```txt
@@ -128,4 +123,3 @@ CMD ["npm", "start"]
 27.01.2018 19:38:28,982 [8988] E/MyService: It crashed!
 27.01.2018 19:38:28,982 [8988] E/Subservice: It crashed!
 ```
- 

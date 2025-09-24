@@ -15,11 +15,11 @@
 3.  **图片**: [test-images.md](./test-images.md)
     - 图片链接、尺寸控制和不同来源。
 
-4.  **链接和引用**: [test-links-and-quotes.md](./test-links-and-quotes.md)
-    - 各种链接、引用块和折叠语法。
-
-5.  **表格**: [test-tables.md](./test-tables.md)
+4.  **表格**: [test-tables.md](./test-tables.md)
     - 基础表格、对齐方式和复杂表格。
+
+5.  **引用**: [test-quotes.md](./test-quotes.md)
+    - 各种引用块和嵌套引用语法。
 
 ### 数学公式测试
 
@@ -47,37 +47,27 @@
 11. **链接功能**: [test-links.md](./test-links.md)
     - 外部链接、内部链接、锚点链接等。
 
-12. **相对路径链接**: [test-relative-links.md](./test-relative-links.md)
-    - 相对路径文件跳转测试。
-
-13. **锚点链接**: [test-anchor-links.md](./test-anchor-links.md)
-    - 页面内锚点跳转测试。
-
-14. **简化链接**: [simple-links.md](./simple-links.md)
-    - 简化的链接测试。
-
 ### 功能测试
 
-15. **Front Matter**: [test-front-matter.md](./test-front-matter.md)
+12. **Front Matter**: [test-front-matter.md](./test-front-matter.md)
     - YAML front matter 解析测试。
 
-16. **性能测试**: [test-performance.md](./test-performance.md)
+13. **性能测试**: [test-performance.md](./test-performance.md)
     - 综合性能测试文档。
 
-17. **懒加载**: [test-lazyload.md](./test-lazyload.md)
-    - 图片懒加载功能测试。
-
-18. **行号显示**: [test-line-numbers.md](./test-line-numbers.md)
-    - 代码块行号显示测试。
-
-19. **图片错误处理**: [test-image-error.md](./test-image-error.md)
-    - 图片加载失败时的样式效果。
-
-20. **Body 最大宽度**: [test-body-max-width.md](./test-body-max-width.md)
+14. **Body 最大宽度**: [test-body-max-width.md](./test-body-max-width.md)
     - 预览页面最大宽度设置测试。
 
-21. **目录生成**: [test-toc.md](./test-toc.md)
+15. **目录生成**: [test-toc.md](./test-toc.md)
     - 自动目录生成测试。
 
-22. **背景块测试**: [test-background-block.md](./test-background-block.md)
+16. **背景块测试**: [test-background-block.md](./test-background-block.md)
     - 背景块相关功能测试。
+
+17. **语言别名**: [test-language-aliases.md](./test-language-aliases.md)
+    - 代码块语言别名映射测试。
+
+### 演示文件
+
+18. **Markdown-it 演示**: [md-it-demo.md](./md-it-demo.md)
+    - markdown-it 库的完整功能演示。
