@@ -4,6 +4,7 @@
 
 ```js
 // 这应该被正确映射为 javascript
+
 function hello() {
   console.log("Hello, World!");
 }

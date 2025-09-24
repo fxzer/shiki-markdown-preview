@@ -29,14 +29,24 @@ export function activate(context: vscode.ExtensionContext) {
   // 注册主题选择命令
   context.subscriptions.push(
     vscode.commands.registerCommand('shikiMarkdownPreview.selectTheme', async () => {
+      // 优先检查预览面板是否存在
+      if (MarkdownPreviewPanel.currentPanel) {
+        // 如果预览面板存在，直接显示主题选择器
+        await ErrorHandler.safeExecute(
+          () => showThemePicker(MarkdownPreviewPanel.currentPanel!, configService.getCurrentTheme()),
+          '主题选择器打开失败',
+          'Extension',
+        )
+        return
+      }
+
+      // 如果预览面板不存在，检查当前活动编辑器
       const markdownDocument = DocumentValidator.validateMarkdownDocument()
       if (!markdownDocument)
         return
 
-      // 确保预览窗口已打开并等待其完全初始化
-      if (!MarkdownPreviewPanel.currentPanel) {
-        await MarkdownPreviewPanel.createOrShowSlide(context.extensionUri, markdownDocument)
-      }
+      // 创建预览窗口并等待其完全初始化
+      await MarkdownPreviewPanel.createOrShowSlide(context.extensionUri, markdownDocument)
 
       if (MarkdownPreviewPanel.currentPanel) {
         await ErrorHandler.safeExecute(
@@ -90,7 +100,6 @@ export function activate(context: vscode.ExtensionContext) {
 
           // 如果主题没有实际变化，跳过更新
           if (newTheme === currentTheme) {
-            ErrorHandler.logInfo(`主题未变化，跳过更新: ${newTheme}`, 'Extension')
             return
           }
 

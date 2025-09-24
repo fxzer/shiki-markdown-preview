@@ -124,11 +124,22 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
 
   let accepted = false // 是否接受
   const originalTheme = currentThemeValue
+  let isDisposed = false // 是否已销毁
 
   // 使用 throttle-debounce 库创建防抖函数
-  const debouncedPreviewUpdate = debounce(300, async (selectedTheme: string) => {
+  const debouncedPreviewUpdate = debounce(100, async (selectedTheme: string) => {
+    // 如果已经销毁，不执行任何操作
+    if (isDisposed) {
+      return
+    }
+
     await ErrorHandler.safeExecute(
       async () => {
+        // 再次检查是否已销毁
+        if (isDisposed) {
+          return
+        }
+
         // 直接使用传入的 panel 参数，因为外部已经确保预览面板存在
         const themeService = panel.themeService
         if (await themeService.updateThemeForPreview(selectedTheme)) {
@@ -137,7 +148,6 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
             // 主题预览切换后，重新加载语言以解决代码块高亮问题
             try {
               await (panel as any)._markdownRenderer.reloadLanguagesAfterThemeChange(currentDocument.getText())
-              ErrorHandler.logInfo('主题预览切换后语言重新加载完成', 'ThemePicker')
             }
             catch (error) {
               ErrorHandler.logError('主题预览切换后语言重新加载失败', error, 'ThemePicker')
@@ -156,7 +166,6 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
   quickPick.onDidChangeActive(async (items) => {
     if (items.length > 0 && !accepted) {
       const selectedTheme = items[0].theme
-      ErrorHandler.logInfo(`预览主题: ${selectedTheme}`, 'ThemePicker')
 
       // 使用防抖函数
       debouncedPreviewUpdate(selectedTheme)
@@ -182,19 +191,48 @@ export async function showThemePicker(panel: MarkdownPreviewPanel, currentThemeV
 
   // 监听隐藏事件（ESC 或点击外部）
   quickPick.onDidHide(async () => {
+    // 标记为已销毁，防止防抖函数执行
+    isDisposed = true
+
     // 取消防抖函数（throttle-debounce 库会自动处理）
     debouncedPreviewUpdate.cancel()
+
+    // 如果是按回车键确认（accepted = true），跳过语言重新加载
+    if (accepted) {
+      return
+    }
 
     if (!accepted) {
       // 如果是取消操作，恢复原始主题
       await ErrorHandler.safeExecute(
         async () => {
           const themeService = panel.themeService
+
           if (await themeService.updateThemeForPreview(originalTheme)) {
             const currentDocument = panel.currentDocument
             if (currentDocument) {
-              await panel.updateContent(currentDocument)
+              // 强制重新渲染以应用原始主题
+              try {
+                await (panel as any)._markdownRenderer.reloadLanguagesAfterThemeChange(currentDocument.getText())
+              }
+              catch (error) {
+                ErrorHandler.logError('ESC 恢复：主题恢复后语言重新加载失败', error, 'ThemePicker')
+              }
+
+              // 强制更新渲染状态，确保主题变化被检测到
+              try {
+                // 直接调用内部方法强制重新渲染
+                await (panel as any).renderContent(currentDocument)
+              }
+              catch (error) {
+                ErrorHandler.logError('ESC 恢复：强制重新渲染失败，尝试常规更新', error, 'ThemePicker')
+                // 如果强制渲染失败，回退到常规更新
+                await panel.updateContent(currentDocument)
+              }
             }
+          }
+          else {
+            ErrorHandler.logWarning(`ESC 处理：无法恢复主题到 ${originalTheme}`, 'ThemePicker')
           }
         },
         '主题恢复失败',

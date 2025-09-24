@@ -46,6 +46,7 @@ export class MarkdownPreviewPanel {
   private _lastRenderedContent: string | undefined
   private _lastRenderedDocumentVersion: number | undefined
   private _lastRenderedTheme: string | undefined
+  private _isThemeChanging: boolean = false
 
   // 初始化 Promise 相关
   private _initializationPromise: Promise<void> | undefined
@@ -201,6 +202,11 @@ export class MarkdownPreviewPanel {
     vscode.workspace.onDidChangeConfiguration(
       (event) => {
         if (event.affectsConfiguration('shikiMarkdownPreview.currentTheme')) {
+          // 如果正在手动切换主题，跳过配置变化处理
+          if (this._isThemeChanging) {
+            ErrorHandler.logInfo('主题正在手动切换中，跳过配置变化处理', 'MarkdownPreviewPanel')
+            return
+          }
           ErrorHandler.safeExecute(
             () => this.handleThemeChange(),
             '主题变化处理失败',
@@ -325,10 +331,7 @@ export class MarkdownPreviewPanel {
     }
 
     // 安全地打开文件
-    const success = await PathResolver.openFileSafely(targetFile, vscode.ViewColumn.One)
-    if (success) {
-      ErrorHandler.logInfo(`已打开相对路径文件: ${filePath}`, 'MarkdownPreviewPanel')
-    }
+    await PathResolver.openFileSafely(targetFile, vscode.ViewColumn.One)
   }
 
   /**
@@ -355,18 +358,23 @@ export class MarkdownPreviewPanel {
   }
 
   private async handleThemeSelection(theme: string): Promise<void> {
-    const success = await this._themeService.changeTheme(theme)
-    if (success && this._currentDocument) {
-      // 主题切换成功后，重新加载语言以解决代码块高亮问题
-      try {
-        await this._markdownRenderer.reloadLanguagesAfterThemeChange(this._currentDocument.getText())
-        ErrorHandler.logInfo('主题切换后语言重新加载完成', 'MarkdownPreview')
-      }
-      catch (error) {
-        ErrorHandler.logError('主题切换后语言重新加载失败', error, 'MarkdownPreview')
-      }
+    this._isThemeChanging = true
+    try {
+      const success = await this._themeService.changeTheme(theme)
+      if (success && this._currentDocument) {
+        // 主题切换成功后，重新加载语言以解决代码块高亮问题
+        try {
+          await this._markdownRenderer.reloadLanguagesAfterThemeChange(this._currentDocument.getText())
+        }
+        catch (error) {
+          ErrorHandler.logError('主题切换后语言重新加载失败', error, 'MarkdownPreview')
+        }
 
-      this.updateContentDebounced(this._currentDocument)
+        this.updateContentDebounced(this._currentDocument)
+      }
+    }
+    finally {
+      this._isThemeChanging = false
     }
   }
 
@@ -409,7 +417,6 @@ export class MarkdownPreviewPanel {
     try {
       // 检查是否需要重新渲染
       if (!this.shouldRerender(document)) {
-        ErrorHandler.logInfo('内容未变化，跳过重新渲染', 'MarkdownPreviewPanel')
         return
       }
 
@@ -460,7 +467,6 @@ export class MarkdownPreviewPanel {
 
     // 确保在渲染前获取最新的主题类型
     const currentThemeType = await this._themeService.refreshCurrentThemeType()
-    ErrorHandler.logInfo(`渲染时主题类型: ${currentThemeType}`, 'MarkdownPreviewPanel')
 
     // 生成并设置HTML内容
     this._panel.webview.html = HTMLTemplateService.generateHTML({
@@ -571,9 +577,19 @@ export class MarkdownPreviewPanel {
       return
     }
 
+    // 如果正在手动切换主题，跳过配置变化处理
+    if (this._isThemeChanging) {
+      return
+    }
+
     try {
       // 重新初始化主题服务以获取新主题
       await this._themeService.initializeHighlighter()
+
+      // 重新加载文档中使用的所有语言
+      if (this._currentDocument) {
+        await this._markdownRenderer.reloadLanguagesAfterThemeChange(this._currentDocument.getText())
+      }
 
       // 更新内容以应用新主题
       if (this._currentDocument) {
@@ -582,8 +598,6 @@ export class MarkdownPreviewPanel {
       else {
         await this.renderEmptyPanel()
       }
-
-      ErrorHandler.logInfo('主题变化已应用到预览', 'MarkdownPreviewPanel')
     }
     catch (error) {
       ErrorHandler.logError('主题变化处理失败', error, 'MarkdownPreviewPanel')
@@ -609,8 +623,6 @@ export class MarkdownPreviewPanel {
         command: 'updateDocumentWidth',
         width: documentWidth,
       })
-
-      ErrorHandler.logInfo(`文档宽度变化已应用到预览: ${documentWidth}`, 'MarkdownPreviewPanel')
     }
     catch (error) {
       ErrorHandler.logError('文档宽度变化处理失败', error, 'MarkdownPreviewPanel')
@@ -636,8 +648,6 @@ export class MarkdownPreviewPanel {
         command: 'updateFontFamily',
         fontFamily,
       })
-
-      ErrorHandler.logInfo(`字体变化已应用到预览: ${fontFamily}`, 'MarkdownPreviewPanel')
     }
     catch (error) {
       ErrorHandler.logError('字体变化处理失败', error, 'MarkdownPreviewPanel')
@@ -661,8 +671,6 @@ export class MarkdownPreviewPanel {
         command: 'updateTheme',
         themeType: currentThemeType,
       })
-
-      ErrorHandler.logInfo(`主题类型变化已应用到预览: ${currentThemeType}`, 'MarkdownPreviewPanel')
     }
     catch (error) {
       ErrorHandler.logError('主题类型变化处理失败', error, 'MarkdownPreviewPanel')
